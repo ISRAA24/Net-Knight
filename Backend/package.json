@@ -21,6 +21,7 @@
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.1",
+    "nodemailer": "^8.0.1",
     "ssh2": "^1.17.0",
     "winston": "^3.19.0"
   },
