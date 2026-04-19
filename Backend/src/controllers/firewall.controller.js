@@ -48,6 +48,27 @@ exports.addRule = async (req, res) => {
     try {
         let { tableName, chainName, ipSource, ipDestination, portDestination, interface, protocol, action } = req.body;
 
+        const ipsToCheck = [
+            { name: 'Source IP', value: ipSource },
+            { name: 'Destination IP', value: ipDestination }
+        ];
+
+        
+        for (let ipObj of ipsToCheck) {
+        
+            if (ipObj.value && ipObj.value.trim() !== '') {
+                const ipPart = ipObj.value.split('/')[0]; 
+                
+                if (!net.isIPv4(ipPart)) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Invalid IP format for ${ipObj.name}: ${ipObj.value}. Please use a valid IPv4 address.` 
+                    });
+                }
+            }
+        }
+
+
         const table = await Table.findOne({ name: tableName });
         if (!table) return res.status(404).json({ message: 'Table not found.' });
 
@@ -97,7 +118,7 @@ exports.deleteRule = async (req, res) => {
             }
         });
 
-        // 2. مسح من الداتابيس
+        
         await rule.deleteOne();
         res.status(200).json({ success: true, message: 'Rule deleted from Firewall and DB' });
     } catch (error) {
