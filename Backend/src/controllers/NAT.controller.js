@@ -1,5 +1,5 @@
 const NatRule = require('../models/NATrules');
-const firewallAgent = require('../services/firewallAgent');
+const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
 

@@ -1,4 +1,4 @@
-const firewallAgent = require('../services/firewallAgent');
+const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 
 //GET /api/interfaces
