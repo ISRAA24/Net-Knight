@@ -1,14 +1,14 @@
 const User = require('../models/User');
+const logger = require('../utils/logger');
+
+//POST /api/users
 exports.addUser = async (req, res) => {
     try {
         const { username, email, password, role } = req.body;
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: 'Please provide all fields' });
-        }
-
+        
         if (role === 'super_admin') {
             return res.status(403).json({ 
-                message: 'Action denied. There can be only one Root Super Admin. You can only create Admins or Analysts.' 
+                message: 'Action denied. There can be only one Super Admin. You can only create Admins or Analysts.' 
             });
         }
 
@@ -24,39 +24,48 @@ exports.addUser = async (req, res) => {
             email,
             password, 
             role: role || 'analyst', 
-            isVerified: true 
+            isVerified: true ,
+            mustChangedPassword: true,
         });
 
-        if (user) {
-            res.status(201).json({
-                success: true,
-                message: "User created successfully",
-                data: {
-                    _id: user._id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role
-                }
-            });
-        }
+        return res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            data   : { _id: user._id, username: user.username, email: user.email, role: user.role }
+        });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`addUser error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-
+//GET /api/users
 exports.getAllUsers = async (req, res) => {
     try {
-        
-        const users = await User.find().select('-password').sort({ createdAt: -1 });
-        res.status(200).json(users);
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, parseInt(req.query.limit) || 20);
+        const skip  = (page - 1) * limit;
+
+        const [users, total] = await Promise.all([
+            User.find().select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
+            User.countDocuments()
+        ]);
+
+        return res.status(200).json({
+            success   : true,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            data      : users
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`getAllUsers error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-
+//DELETE /api/users/:id
 exports.deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -70,14 +79,19 @@ exports.deleteUser = async (req, res) => {
             return res.status(400).json({ message: 'Cannot delete Super Admin account' });
         }
 
+          // Prevent self-deletion
+        if (user._id.equals(req.user._id)) {
+            return res.status(400).json({ message: 'You cannot delete your own account' });
+        }
         await user.deleteOne();
-        res.status(200).json({ message: 'User removed successfully' });
+        return res.status(200).json({ success: true, message: 'User removed successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`deleteUser error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-
+//PUT /api/users/:id
 exports.updateUser = async (req, res) => {
     try {
         
@@ -122,7 +136,7 @@ exports.updateUser = async (req, res) => {
 
         const updatedUser = await user.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "User updated successfully",
             data: {
@@ -134,6 +148,7 @@ exports.updateUser = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`updateUser error: ${error.message}`);
+        return res.status(500).json({ message: error.message });
     }
 };

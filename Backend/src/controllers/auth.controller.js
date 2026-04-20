@@ -1,15 +1,20 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
-const crypto = require('crypto'); 
+const logger = require('../utils/logger');         
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
+const generateVerifyCode = () =>
+    Math.floor(100000 + Math.random() * 900000).toString();
+
+//POST /api/auth/signup
 exports.signup = async (req, res) => {
     try {
         const { username, email, password } = req.body;
+        // Only one super_admin is allowed — everyone else must be added by that super_admin
         const userCount = await User.countDocuments();
         if (userCount > 0) {
             return res.status(403).json({ 
@@ -17,7 +22,7 @@ exports.signup = async (req, res) => {
             });
         }
 
-        const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verifyCode = generateVerifyCode();
         
         const user = await User.create({
             username,
@@ -30,26 +35,29 @@ exports.signup = async (req, res) => {
         });
 
     
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Email Verification Code',
-                code: verifyCode
-            });
-            res.status(201).json({
-                message: "Super Admin created. Please check email for verification code.",
-                email: user.email
-            });
-        } catch (emailError) {
-            console.error(emailError);
-            res.status(500).json({ message: "User created but failed to send email." });
-        }
+        
+        await sendEmail({
+            email: user.email,
+            subject: 'Net-Knight , Email Verification Code',
+            code: verifyCode
+        });
+        res.status(201).json({
+            message: "Super Admin created. Please check email for verification code.",
+            email: user.email
+        });
+        
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`signup error: ${error.message}`);
+        // If user was created but email failed, surface a useful message
+        if (error.message?.includes('email') || error.message?.includes('ECONNREFUSED')) {
+            return res.status(500).json({ message: 'Account created but verification email failed to send. Contact support.' });
+        }
+        return res.status(500).json({ message: error.message });
     }
 };
 
+// POST /api/auth/verify
 exports.verifyEmail = async (req, res) => {
     try {
         const { email, code } = req.body; 
@@ -60,11 +68,15 @@ exports.verifyEmail = async (req, res) => {
             verificationCodeExpires: { $gt: Date.now() } 
         });
 
-        if (!user) {
-            return res.status(400).json({ message: "Invalid or expired code" });
+       if (
+            !user ||
+            user.verificationCode !== code ||
+            user.verificationCodeExpires < Date.now()
+        ) {
+            return res.status(400).json({ message: 'Invalid or expired verification code' });
         }
 
-        // تفعيل الحساب
+        
         user.isVerified = true;
         user.verificationCode = undefined;
         user.verificationCodeExpires = undefined;
@@ -81,54 +93,64 @@ exports.verifyEmail = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`verifyEmail error: ${error.message}`);
+        return res.status(500).json({ message: error.message });
     }
 };
 
-
+// POST /api/auth/login
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body; 
         const user = await User.findOne({ username });
 
-        if (user && (await user.matchPassword(password))) {
-            if (!user.isVerified) {
-                return res.status(401).json({ message: "Account not verified. Please verify your email." });
-            }
+        if (!user || !(await user.matchPassword(password))) {
+            return res.status(401).json({ message: 'Invalid username or password' });
+        }
 
-            res.json({
+        if (!user.isVerified) {
+            return res.status(401).json({ message: 'Account not verified. Please check your email.' });
+        }
+
+
+        return res.json({
                 _id: user._id,
                 username: user.username,
                 email: user.email,
                 role: user.role,
-                token: generateToken(user._id)
+                token: generateToken(user._id),
+                mustChangedPassword: user.mustChangedPassword
             });
-        } else {
-            res.status(401).json({ message: 'Invalid username or password' });
-        }
+    
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        logger.error(`login error: ${error.message}`);
+        return res.status(500).json({ message: error.message });
     }
 };
 
-
+// POST /api/auth/resend-code
 exports.resendCode = async (req, res) => {
+    try {
     const { email } = req.body;
     const user = await User.findOne({ email });
     
     if(!user) return res.status(404).json({message: "User not found"});
     if(user.isVerified) return res.status(400).json({message: "User already verified"});
 
-    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verifyCode = generateVerifyCode();
     user.verificationCode = verifyCode;
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     await sendEmail({
         email: user.email,
-        subject: 'New Verification Code',
+        subject: 'Net-Knight, New Verification Code',
         code: verifyCode
     });
 
     res.json({message: "Code resent successfully"});
+} catch (error) {
+    logger.error(`resendCode error: ${error.message}`);
+    return res.status(500).json({ message: error.message });
+}
 };

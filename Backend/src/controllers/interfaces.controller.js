@@ -1,25 +1,29 @@
-const axios = require('axios');
-const FIREWALL_API_URL = process.env.FIREWALL_API_URL || 'http://192.168.1.50:5000';
+const firewallAgent = require('../services/firewallAgent');
+const logger = require('../utils/logger');
 
+//GET /api/interfaces
 exports.getInterfaces = async (req, res) => {
     try {
         
-        const pythonResponse = await axios.get(`${FIREWALL_API_URL}/api/interfaces`);
+        const pythonResponse = await firewallAgent.get('/api/interfaces');
         res.status(200).json({
             success: true,
             data: pythonResponse.data 
         });
     } catch (error) {
-        console.error("Error fetching interfaces from Python:", error.message);
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to communicate with Firewall Agent",
+        logger.error(`Error fetching interfaces from Python: ${error.message}`);
+         const status = error.code === 'ECONNABORTED' ? 504 : 500;
+        return res.status(status).json({
+            success: false,
+            message: status === 504
+                ? 'Firewall agent timed out.'
+                : 'Failed to communicate with Firewall Agent',
             details: error.response?.data || error.message
         });
     }
 };
 
-
+//PUT /api/interfaces/:realName
 exports.updateInterface = async (req, res) => {
     try {
         const interfaceRealName = req.params.realName; 
@@ -33,15 +37,16 @@ exports.updateInterface = async (req, res) => {
         };
 
         
-        const pythonResponse = await axios.put(`${FIREWALL_API_URL}/api/interfaces/${interfaceRealName}`, payload);
-        res.status(200).json({
+        const pythonResponse = await firewallAgent.put(`/api/interfaces/${interfaceRealName}`, payload);
+        return res.status(200).json({
             success: true,
             message: `Interface ${interfaceRealName} updated successfully`,
             data: pythonResponse.data
         });
     } catch (error) {
-        console.error("Error updating interface via Python:", error.message);
-        res.status(500).json({ 
+        logger.error(`updateInterface error: ${error.message}`);
+        const status = error.code === 'ECONNABORTED' ? 504 : 500;
+        return res.status(status).json({ 
             success: false, 
             message: "Failed to update interface on Firewall",
             details: error.response?.data || error.message
