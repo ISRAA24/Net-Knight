@@ -19,8 +19,12 @@ const staticRuleSchema = new mongoose.Schema(
         networkInterface: { type: String },          // renamed from 'interface' (reserved word)
         protocol: { type: String, enum: ['tcp', 'udp', 'icmp', 'any'] },
         action: { type: String, enum: ['accept', 'reject', 'drop', 'log'] },
-        comment: { type: String ,required: true},
-        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+        comment: { type: String, required: true },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        isActive: {
+            type: Boolean,
+            default: true
+        }
     },
     { timestamps: true }
 );

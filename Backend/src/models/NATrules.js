@@ -29,6 +29,10 @@ const natRuleSchema = new mongoose.Schema({
     externalPort: { type: String },
     internalPort: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    isActive: { 
+        type: Boolean, 
+        default: true 
+    }
 }, { timestamps: true }
 );
 

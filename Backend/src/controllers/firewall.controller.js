@@ -5,6 +5,7 @@ const Rule = require('../models/StaticRule');
 const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
+const NATRule = require('../models/NATrules'); 
 
 
 // ======================= TABLES =======================
@@ -130,27 +131,62 @@ exports.addRule = async (req, res) => {
         return firewallError(res, error);
     }
 };
-exports.getRules = async (req, res) => {
+// في ملف src/controllers/firewall.controller.js
+
+exports.toggleRuleStatus = async (req, res) => {
     try {
-        const page = Math.max(1, parseInt(req.query.page) || 1);
-        const limit = Math.min(100, parseInt(req.query.limit) || 20);
-        const skip = (page - 1) * limit;
+        const rule = await Rule.findById(req.params.id);
+        if (!rule) return res.status(404).json({ message: 'Rule not found' });
 
-        const [rules, total] = await Promise.all([
-            Rule.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-            Rule.countDocuments()
-        ]);
+        const table = await Table.findOne({ name: rule.tableName });
 
-        return res.status(200).json({
-            success: true, total, page,
-            totalPages: Math.ceil(total / limit),
-            data: rules
-        });
+        if (rule.isActive) {
+            // 🛑 الحالة الأولى: الرول شغالة وعايزين "نقفلها"
+            // هنبعت أمر delete للبايثون بس مش هنمسحها من الداتابيس
+            const firewallResponse = await firewallAgent.post('/api/delete_rule', {
+                family: table.family,
+                table: rule.tableName,
+                chain: rule.chainName,
+                handle: rule.handleId
+            });
+
+            if (firewallResponse.data.status === "success") {
+                rule.isActive = false;
+                rule.handleId = null; // بنصفر الـ handle لأن اللينكس بيمسحه
+                await rule.save();
+                return res.json({ success: true, message: "Rule disabled (Removed from Firewall)", data: rule });
+            }
+        } else {
+            // ✅ الحالة الثانية: الرول مقفولة وعايزين "نفتحها"
+            // هنبعت أمر add_rule للبايثون باستخدام البيانات المتخزنة عندنا
+            const payload = {
+                table_name: rule.tableName,
+                chain_name: rule.chainName,
+                family: table.family,
+                ip_src: rule.ipSource,
+                ip_dest: rule.ipDestination,
+                port_dest: rule.portDestination ? String(rule.portDestination) : "",
+                protocol: rule.protocol,
+                action: rule.action,
+                comment: rule.comment // الكومنت اللي فيه الـ Tag الفريد بتاعنا
+            };
+
+            const firewallResponse = await firewallAgent.post('/api/add_rule', payload);
+
+            if (firewallResponse.data.handle) {
+                rule.isActive = true;
+                rule.handleId = firewallResponse.data.handle; // بنخزن الـ handle الجديد
+                await rule.save();
+                return res.json({ success: true, message: "Rule enabled (Added to Firewall)", data: rule });
+            }
+        }
+
+        return res.status(500).json({ success: false, message: "Firewall action failed" });
     } catch (error) {
-        logger.error(`getRules error: ${error.message}`);
-        return res.status(500).json({ success: false, message: error.message });
+        return firewallError(res, error);
     }
 };
+
 
 exports.deleteRule = async (req, res) => {
     try {
@@ -174,5 +210,50 @@ exports.deleteRule = async (req, res) => {
         return res.status(200).json({ success: true, message: 'Rule deleted from Firewall and DB' });
     } catch (error) {
         return firewallError(res, error);
+    }
+};
+exports.getAllRules = async (req, res) => {
+    try {
+        // جلب البيانات من الموديلين بترتيب الأحدث
+        const [staticRules, natRules] = await Promise.all([
+            Rule.find().sort({ createdAt: -1 }).lean(),
+            NATRule.find().sort({ createdAt: -1 }).lean()
+        ]);
+
+        // تهيئة بيانات الـ Static Rules لتطابق الجدول في الصورة
+        const formattedStatic = staticRules.map((r, index) => ({
+            no: index + 1,
+            id: r._id,
+            sourceIp: r.ipSource || 'Any',
+            destIp: r.ipDestination || 'Any',
+            port: r.portDestination || 'Any',
+            protocol: r.protocol.toUpperCase(),
+            action: r.action,
+            status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
+            comment: r.comment
+        }));
+
+        // تهيئة بيانات الـ NAT Rules لتطابق الجدول في الصورة
+        const formattedNat = natRules.map((r, index) => ({
+            no: index + 1,
+            id: r._id,
+            protocol: r.protocol.toUpperCase(),
+            externalIp: r.external_ip || 'Any',
+            internalIp: r.internal_ip || 'Any',
+            internalPort: r.internal_port || 'Any',
+            action: r.action,
+            status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
+            comment: r.comment
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                staticRules: formattedStatic,
+                natRules: formattedNat
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
