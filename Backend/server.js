@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 // ── Startup environment guards ──────────────────────────────────────────────
-const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'EMAIL_USER', 'EMAIL_PASS', 'FIREWALL_API_URL'];
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET', 'EMAIL_USER', 'EMAIL_PASS'];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length) {
     console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);

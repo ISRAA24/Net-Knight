@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 exports.getInterfaces = async (req, res) => {
     try {
         
-        const pythonResponse = await firewallAgent.get('/api/interfaces');
+        const pythonResponse = await firewallAgent.get('/api/manage_interfaces');
         res.status(200).json({
             success: true,
             data: pythonResponse.data 
@@ -37,7 +37,7 @@ exports.updateInterface = async (req, res) => {
         };
 
         
-        const pythonResponse = await firewallAgent.put(`/api/interfaces/${interfaceRealName}`, payload);
+        const pythonResponse = await firewallAgent.put(`/api/manage_interfaces/${interfaceRealName}`, payload);
         return res.status(200).json({
             success: true,
             message: `Interface ${interfaceRealName} updated successfully`,

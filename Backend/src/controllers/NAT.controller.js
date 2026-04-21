@@ -42,7 +42,7 @@ exports.addNatRule = async (req, res) => {
             internalPort
         };
 
-        const firewallResponse = await firewallAgent.post('/api/nat', payload);
+        const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
         //ask esraa about family field
         // 3. Receive the complete data from the Python "contract"
         const { handle_id, family, table_name, chain_name } = firewallResponse.data;
@@ -71,15 +71,15 @@ exports.addNatRule = async (req, res) => {
         });
 
     } catch (error) {
-       return firewallError(res, error, "Failed to add NAT rule");
+        return firewallError(res, error, "Failed to add NAT rule");
     }
 };
 //GET /api/firewall/nat
 exports.getNatRules = async (req, res) => {
     try {
-        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 20);
-        const skip  = (page - 1) * limit;
+        const skip = (page - 1) * limit;
 
         const [rules, total] = await Promise.all([
             NatRule.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -105,12 +105,12 @@ exports.deleteNatRule = async (req, res) => {
         if (!rule) return res.status(404).json({ message: 'Rule not found in the database' });
 
         // Send delete request to Python using the saved handle and chain
-        await firewallAgent.delete('/api/rules', {
+        await firewallAgent.delete('/api/delete_rule', {  // مش delete
             data: {
                 family: 'ip',
-                table_name: rule.tableName,
-                chain_name: rule.chainName,
-                handle_id: rule.handleId
+                table: rule.tableName,
+                chain: rule.chainName,
+                handle: rule.handleId
             }
         });
 
