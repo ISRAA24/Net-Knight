@@ -8,7 +8,13 @@ const natRuleSchema = new mongoose.Schema({
         enum: ['masquerade', 'snat', 'dnat'],
         required: true
     },
-    handleId: { type: Number, required: true }, 
+    handleId: {
+        type: Number,
+        required: function () {
+            return this.isActive;
+        },
+        default: null
+    },
     tableName: { type: String, required: true },
     chainName: { type: String, required: true },
     sourceIp: {
@@ -31,8 +37,10 @@ const natRuleSchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isActive: { 
         type: Boolean, 
-        default: true 
-    }
+        default: true // الرول بتنزل مفعلة تلقائياً أول ما تتكريت
+    },
+    comment: { type: String },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true }
 );
 

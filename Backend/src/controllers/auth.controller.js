@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 const logger = require('../utils/logger');         
+const { logActivity } = require('../utils/activityLogger');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -99,34 +100,89 @@ exports.verifyEmail = async (req, res) => {
 };
 
 // POST /api/auth/login
+// POST /api/auth/login
+// Validates credentials then sends a one-time login verification code to the user's email.
+// The client must follow up with POST /api/auth/verify-login to receive the token.
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body; 
         const user = await User.findOne({ username });
-
+ 
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ message: 'Invalid username or password' });
         }
-
+ 
         if (!user.isVerified) {
             return res.status(401).json({ message: 'Account not verified. Please check your email.' });
         }
-
-
-        return res.json({
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
-                token: generateToken(user._id),
-                mustChangedPassword: user.mustChangedPassword
-            });
-    
+ 
+        // Generate a fresh login verification code
+        const loginCode = generateVerifyCode();
+        user.verificationCode = loginCode;
+        user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+ 
+        await sendEmail({
+            email: user.email,
+            subject: 'Net-Knight, Login Verification Code',
+            code: loginCode
+        });
+ 
+        return res.status(200).json({
+            message: "Verification code sent to your email. Please verify to complete login.",
+            email: user.email
+        });
+ 
     } catch (error) {
         logger.error(`login error: ${error.message}`);
         return res.status(500).json({ message: error.message });
     }
 };
+ 
+// POST /api/auth/verify-login
+// Confirms the one-time code sent during login and returns the JWT token.
+exports.verifyLogin = async (req, res) => {
+    try {
+        const { email, code } = req.body;
+ 
+        const user = await User.findOne({
+            email,
+            verificationCode: code,
+            verificationCodeExpires: { $gt: Date.now() }
+        });
+ 
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired verification code' });
+        }
+ 
+        // Clear the used code
+        user.verificationCode = undefined;
+        user.verificationCodeExpires = undefined;
+        await user.save();
+ 
+        await logActivity(
+            user._id,
+            user.username,
+            "System Login",
+            "System",
+            "Admin logged into the dashboard"
+        );
+ 
+        return res.status(200).json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            token: generateToken(user._id),
+            mustChangedPassword: user.mustChangedPassword
+        });
+ 
+    } catch (error) {
+        logger.error(`verifyLogin error: ${error.message}`);
+        return res.status(500).json({ message: error.message });
+    }
+};
+ 
 
 // POST /api/auth/resend-code
 exports.resendCode = async (req, res) => {

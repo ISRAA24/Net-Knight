@@ -35,6 +35,12 @@ exports.resendCodeSchema = Joi.object({
     email: Joi.string().email().required()
 });
 
+exports.verifyLoginSchema = Joi.object({
+    email : Joi.string().email().required(),
+    code  : Joi.string().length(6).pattern(/^\d+$/).required()
+});
+
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 
 exports.addUserSchema = Joi.object({

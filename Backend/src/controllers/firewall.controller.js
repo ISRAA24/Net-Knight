@@ -6,7 +6,7 @@ const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
 const NATRule = require('../models/NATrules'); 
-
+const { logActivity } = require('../utils/activityLogger');
 
 // ======================= TABLES =======================
 exports.addTable = async (req, res) => {
@@ -15,6 +15,12 @@ exports.addTable = async (req, res) => {
         await firewallAgent.post('/api/create_table', { table_name: name, family });
         const newTable = await Table.create({ name, family, createdBy: req.user._id });
         res.status(201).json({ success: true, data: newTable });
+        await logActivity(
+            req.user._id, 
+            req.user.username, 
+            "Add Table",  
+            `Added Table ${name} with Family: ${family}`
+        );
     } catch (error) {
         return firewallError(res, error);
     }
@@ -48,6 +54,12 @@ exports.addChain = async (req, res) => {
             createdBy: req.user._id
         });
         res.status(201).json({ success: true, data: newChain });
+        await logActivity(
+            req.user._id, 
+            req.user.username, 
+            "Add Chain",  
+            `Added Chain ${name} to Table ${tableName}`
+        );
     } catch (error) {
         return firewallError(res, error);
     }
@@ -122,11 +134,19 @@ exports.addRule = async (req, res) => {
             createdBy: req.user._id
         });
 
+        await logActivity(
+            req.user._id, 
+            req.user.username, 
+            "Add Static Rule",  
+            `Added Rule to ${chainName} , ${tableName} with Action: ${action}`
+        );
+
         return res.status(201).json({
             success: true,
             data: newRule,
             message: `Rule added with handle: ${handleId}`
         });
+        
     } catch (error) {
         return firewallError(res, error);
     }
@@ -197,17 +217,26 @@ exports.deleteRule = async (req, res) => {
         if (!table) return res.status(404).json({ message: 'Associated table not found in DB' });
 
 
-        await firewallAgent.delete('/api/delete_rule', {  // أو POST لأن Python بيستخدم POST
-            data: {
-                family: table.family,
-                table: rule.tableName,   // كان table_name
-                chain: rule.chainName,   // كان chain_name
-                handle: rule.handleId    // كان handle_id
-            }
-        });
+        if (rule.isActive && rule.handleId) {
+            await firewallAgent.delete('/api/delete_rule', {
+                data: {
+                    family: table.family,
+                    table: rule.tableName,
+                    chain: rule.chainName,
+                    handle: rule.handleId
+                }
+            });
+        }
 
         await rule.deleteOne();
+        await logActivity(
+        req.user._id, 
+        req.user.username, 
+        "Delete Static Rule", 
+        `Deleted Rule from ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+    );
         return res.status(200).json({ success: true, message: 'Rule deleted from Firewall and DB' });
+        
     } catch (error) {
         return firewallError(res, error);
     }

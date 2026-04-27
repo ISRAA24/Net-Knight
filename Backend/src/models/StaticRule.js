@@ -6,7 +6,13 @@ const staticRuleSchema = new mongoose.Schema(
     {
         tableName: { type: String, required: true },
         chainName: { type: String, required: true },
-        handleId: { type: Number, required: true },
+        handleId: {
+            type: Number,
+            required: function () {
+                return this.isActive;
+            },
+            default: null
+        },
         ipSource: {
             type: String,
             match: [ipRegex, 'Invalid IPv4 address for Source IP']
