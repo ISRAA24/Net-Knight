@@ -12,7 +12,7 @@ class NKTextStyles {
       );
 
   static TextStyle get subheading =>
-      GoogleFonts.rajdhani(fontSize: 13, color: Colors.black54);
+      GoogleFonts.rajdhani(fontSize: 13, color: Color(0xff1d242b));
 
   static TextStyle get sidebarLabel =>
       GoogleFonts.rajdhani(fontSize: 13, color: const Color(0xFFE1DBDB));

@@ -70,7 +70,7 @@ class _RulesScreenState extends State<RulesScreen> {
     }
   }
 
-  // ─── Load Chains حسب الـ table ────────────────────
+  // ─── Load Chains  ────────────────────
   Future<void> _loadChains(String tableName) async {
     setState(() => _chains = []);
     try {

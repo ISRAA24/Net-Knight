@@ -36,12 +36,13 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _service.getInterfaces();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _all = data;
           _applySearch(_searchQuery);
           _isLoading = false;
         });
+      }
     } on DioException catch (_) {
       if (mounted) setState(() => _isLoading = false);
       _showError('Failed to load interfaces');

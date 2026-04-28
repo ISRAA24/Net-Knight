@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const _kBlue = Color(0xFF3B82F6);
+const _kBlue = Color(0xff0077c0);
 const _kBorder = Color(0xFF93C5FD);
 
 class ChainForm extends StatelessWidget {
@@ -104,7 +104,7 @@ class ChainForm extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Color(0xfffafafa),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: _kBorder),
@@ -123,7 +123,7 @@ class ChainForm extends StatelessWidget {
       readOnly: true,
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Color(0xfffafafa),
         suffixIcon: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -153,7 +153,7 @@ class ChainForm extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(0xfffafafa),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _kBorder),
       ),
@@ -183,7 +183,7 @@ class _LoadingField extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Color(0xfffafafa),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _kBorder),
       ),

@@ -124,7 +124,7 @@ class _ChainsScreenState extends State<ChainsScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(content: Text(message), backgroundColor: Color(0xffef4444)),
     );
   }
 
@@ -248,7 +248,7 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(color: Colors.black12, height: 1),
+          const Divider(color: Color(0xff1d242b), height: 1),
         ],
       ),
     );
@@ -275,7 +275,7 @@ class _AddButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF3B82F6).withOpacity(0.4),
+              color: const Color(0xff0077c0).withOpacity(0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -285,9 +285,9 @@ class _AddButton extends StatelessWidget {
             ? const Padding(
                 padding: EdgeInsets.all(16),
                 child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
+                    color: Color(0xfffafafa), strokeWidth: 2),
               )
-            : const Icon(Icons.add, color: Colors.white, size: 28),
+            : const Icon(Icons.add, color: Color(0xfffafafa), size: 28),
       ),
     );
   }

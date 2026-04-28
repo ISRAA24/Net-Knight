@@ -9,7 +9,6 @@ class Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // الـ route الحالي
     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/dashboard';
 
     return Container(

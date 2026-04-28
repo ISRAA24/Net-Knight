@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const _kTerminalBg = Color(0xFF1E252B);
+const _kTerminalBg = Color(0xff1d242b);
 
 class CommandPreview extends StatelessWidget {
   const CommandPreview({
@@ -69,8 +69,8 @@ class _CommandBox extends StatelessWidget {
           Expanded(
             child: Text(
               command,
-              style:
-                  GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.jetBrainsMono(
+                  color: Color(0xfffafafa), fontSize: 14),
               overflow: TextOverflow.ellipsis,
             ),
           ),
