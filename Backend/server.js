@@ -19,9 +19,10 @@ const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
 
 connectDB();
-app.use(cookieParser());
+
 const app = express();
 app.set('trust proxy', 1);
+app.use(cookieParser());
 // ── Security middleware ──────────────────────────────────────────────────────
 app.use(helmet());
 

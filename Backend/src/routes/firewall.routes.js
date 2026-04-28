@@ -8,7 +8,7 @@ const {
     validate,
     addTableSchema, addChainSchema, addRuleSchema, addNatRuleSchema
 } = require('../utils/validators');
-const { getAuditLogs } = require('../controllers/user.controller');
+const { getAuditLogs } = require('../controllers/audit.controller');
 
 // All routes require authentication and 'super_admin' role 
 router.use(protect);

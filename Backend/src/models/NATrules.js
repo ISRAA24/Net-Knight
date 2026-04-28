@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([0-9]|[1-2][0-9]|3[0-2]))?$/;
 
 const natRuleSchema = new mongoose.Schema({
-    type: {
+    nat_type: {
         type: String,
-        enum: ['masquerade', 'snat', 'dnat'],
+        enum: ['masquerade', 'source', 'destination'],
         required: true
     },
     handleId: {
@@ -15,25 +15,24 @@ const natRuleSchema = new mongoose.Schema({
         },
         default: null
     },
-    tableName: { type: String, required: true },
-    chainName: { type: String, required: true },
-    sourceIp: {
+    
+    source_ip: {
         type: String,
         match: [ipRegex, 'Invalid IPv4 address format for Source IP']
     },
-    outputInterface: { type: String },
-    newSourceIp: {
+    output_interface: { type: String },
+    new_source_ip: {
         type: String,
         match: [ipRegex, 'Invalid IPv4 address format for New Source IP']
     },
-    inputInterface: { type: String },
+    input_interface: { type: String },
     protocol: { type: String, enum: ['tcp', 'udp', 'any'] },
-    destinationIp: {
+    dest_ip: {
         type: String,
         match: [ipRegex, 'Invalid IPv4 address format for Destination IP']
     },
-    externalPort: { type: String },
-    internalPort: { type: String },
+    ext_port: { type: String },
+    int_port: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isActive: { 
         type: Boolean, 

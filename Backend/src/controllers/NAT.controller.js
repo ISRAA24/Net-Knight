@@ -3,26 +3,30 @@ const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
 const { logActivity } = require('../utils/activityLogger');
+
 // Helper function to build Python payload
 const buildPythonPayload = (data, finalComment) => {
     const payload = { nat_type: data.nat_type, comment: finalComment };
 
     if (data.nat_type === 'masquerade') {
-        payload.output_interface = data.network_interface;
+        // كده النود هياخد الـ source_ip والـ output_interface زي ما هما مبعوتين
+        if (data.source_ip) payload.source_ip = data.source_ip;
+        payload.output_interface = data.output_interface || data.network_interface; 
+        
     } else if (data.nat_type === 'source') {
         payload.source_ip = data.source_ip;
         payload.new_source_ip = data.new_source_ip;
-        payload.output_interface = data.network_interface;
+        payload.output_interface = data.output_interface || data.network_interface;
+        
     } else if (data.nat_type === 'destination') {
-        payload.input_interface = data.network_interface;
-        payload.dest_ip = data.internal_ip; // Internal IP in UI is dest_ip in builders.py
-        payload.int_port = data.internal_port;
+        payload.input_interface = data.input_interface || data.network_interface;
+        payload.dest_ip = data.dest_ip; // Internal IP in UI is dest_ip
+        payload.int_port = data.int_port;
         payload.protocol = data.protocol || 'tcp';
-        payload.ext_port = data.external_port || data.internal_port;
+        payload.ext_port = data.ext_port;
     }
     return payload;
 };
-
 // Add a NAT rule (Masquerade, SNAT, DNAT)
 // POST /api/firewall/nat
 exports.addNatRule = async (req, res) => {
@@ -34,7 +38,12 @@ exports.addNatRule = async (req, res) => {
         // 1. Validate the provided IP addresses
        let ipsToValidate = [];
 
-        if (data.nat_type === 'source') {
+        if (data.nat_type === 'masquerade') {
+            // لو باعت source_ip، افحصه
+            if (data.source_ip) {
+                ipsToValidate.push(['Source IP', data.source_ip]);
+            }
+        } else if (data.nat_type === 'source') {
             ipsToValidate.push(['Source IP', data.source_ip]);
             ipsToValidate.push(['New Source IP', data.new_source_ip]);
         } else if (data.nat_type === 'destination') {
@@ -51,14 +60,17 @@ exports.addNatRule = async (req, res) => {
                 });
             }
         }
+        // 🔍 حطي السطر ده في ملف src/controllers/NAT.controller.js قبل الـ post
+console.log("🚀 Sending to Firewall Agent:", JSON.stringify(payload, null, 2));
 
         const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
+        console.log("🔥 ERROR FROM PYTHON: ", firewallResponse.data);
         if (firewallResponse.data.status === "error" || !firewallResponse.data.handle) {
-            return res.status(400).json({ success: false, message: "Firewall rejected NAT rule", details: firewallResponse.data.output });
+            return res.status(400).json({ success: false, message: "Firewall rejected NAT rule", details: firewallResponse.data.output ,python_error: firewallResponse.data });
         }
 
         // 2. Save to DB
-        const newNat = await NATRule.create({
+        const newNat = await NatRule.create({
             ...req.body,
             handleId: firewallResponse.data.handle,
             comment: finalComment,
@@ -104,55 +116,55 @@ exports.getNatRules = async (req, res) => {
 
 exports.toggleNatRuleStatus = async (req, res) => {
     try {
-        const rule = await NatRule.findById(req.params.id);
-        if (!rule) return res.status(404).json({ message: 'Rule not found' });
+        const natrule = await NatRule.findById(req.params.id);
+        if (!natrule) return res.status(404).json({ message: 'NAT Rule not found' });
 
         if (rule.isActive) {
-            const firewallResponse = await firewallAgent.post('/api/delete_rule', {
+            const firewallResponse = await firewallAgent.delete('/api/delete_nat', {
                 family: 'ip',
-                table: rule.tableName,
-                chain: rule.chainName,
-                handle: rule.handleId
+                table: natrule.tableName,
+                chain: natrule.chainName,
+                handle: natrule.handleId
             });
 
             if (firewallResponse.data.status === 'success') {
-                rule.isActive = false;
-                rule.handleId = null;
-                await rule.save();
+                natrule.isActive = false;
+                natrule.handleId = null;
+                await natrule.save();
 
                 return res.json({
                     success: true,
                     message: 'NAT rule disabled (Removed from Firewall)',
-                    data: rule
+                    data: natrule
                 });
             }
         } else {
             const payload = {
-                type: rule.type,
-                sourceIp: rule.sourceIp,
-                outputInterface: rule.outputInterface,
-                newSourceIp: rule.newSourceIp,
-                protocol: rule.protocol,
-                inputInterface: rule.inputInterface,
-                destinationIp: rule.destinationIp,
-                externalPort: rule.externalPort,
-                internalPort: rule.internalPort
+                type: natrule.type,
+                sourceIp: natrule.sourceIp,
+                outputInterface: natrule.outputInterface,
+                newSourceIp: natrule.newSourceIp,
+                protocol: natrule.protocol,
+                inputInterface: natrule.inputInterface,
+                destinationIp: natrule.destinationIp,
+                externalPort: natrule.externalPort,
+                internalPort: natrule.internalPort
             };
 
             const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
             const { handle_id, table_name, chain_name } = firewallResponse.data;
 
             if (handle_id) {
-                rule.isActive = true;
-                rule.handleId = handle_id;
-                rule.tableName = table_name;
-                rule.chainName = chain_name;
-                await rule.save();
+                natrule.isActive = true;
+                natrule.handleId = handle_id;
+                natrule.tableName = table_name;
+                natrule.chainName = chain_name;
+                await natrule.save();
 
                 return res.json({
                     success: true,
                     message: 'NAT rule enabled (Added to Firewall)',
-                    data: rule
+                    data: natrule
                 });
             }
         }
@@ -167,7 +179,7 @@ exports.toggleNatRuleStatus = async (req, res) => {
 //    DELETE /api/firewall/nat/:id
 exports.deleteNatRule = async (req, res) => {
     try {
-        const rule = await NATRule.findById(req.params.id);
+        const rule = await NatRule.findById(req.params.id);
         if (!rule) return res.status(404).json({ message: 'NAT Rule not found' });
 
         // 1. Delete from Firewall (Requires nat_type and handle according to firewall.py)
@@ -197,7 +209,7 @@ exports.deleteNatRule = async (req, res) => {
 
 exports.editNatRule = async (req, res) => {
     try {
-        const rule = await NATRule.findById(req.params.id);
+        const rule = await NatRule.findById(req.params.id);
         if (!rule) return res.status(404).json({ message: 'NAT Rule not found' });
 
         const updatedData = { ...rule.toObject(), ...req.body }; // دمج الداتا القديمة مع التعديلات
@@ -218,7 +230,7 @@ exports.editNatRule = async (req, res) => {
         }
 
         // 3. تحديث الداتابيس بالبيانات الجديدة والـ Handle الجديد
-        const updatedRule = await NATRule.findByIdAndUpdate(req.params.id, {
+        const updatedRule = await NatRule.findByIdAndUpdate(req.params.id, {
             ...req.body,
             handleId: firewallResponse.data.handle,
             isActive: true

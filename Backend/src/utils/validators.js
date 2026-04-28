@@ -87,15 +87,15 @@ exports.addRuleSchema = Joi.object({
 // ── NAT ───────────────────────────────────────────────────────────────────────
 
 exports.addNatRuleSchema = Joi.object({
-    type            : Joi.string().valid('masquerade', 'snat', 'dnat').required(),
-    sourceIp        : ipWithCidr,
-    outputInterface : Joi.string().allow('', null),
-    newSourceIp     : ipWithCidr,
+    nat_type            : Joi.string().valid('masquerade', 'source', 'destination').required(),
+    source_ip        : ipWithCidr,
+    output_interface : Joi.string().allow('', null),
+    new_source_ip     : ipWithCidr,
     protocol        : Joi.string().valid('tcp', 'udp', 'any').allow('', null),
-    inputInterface  : Joi.string().allow('', null),
-    destinationIp   : ipWithCidr,
-    externalPort    : portField,
-    internalPort    : portField
+    input_interface  : Joi.string().allow('', null),
+    dest_ip   : ipWithCidr,
+    ext_port    : portField,
+    int_port    : portField
 });
 
 // ── Middleware factory ────────────────────────────────────────────────────────
