@@ -210,3 +210,29 @@ exports.resendCode = async (req, res) => {
     return res.status(500).json({ message: error.message });
 }
 };
+
+// ======================= 3. LOGOUT =======================
+exports.logout = async (req, res) => {
+    try {
+        // لو مسيفة التوكن في كوكي، بتمسحيه بالشكل ده:
+        // res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
+
+        // تسجيل الخروج في الـ Audit Logs
+        if (req.user) {
+            await logActivity(
+                req.user._id, 
+                req.user.username, 
+                "System Logout", 
+                "System",
+                "Admin logged out of the dashboard"
+            );
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Logged out successfully. Please remove token from client storage.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

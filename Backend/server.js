@@ -16,8 +16,10 @@ const userRoutes = require('./src/routes/user.routes');
 const firewallRoutes = require('./src/routes/firewall.routes');
 const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
-connectDB();
+const cookieParser = require('cookie-parser');
 
+connectDB();
+app.use(cookieParser());
 const app = express();
 app.set('trust proxy', 1);
 // ── Security middleware ──────────────────────────────────────────────────────
