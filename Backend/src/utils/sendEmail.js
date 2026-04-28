@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const logger = require('./logger');
 
 const sendEmail = async (options) => {
     const transporter = nodemailer.createTransport({
@@ -14,12 +15,28 @@ const sendEmail = async (options) => {
         to: options.email,
         subject: options.subject,
         text: options.message,
-        html: `<h1>Net-Knight Verification </h1>
-               <p>Your verification code is: <b style="font-size: 24px;">${options.code}</b></p>
-               <p>This code expires in 10 minutes.</p>`
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+                <h2 style="color: #1a1a2e;">Net-Knight Verification</h2>
+                <p>Your verification code is:</p>
+                <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #e94560;">
+                    ${options.code}
+                </p>
+                <p style="color: #666;">This code expires in <strong>10 minutes</strong>.</p>
+                <p style="color: #999; font-size: 12px;">
+                    If you did not request this, please ignore this email.
+                </p>
+            </div>`
     };
+    try{
+        await transporter.sendMail(message);
+        logger.info(`Verification email sent to ${options.email}`);
+    }catch (err) {
+        logger.error(`Failed to send email to ${options.email}: ${err.message}`);
+        throw err;
+    }
 
-    await transporter.sendMail(message);
+    
 };
 
 module.exports = sendEmail;
