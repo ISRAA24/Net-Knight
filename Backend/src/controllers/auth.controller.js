@@ -144,22 +144,21 @@ exports.login = async (req, res) => {
 exports.verifyLogin = async (req, res) => {
     try {
         const { email, code } = req.body;
- 
+
         const user = await User.findOne({
             email,
             verificationCode: code,
             verificationCodeExpires: { $gt: Date.now() }
         });
- 
+
         if (!user) {
             return res.status(400).json({ message: 'Invalid or expired verification code' });
         }
- 
-        // Clear the used code
+
         user.verificationCode = undefined;
         user.verificationCodeExpires = undefined;
         await user.save();
- 
+
         await logActivity(
             user._id,
             user.username,
@@ -167,16 +166,26 @@ exports.verifyLogin = async (req, res) => {
             "System",
             "Admin logged into the dashboard"
         );
- 
-        return res.status(200).json({
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            token: generateToken(user._id),
-            mustChangedPassword: user.mustChangedPassword
+
+        const token = generateToken(user._id);
+
+        // ── بعت التوكن في httpOnly Cookie ──────────────────────────────
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure  : process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            expires : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 يوم
         });
- 
+
+        return res.status(200).json({
+            _id                : user._id,
+            username           : user.username,
+            email              : user.email,
+            role               : user.role,
+            mustChangedPassword: user.mustChangedPassword
+            // التوكن اتشال من الـ JSON
+        });
+
     } catch (error) {
         logger.error(`verifyLogin error: ${error.message}`);
         return res.status(500).json({ message: error.message });
@@ -214,25 +223,27 @@ exports.resendCode = async (req, res) => {
 // ======================= 3. LOGOUT =======================
 exports.logout = async (req, res) => {
     try {
-        // لو مسيفة التوكن في كوكي، بتمسحيه بالشكل ده:
-        // res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
-
-        // تسجيل الخروج في الـ Audit Logs
         if (req.user) {
             await logActivity(
-                req.user._id, 
-                req.user.username, 
-                "System Logout", 
+                req.user._id,
+                req.user.username,
+                "System Logout",
                 "System",
                 "Admin logged out of the dashboard"
             );
         }
 
-        res.status(200).json({
+        // ── امسح الكوكي ─────────────────────────────────────────────────
+        res.cookie('token', 'none', {
+            httpOnly: true,
+            expires : new Date(Date.now() + 10 * 1000) // تنتهي فوراً
+        });
+
+        return res.status(200).json({
             success: true,
-            message: 'Logged out successfully. Please remove token from client storage.'
+            message: 'Logged out successfully'
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
