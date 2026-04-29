@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:net_knight/screens/interfaces/interfaces_screen.dart';
 import 'package:net_knight/screens/nat/nat_screen.dart';
 import 'package:net_knight/screens/rules/rules_screen.dart';
+import 'package:net_knight/screens/user_management/user_management_screen.dart';
 import 'screens/log_in/log_in_screen.dart';
 import 'screens/sign_up/sign_up_screen.dart';
 import 'screens/verification/verification_screen.dart';
@@ -29,6 +30,7 @@ class NetKnight extends StatelessWidget {
         '/rules': (context) => const RulesScreen(),
         '/interfaces': (context) => const InterfacesScreen(),
         '/nat': (context) => const NATScreen(),
+        '/users': (context) => const UserManagementScreen()
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/verification') {
