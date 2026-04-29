@@ -4,28 +4,40 @@ const User = require('../models/User');
 exports.protect = async (req, res, next) => {
     let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = await User.findById(decoded.id).select('-password');
+    // ── أول حاجة: دور على الكوكي ────────────────────────────────────────
+    if (req.cookies && req.cookies.token) {
+        token = req.cookies.token;
 
-            next();
-        } catch (error) {
-            console.error(error);
-            res.status(401).json({ message: 'Not authorized, token failed' });
-        }
+    // ── تاني حاجة: دور على الـ Authorization Header (للـ API clients) ──
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
     }
 
     if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
+        return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user    = await User.findById(decoded.id).select('-password');
+
+        if (!user) {
+            return res.status(401).json({ message: 'User belonging to this token no longer exists' });
+        }
+
+        if (!user.isVerified) {
+            return res.status(401).json({ message: 'Account not verified' });
+        }
+
+        req.user = user;
+        return next();
+
+    } catch (error) {
+        return res.status(401).json({ message: 'Not authorized, token failed' });
     }
 };
 
-
-exports.authorize = (...roles) => {
-    return (req, res, next) => {
+exports.authorize = (...roles) => (req, res, next) => {
         if (!req.user) {
              return res.status(401).json({ message: 'User not found' });
         }
@@ -35,6 +47,5 @@ exports.authorize = (...roles) => {
                 message: `User role '${req.user.role}' is not authorized to access this route` 
             });
         }
-        next();
+        return next();
     };
-};
