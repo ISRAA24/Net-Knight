@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login, verifyEmail, resendCode , verifyLogin} = require('../controllers/auth.controller');
+const { signup, login, verifyEmail, resendCode , verifyLogin,logout} = require('../controllers/auth.controller');
 const rateLimit = require('express-rate-limit');
 const { validate, signupSchema, loginSchema, verifyEmailSchema, resendCodeSchema, verifyLoginSchema } =
     require('../utils/validators');
@@ -37,4 +37,5 @@ router.post('/login', validate(loginSchema), login);
 router.post('/verify', validate(verifyEmailSchema), verifyEmail);
 router.post('/resend-code', validate(resendCodeSchema), resendCode);
 router.post('/verify-login', validate(verifyLoginSchema), verifyLogin);
+router.post('/logout', logout);
 module.exports = router;

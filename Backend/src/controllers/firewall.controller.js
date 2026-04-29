@@ -25,7 +25,30 @@ exports.addTable = async (req, res) => {
         return firewallError(res, error);
     }
 };
+// GET /api/staticfirewall/tables
+exports.getTables = async (req, res) => {
+    try {
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, parseInt(req.query.limit) || 20);
+        const skip  = (page - 1) * limit;
 
+        const [tables, total] = await Promise.all([
+            Table.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+            Table.countDocuments()
+        ]);
+
+        return res.status(200).json({
+            success   : true,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            data      : tables
+        });
+    } catch (error) {
+        logger.error(`getTables error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
 // ======================= CHAINS =======================
 exports.addChain = async (req, res) => {
     try {
@@ -62,6 +85,33 @@ exports.addChain = async (req, res) => {
         );
     } catch (error) {
         return firewallError(res, error);
+    }
+};
+// GET /api/staticfirewall/chains?tableId=...
+exports.getChains = async (req, res) => {
+    try {
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, parseInt(req.query.limit) || 20);
+        const skip  = (page - 1) * limit;
+
+        // لو بعت tableId في الـ query، هيفلتر عليه
+        const filter = req.query.tableId ? { tableId: req.query.tableId } : {};
+
+        const [chains, total] = await Promise.all([
+            Chain.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+            Chain.countDocuments(filter)
+        ]);
+
+        return res.status(200).json({
+            success   : true,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            data      : chains
+        });
+    } catch (error) {
+        logger.error(`getChains error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -159,54 +209,76 @@ exports.toggleRuleStatus = async (req, res) => {
         if (!rule) return res.status(404).json({ message: 'Rule not found' });
 
         const table = await Table.findOne({ name: rule.tableName });
+        if (!table) return res.status(404).json({ message: 'Associated table not found' });
 
         if (rule.isActive) {
-            // 🛑 الحالة الأولى: الرول شغالة وعايزين "نقفلها"
-            // هنبعت أمر delete للبايثون بس مش هنمسحها من الداتابيس
-            const firewallResponse = await firewallAgent.post('/api/delete_rule', {
-                family: table.family,
-                table: rule.tableName,
-                chain: rule.chainName,
-                handle: rule.handleId
+            // ── Disable: remove from firewall ──────────────────────────────
+            const firewallResponse = await firewallAgent.delete('/api/delete_rule', {
+                data: {                          // axios.delete needs `data` key
+                    family: table.family,
+                    table : rule.tableName,
+                    chain : rule.chainName,
+                    handle: rule.handleId
+                }
             });
 
-            if (firewallResponse.data.status === "success") {
-                rule.isActive = false;
-                rule.handleId = null; // بنصفر الـ handle لأن اللينكس بيمسحه
-                await rule.save();
-                return res.json({ success: true, message: "Rule disabled (Removed from Firewall)", data: rule });
+            if (firewallResponse.data.status !== 'success') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Firewall failed to remove rule',
+                    details: firewallResponse.data
+                });
             }
+
+            rule.isActive = false;
+            rule.handleId = null;
+            await rule.save();
+
+            return res.json({
+                success: true,
+                message: 'Rule disabled (Removed from Firewall)',
+                data   : rule
+            });
+
         } else {
-            // ✅ الحالة الثانية: الرول مقفولة وعايزين "نفتحها"
-            // هنبعت أمر add_rule للبايثون باستخدام البيانات المتخزنة عندنا
+            // ── Enable: re-add to firewall ─────────────────────────────────
             const payload = {
                 table_name: rule.tableName,
                 chain_name: rule.chainName,
-                family: table.family,
-                ip_src: rule.ipSource,
-                ip_dest: rule.ipDestination,
-                port_dest: rule.portDestination ? String(rule.portDestination) : "",
-                protocol: rule.protocol,
-                action: rule.action,
-                comment: rule.comment // الكومنت اللي فيه الـ Tag الفريد بتاعنا
+                family    : table.family,
+                ip_src    : rule.ipSource,
+                ip_dest   : rule.ipDestination,
+                port_dest : rule.portDestination ? String(rule.portDestination) : "",
+                protocol  : rule.protocol,
+                action    : rule.action,
+                comment   : rule.comment
             };
 
             const firewallResponse = await firewallAgent.post('/api/add_rule', payload);
 
-            if (firewallResponse.data.handle) {
-                rule.isActive = true;
-                rule.handleId = firewallResponse.data.handle; // بنخزن الـ handle الجديد
-                await rule.save();
-                return res.json({ success: true, message: "Rule enabled (Added to Firewall)", data: rule });
+            if (!firewallResponse.data.handle) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Firewall failed to re-add rule',
+                    details: firewallResponse.data
+                });
             }
+
+            rule.isActive = true;
+            rule.handleId = firewallResponse.data.handle;
+            await rule.save();
+
+            return res.json({
+                success: true,
+                message: 'Rule enabled (Added to Firewall)',
+                data   : rule
+            });
         }
 
-        return res.status(500).json({ success: false, message: "Firewall action failed" });
     } catch (error) {
         return firewallError(res, error);
     }
 };
-
 
 exports.deleteRule = async (req, res) => {
     try {

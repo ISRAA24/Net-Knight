@@ -119,57 +119,58 @@ exports.toggleNatRuleStatus = async (req, res) => {
         const natrule = await NatRule.findById(req.params.id);
         if (!natrule) return res.status(404).json({ message: 'NAT Rule not found' });
 
-        if (rule.isActive) {
+        if (natrule.isActive) {
+            // ── Disable: remove from firewall ──────────────────────────────
             const firewallResponse = await firewallAgent.delete('/api/delete_nat', {
-                family: 'ip',
-                table: natrule.tableName,
-                chain: natrule.chainName,
-                handle: natrule.handleId
+                data: {                          // axios.delete needs `data` key
+                    nat_type: natrule.nat_type,
+                    handle  : natrule.handleId
+                }
             });
 
-            if (firewallResponse.data.status === 'success') {
-                natrule.isActive = false;
-                natrule.handleId = null;
-                await natrule.save();
-
-                return res.json({
-                    success: true,
-                    message: 'NAT rule disabled (Removed from Firewall)',
-                    data: natrule
+            if (firewallResponse.data.status !== 'success') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Firewall failed to remove NAT rule',
+                    details: firewallResponse.data
                 });
             }
+
+            natrule.isActive = false;
+            natrule.handleId = null;
+            await natrule.save();
+
+            return res.json({
+                success: true,
+                message: 'NAT rule disabled (Removed from Firewall)',
+                data   : natrule
+            });
+
         } else {
-            const payload = {
-                type: natrule.type,
-                sourceIp: natrule.sourceIp,
-                outputInterface: natrule.outputInterface,
-                newSourceIp: natrule.newSourceIp,
-                protocol: natrule.protocol,
-                inputInterface: natrule.inputInterface,
-                destinationIp: natrule.destinationIp,
-                externalPort: natrule.externalPort,
-                internalPort: natrule.internalPort
-            };
+            // ── Enable: re-add to firewall using stored fields ─────────────
+            const payload = buildPythonPayload(natrule, natrule.comment);
 
             const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
-            const { handle_id, table_name, chain_name } = firewallResponse.data;
 
-            if (handle_id) {
-                natrule.isActive = true;
-                natrule.handleId = handle_id;
-                natrule.tableName = table_name;
-                natrule.chainName = chain_name;
-                await natrule.save();
-
-                return res.json({
-                    success: true,
-                    message: 'NAT rule enabled (Added to Firewall)',
-                    data: natrule
+            if (firewallResponse.data.status === 'error' || !firewallResponse.data.handle) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Firewall failed to re-add NAT rule',
+                    details: firewallResponse.data
                 });
             }
+
+            natrule.isActive = true;
+            natrule.handleId = firewallResponse.data.handle;
+            await natrule.save();
+
+            return res.json({
+                success: true,
+                message: 'NAT rule enabled (Added to Firewall)',
+                data   : natrule
+            });
         }
 
-        return res.status(500).json({ success: false, message: 'Firewall action failed' });
     } catch (error) {
         return firewallError(res, error);
     }

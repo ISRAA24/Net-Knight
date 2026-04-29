@@ -2,15 +2,24 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 exports.protect = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
+    let token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer')) {
-         return res.status(401).json({ message: 'Not authorized, no token' });
+    // ── أول حاجة: دور على الكوكي ────────────────────────────────────────
+    if (req.cookies && req.cookies.token) {
+        token = req.cookies.token;
+
+    // ── تاني حاجة: دور على الـ Authorization Header (للـ API clients) ──
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
     }
-    const token = authHeader.split(' ')[1];
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.id).select('-password');
+
+    if (!token) {
+        return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user    = await User.findById(decoded.id).select('-password');
 
         if (!user) {
             return res.status(401).json({ message: 'User belonging to this token no longer exists' });
@@ -22,13 +31,11 @@ exports.protect = async (req, res, next) => {
 
         req.user = user;
         return next();
-        } catch (error) {
-            console.error(error);
-            return res.status(401).json({ message: 'Not authorized, token failed' });
-        }
 
+    } catch (error) {
+        return res.status(401).json({ message: 'Not authorized, token failed' });
+    }
 };
-
 
 exports.authorize = (...roles) => (req, res, next) => {
         if (!req.user) {
