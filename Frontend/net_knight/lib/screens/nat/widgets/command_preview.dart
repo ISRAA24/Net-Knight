@@ -13,6 +13,7 @@ class CommandPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // لو success → رسالة النجاح
     if (isSuccess) {
       return Container(
         width: double.infinity,
@@ -36,6 +37,10 @@ class CommandPreview extends StatelessWidget {
       );
     }
 
+    // لو command فاضي → متعرضش حاجة
+    if (command.isEmpty) return const SizedBox.shrink();
+
+    // لو في command → اعرضه
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 24),

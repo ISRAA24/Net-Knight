@@ -17,7 +17,7 @@ class ChainModel {
 
   Map<String, dynamic> toJson() => {
         'tableName': tableName,
-        'chainName': chainName,
+        'name': chainName,
         'hook': hook,
         'policy': policy,
         'type': type,

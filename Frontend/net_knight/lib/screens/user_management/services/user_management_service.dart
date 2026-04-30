@@ -1,22 +1,14 @@
 import 'package:dio/dio.dart';
+import 'package:net_knight/core/network/base_services.dart';
 import '../models/user_model.dart';
 
 class UserManagementService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://paddling-levitator-impromptu.ngrok-free.dev/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    ),
-  );
+  final Dio _dio = BaseService.dio;
 
   Future<List<UserModel>> getUsers() async {
     final response = await _dio.get('/users');
-    final List data = response.data;
+    final List data =
+        response.data['data']; // ← تصحيح: كان response.data مباشرةً
     return data.map((e) => UserModel.fromJson(e)).toList();
   }
 

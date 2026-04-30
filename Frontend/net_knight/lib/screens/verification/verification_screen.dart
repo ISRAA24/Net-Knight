@@ -6,10 +6,21 @@ import 'package:dio/dio.dart';
 const _kPrimary = Color(0xff0077c0);
 const _kDark = Color(0xff1d242b);
 
-class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({super.key, required this.email});
-
+// ← argument بيتبعت من login أو signup
+class VerificationArgs {
   final String email;
+  final bool isFromLogin;
+
+  const VerificationArgs({
+    required this.email,
+    this.isFromLogin = false,
+  });
+}
+
+class VerificationScreen extends StatefulWidget {
+  const VerificationScreen({super.key, required this.args});
+
+  final VerificationArgs args;
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
@@ -22,8 +33,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // ─── Masked Email ──────────────────────────────────────────────
   String get _maskedEmail {
-    final parts = widget.email.split('@');
-    if (parts.length != 2) return widget.email;
+    final parts = widget.args.email.split('@');
+    if (parts.length != 2) return widget.args.email;
     final name = parts[0];
     final masked = name.length <= 2 ? '$name***' : '${name.substring(0, 2)}***';
     return '$masked@${parts[1]}';
@@ -40,11 +51,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _service.verifyEmail(widget.email, otp);
+      // ← لو جاي من login استخدم verify-login، لو من signup استخدم verify
+      if (widget.args.isFromLogin) {
+        await _service.verifyLogin(widget.args.email, otp);
+      } else {
+        await _service.verifyEmail(widget.args.email, otp);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Email verified successfully!'),
+            content: Text('Verified successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -64,7 +81,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   // ─── Resend ───────────────────────────────────────────────────
   Future<void> _resend() async {
     try {
-      await _service.resendCode(widget.email);
+      await _service.resendCode(widget.args.email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -135,7 +152,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
               const SizedBox(height: 10),
 
-              // Subtitle — masked email ديناميكي
+              // Subtitle
               Text(
                 'A verification code has been sent to:\n$_maskedEmail',
                 textAlign: TextAlign.center,

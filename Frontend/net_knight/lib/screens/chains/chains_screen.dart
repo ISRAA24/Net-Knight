@@ -60,15 +60,36 @@ class _ChainsScreenState extends State<ChainsScreen> {
         });
         _updatePreview();
       }
-    } catch (_) {
+    } catch (e) {
+      print('Error loading tables: $e');
       if (mounted) setState(() => _tables = []);
     }
+  }
+
+  // ─── Reset Fields ─────────────────────────────────────
+  void _resetFields() {
+    _chainNameController.clear();
+    _priorityController.text = '0';
+    setState(() {
+      _selectedTableName = _tables.isNotEmpty ? _tables.first : '';
+      _selectedHook = 'prerouting';
+      _selectedPolicy = 'accept';
+      _selectedType = 'route';
+      _priorityValue = 0;
+      _previewCommand = '';
+    });
   }
 
   // ─── Preview (debounced) ──────────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      // ← لو table أو chain name فاضيين متبعتش request
+      if (_selectedTableName.isEmpty ||
+          _chainNameController.text.trim().isEmpty) {
+        if (mounted) setState(() => _previewCommand = '');
+        return;
+      }
       try {
         final chain = ChainModel(
           tableName: _selectedTableName,
@@ -80,7 +101,9 @@ class _ChainsScreenState extends State<ChainsScreen> {
         );
         final command = await _service.previewChain(chain);
         if (mounted) setState(() => _previewCommand = command);
-      } catch (_) {}
+      } catch (e) {
+        print('Error previewing chain: $e');
+      }
     });
   }
 
@@ -111,7 +134,15 @@ class _ChainsScreenState extends State<ChainsScreen> {
         priority: _priorityValue,
       );
       await _service.addChain(chain);
-      if (mounted) setState(() => _isSuccess = true);
+      if (mounted) {
+        setState(() => _isSuccess = true);
+        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isSuccess = false);
+          _resetFields();
+        }
+      }
     } on DioException catch (e) {
       final msg = e.response?.statusCode == 409
           ? 'Chain already exists'

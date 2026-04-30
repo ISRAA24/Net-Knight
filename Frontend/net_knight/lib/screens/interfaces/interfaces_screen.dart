@@ -107,7 +107,7 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
 
     if (confirm == true) {
       try {
-        await _service.deleteInterface(item.realName);
+        // await _service.deleteInterface(item.realName);
         await _loadInterfaces();
       } on DioException catch (_) {
         _showError('Failed to delete interface');

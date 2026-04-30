@@ -1,15 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:net_knight/core/network/base_services.dart';
 import '../models/signup_response.dart';
 
 class SignupService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://paddling-levitator-impromptu.ngrok-free.dev/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {'Content-Type': 'application/json'},
-    ),
-  );
+  final Dio _dio = BaseService.dio;
 
   Future<SignupResponse> signup({
     required String username,

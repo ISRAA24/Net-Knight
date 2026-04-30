@@ -5,12 +5,14 @@ class MasqueradeForm extends StatelessWidget {
   const MasqueradeForm({
     super.key,
     required this.sourceIpController,
+    required this.interfaces,
     required this.selectedInterface,
     required this.onInterfaceChanged,
     required this.onChanged,
   });
 
   final TextEditingController sourceIpController;
+  final List<String> interfaces;
   final String? selectedInterface;
   final ValueChanged<String?> onInterfaceChanged;
   final VoidCallback onChanged;
@@ -29,7 +31,7 @@ class MasqueradeForm extends StatelessWidget {
         ),
         NatDropdown(
           label: 'Output Interface',
-          items: const ['ens33', 'ens37'],
+          items: interfaces,
           value: selectedInterface,
           onChanged: (v) {
             onInterfaceChanged(v);

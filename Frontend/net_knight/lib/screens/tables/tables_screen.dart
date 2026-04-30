@@ -41,10 +41,24 @@ class _TablesScreenState extends State<TablesScreen> {
     super.dispose();
   }
 
+  // ─── Reset Fields ─────────────────────────────────────
+  void _resetFields() {
+    _nameController.clear();
+    setState(() {
+      _selectedFamily = 'ip';
+      _previewCommand = '';
+    });
+  }
+
   // ─── Preview (debounced) ──────────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      // ← لو name فاضي متبعتش request
+      if (_nameController.text.trim().isEmpty) {
+        if (mounted) setState(() => _previewCommand = '');
+        return;
+      }
       try {
         final table = TableModel(
           name: _nameController.text.trim(),
@@ -52,7 +66,9 @@ class _TablesScreenState extends State<TablesScreen> {
         );
         final command = await _service.previewTable(table);
         if (mounted) setState(() => _previewCommand = command);
-      } catch (_) {}
+      } catch (e) {
+        print('Error previewing table: $e');
+      }
     });
   }
 
@@ -75,7 +91,15 @@ class _TablesScreenState extends State<TablesScreen> {
     try {
       final table = TableModel(name: name, family: _selectedFamily);
       await _service.addTable(table);
-      if (mounted) setState(() => _isSuccess = true);
+      if (mounted) {
+        setState(() => _isSuccess = true);
+        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isSuccess = false);
+          _resetFields();
+        }
+      }
     } on DioException catch (e) {
       final msg = e.response?.statusCode == 409
           ? 'Table already exists'
@@ -117,9 +141,7 @@ class _TablesScreenState extends State<TablesScreen> {
                             _selectedFamily = val;
                             _onChanged();
                           }),
-                          onNameChanged: (val) => setState(() {
-                            if (_isSuccess) _isSuccess = false;
-                          }),
+                          onNameChanged: (_) => _onChanged(),
                         ),
 
                         // ─── Command Preview ───────────

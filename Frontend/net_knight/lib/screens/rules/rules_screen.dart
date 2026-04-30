@@ -25,6 +25,7 @@ class _RulesScreenState extends State<RulesScreen> {
 
   List<String> _tables = [];
   List<String> _chains = [];
+  List<String> _interfaces = []; // ← من API
   String _selectedTableName = '';
   String _selectedChainName = '';
   String? _selectedInterface;
@@ -40,6 +41,8 @@ class _RulesScreenState extends State<RulesScreen> {
   void initState() {
     super.initState();
     _loadTables();
+    _loadChains();
+    _loadInterfaces();
     _ipSourceController.addListener(_onChanged);
     _ipDestController.addListener(_onChanged);
     _portDestController.addListener(_onChanged);
@@ -63,18 +66,18 @@ class _RulesScreenState extends State<RulesScreen> {
           _tables = tables;
           _selectedTableName = tables.isNotEmpty ? tables.first : '';
         });
-        if (tables.isNotEmpty) _loadChains(tables.first);
+        _updatePreview();
       }
-    } catch (_) {
+    } catch (e) {
+      print('Error loading tables: $e');
       if (mounted) setState(() => _tables = []);
     }
   }
 
-  // ─── Load Chains  ────────────────────
-  Future<void> _loadChains(String tableName) async {
-    setState(() => _chains = []);
+  // ─── Load Chains ──────────────────────────────────
+  Future<void> _loadChains() async {
     try {
-      final chains = await _service.getChains(tableName);
+      final chains = await _service.getChains();
       if (mounted) {
         setState(() {
           _chains = chains;
@@ -82,15 +85,46 @@ class _RulesScreenState extends State<RulesScreen> {
         });
         _updatePreview();
       }
-    } catch (_) {
+    } catch (e) {
+      print('Error loading chains: $e');
       if (mounted) setState(() => _chains = []);
     }
+  }
+
+  // ─── Load Interfaces ──────────────────────────────
+  Future<void> _loadInterfaces() async {
+    try {
+      final interfaces = await _service.getInterfaces();
+      if (mounted) setState(() => _interfaces = interfaces);
+    } catch (e) {
+      print('Error loading interfaces: $e');
+      if (mounted) setState(() => _interfaces = []);
+    }
+  }
+
+  // ─── Reset Fields ─────────────────────────────────
+  void _resetFields() {
+    _ipSourceController.clear();
+    _ipDestController.clear();
+    _portDestController.clear();
+    setState(() {
+      _selectedTableName = _tables.isNotEmpty ? _tables.first : '';
+      _selectedChainName = _chains.isNotEmpty ? _chains.first : '';
+      _selectedInterface = null;
+      _selectedProtocol = null;
+      _selectedAction = null;
+      _previewCommand = '';
+    });
   }
 
   // ─── Preview (debounced) ──────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (_selectedTableName.isEmpty || _selectedChainName.isEmpty) {
+        if (mounted) setState(() => _previewCommand = '');
+        return;
+      }
       try {
         final rule = RuleModel(
           tableName: _selectedTableName,
@@ -104,7 +138,9 @@ class _RulesScreenState extends State<RulesScreen> {
         );
         final command = await _service.previewRule(rule);
         if (mounted) setState(() => _previewCommand = command);
-      } catch (_) {}
+      } catch (e) {
+        print('Error previewing rule: $e');
+      }
     });
   }
 
@@ -137,7 +173,14 @@ class _RulesScreenState extends State<RulesScreen> {
         action: _selectedAction ?? '',
       );
       await _service.addRule(rule);
-      if (mounted) setState(() => _isSuccess = true);
+      if (mounted) {
+        setState(() => _isSuccess = true);
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isSuccess = false);
+          _resetFields();
+        }
+      }
     } on DioException catch (e) {
       final msg = e.response?.statusCode == 409
           ? 'Rule already exists'
@@ -171,11 +214,11 @@ class _RulesScreenState extends State<RulesScreen> {
                     child: Stack(
                       alignment: Alignment.topLeft,
                       children: [
-                        // ─── Form ──────────────────────
                         SingleChildScrollView(
                           child: RuleForm(
                             tables: _tables,
                             chains: _chains,
+                            interfaces: _interfaces,
                             selectedTableName: _selectedTableName,
                             selectedChainName: _selectedChainName,
                             ipSourceController: _ipSourceController,
@@ -186,7 +229,6 @@ class _RulesScreenState extends State<RulesScreen> {
                             selectedAction: _selectedAction,
                             onTableChanged: (val) {
                               setState(() => _selectedTableName = val);
-                              _loadChains(val);
                               _onChanged();
                             },
                             onChainChanged: (val) => setState(() {
@@ -208,8 +250,6 @@ class _RulesScreenState extends State<RulesScreen> {
                             onChanged: _onChanged,
                           ),
                         ),
-
-                        // ─── Command Preview ───────────
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -219,8 +259,6 @@ class _RulesScreenState extends State<RulesScreen> {
                             isSuccess: _isSuccess,
                           ),
                         ),
-
-                        // ─── FAB ───────────────────────
                         Positioned(
                           bottom: 0,
                           right: 0,

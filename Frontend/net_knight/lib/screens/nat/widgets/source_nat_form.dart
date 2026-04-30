@@ -6,6 +6,7 @@ class SourceNatForm extends StatelessWidget {
     super.key,
     required this.sourceIpController,
     required this.newSourceIpController,
+    required this.interfaces,
     required this.selectedInterface,
     required this.onInterfaceChanged,
     required this.onChanged,
@@ -13,6 +14,7 @@ class SourceNatForm extends StatelessWidget {
 
   final TextEditingController sourceIpController;
   final TextEditingController newSourceIpController;
+  final List<String> interfaces;
   final String? selectedInterface;
   final ValueChanged<String?> onInterfaceChanged;
   final VoidCallback onChanged;
@@ -31,7 +33,7 @@ class SourceNatForm extends StatelessWidget {
         ),
         NatDropdown(
           label: 'Output Interface',
-          items: const ['ens33', 'ens37'],
+          items: interfaces,
           value: selectedInterface,
           onChanged: (v) {
             onInterfaceChanged(v);

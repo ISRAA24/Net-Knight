@@ -7,6 +7,7 @@ class DestinationNatForm extends StatelessWidget {
     required this.destIpController,
     required this.externalPortController,
     required this.internalPortController,
+    required this.interfaces,
     required this.selectedProtocol,
     required this.selectedInterface,
     required this.onProtocolChanged,
@@ -17,6 +18,7 @@ class DestinationNatForm extends StatelessWidget {
   final TextEditingController destIpController;
   final TextEditingController externalPortController;
   final TextEditingController internalPortController;
+  final List<String> interfaces;
   final String? selectedProtocol;
   final String? selectedInterface;
   final ValueChanged<String?> onProtocolChanged;
@@ -40,7 +42,7 @@ class DestinationNatForm extends StatelessWidget {
         ),
         NatDropdown(
           label: 'Output Interface',
-          items: const ['ens33', 'ens37'],
+          items: interfaces,
           value: selectedInterface,
           onChanged: (v) {
             onInterfaceChanged(v);

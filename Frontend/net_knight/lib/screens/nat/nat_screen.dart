@@ -23,6 +23,9 @@ class NATScreen extends StatefulWidget {
 class _NATScreenState extends State<NATScreen> {
   final _service = NatService();
 
+  // ─── Interfaces from API ──────────────────
+  List<String> _interfaces = [];
+
   // ─── Type ─────────────────────────────────
   NatType _selectedType = NatType.masquerade;
   bool _isSuccess = false;
@@ -51,6 +54,7 @@ class _NATScreenState extends State<NATScreen> {
   @override
   void initState() {
     super.initState();
+    _loadInterfaces();
     _masqSourceIpCtrl.addListener(_onChanged);
     _snatSourceIpCtrl.addListener(_onChanged);
     _snatNewSourceIpCtrl.addListener(_onChanged);
@@ -71,16 +75,70 @@ class _NATScreenState extends State<NATScreen> {
     super.dispose();
   }
 
+  // ─── Load Interfaces ──────────────────────
+  Future<void> _loadInterfaces() async {
+    try {
+      final interfaces = await _service.getInterfaces();
+      if (mounted) setState(() => _interfaces = interfaces);
+    } catch (e) {
+      print('Error loading interfaces: $e');
+      if (mounted) setState(() => _interfaces = []);
+    }
+  }
+
+  // ─── Reset Fields ─────────────────────────
+  void _resetFields() {
+    _masqSourceIpCtrl.clear();
+    _snatSourceIpCtrl.clear();
+    _snatNewSourceIpCtrl.clear();
+    _dnatDestIpCtrl.clear();
+    _dnatExtPortCtrl.clear();
+    _dnatIntPortCtrl.clear();
+    setState(() {
+      _masqInterface = null;
+      _snatInterface = null;
+      _dnatProtocol = null;
+      _dnatInterface = null;
+      _previewCommand = '';
+    });
+  }
+
   // ─── Preview (debounced) ──────────────────
   void _updatePreview() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      // ← تحقق إن في بيانات كافية قبل ما تبعت request
+      final data = _buildPreviewData();
+      final hasEnoughData = _hasRequiredFields(data);
+      if (!hasEnoughData) {
+        if (mounted) setState(() => _previewCommand = '');
+        return;
+      }
       try {
-        final data = _buildPreviewData();
         final command = await _service.previewNat(data);
         if (mounted) setState(() => _previewCommand = command);
-      } catch (_) {}
+      } catch (e) {
+        print('Error previewing NAT: $e');
+      }
     });
+  }
+
+  bool _hasRequiredFields(Map<String, dynamic> data) {
+    switch (_selectedType) {
+      case NatType.masquerade:
+        return (data['source_ip'] as String).isNotEmpty &&
+            (data['output_interface'] as String).isNotEmpty;
+      case NatType.source:
+        return (data['source_ip'] as String).isNotEmpty &&
+            (data['new_source_ip'] as String).isNotEmpty &&
+            (data['output_interface'] as String).isNotEmpty;
+      case NatType.destination:
+        return (data['dest_ip'] as String).isNotEmpty &&
+            (data['ext_port'] as String).isNotEmpty &&
+            (data['int_port'] as String).isNotEmpty &&
+            (data['protocol'] as String).isNotEmpty &&
+            (data['input_interface'] as String).isNotEmpty;
+    }
   }
 
   Map<String, dynamic> _buildPreviewData() {
@@ -168,7 +226,15 @@ class _NATScreenState extends State<NATScreen> {
           break;
       }
 
-      if (mounted) setState(() => _isSuccess = true);
+      if (mounted) {
+        setState(() => _isSuccess = true);
+        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          setState(() => _isSuccess = false);
+          _resetFields();
+        }
+      }
     } on DioException catch (e) {
       final msg = e.response?.statusCode == 409
           ? 'Rule already exists'
@@ -259,6 +325,7 @@ class _NATScreenState extends State<NATScreen> {
       case NatType.masquerade:
         return MasqueradeForm(
           sourceIpController: _masqSourceIpCtrl,
+          interfaces: _interfaces,
           selectedInterface: _masqInterface,
           onInterfaceChanged: (v) => setState(() {
             _masqInterface = v;
@@ -270,6 +337,7 @@ class _NATScreenState extends State<NATScreen> {
         return SourceNatForm(
           sourceIpController: _snatSourceIpCtrl,
           newSourceIpController: _snatNewSourceIpCtrl,
+          interfaces: _interfaces,
           selectedInterface: _snatInterface,
           onInterfaceChanged: (v) => setState(() {
             _snatInterface = v;
@@ -282,6 +350,7 @@ class _NATScreenState extends State<NATScreen> {
           destIpController: _dnatDestIpCtrl,
           externalPortController: _dnatExtPortCtrl,
           internalPortController: _dnatIntPortCtrl,
+          interfaces: _interfaces,
           selectedProtocol: _dnatProtocol,
           selectedInterface: _dnatInterface,
           onProtocolChanged: (v) => setState(() {

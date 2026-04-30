@@ -5,6 +5,7 @@ import 'widgets/branding_panel.dart';
 import 'widgets/auth_text_field.dart';
 import 'widgets/submit_button.dart';
 import 'services/auth_service.dart';
+import '../verification/verification_screen.dart';
 
 class LogInScreen extends StatefulWidget {
   const LogInScreen({super.key});
@@ -31,17 +32,23 @@ class _LogInScreenState extends State<LogInScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     try {
-      await _authService.login(
+      final response = await _authService.login(
         _usernameController.text.trim(),
         _passwordController.text,
       );
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/verification');
+        Navigator.pushReplacementNamed(
+          context,
+          '/verification',
+          arguments: VerificationArgs(
+            email: response.email,
+            isFromLogin: true,
+          ),
+        );
       }
     } on DioException catch (e) {
       final message = e.response?.statusCode == 401
@@ -55,7 +62,8 @@ class _LogInScreenState extends State<LogInScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Color(0xffef4444)),
+      SnackBar(
+          content: Text(message), backgroundColor: const Color(0xffef4444)),
     );
   }
 
@@ -145,15 +153,14 @@ class _LoginFormPanel extends StatelessWidget {
               suffixIcon: IconButton(
                 icon: Icon(
                   obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Color(0xfffafafa).withOpacity(0.6),
+                  color: const Color(0xfffafafa).withOpacity(0.6),
                 ),
                 onPressed: onToggleObscure,
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Please enter your password';
-                if (v.length < 6) {
+                if (v.length < 6)
                   return 'Password must be at least 6 characters';
-                }
                 return null;
               },
             ),

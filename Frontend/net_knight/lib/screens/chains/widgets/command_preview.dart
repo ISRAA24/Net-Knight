@@ -15,17 +15,19 @@ class CommandPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 150),
-      child: isSuccess
-          ? _SuccessMessage(key: const ValueKey('success'))
-          : _CommandBox(key: ValueKey(command), command: command),
-    );
+    // لو success → رسالة النجاح
+    if (isSuccess) return const _SuccessMessage();
+
+    // لو command فاضي → متعرضش حاجة
+    if (command.isEmpty) return const SizedBox.shrink();
+
+    // لو في command → اعرضه
+    return _CommandBox(command: command);
   }
 }
 
 class _SuccessMessage extends StatelessWidget {
-  const _SuccessMessage({super.key});
+  const _SuccessMessage();
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,7 @@ class _SuccessMessage extends StatelessWidget {
 }
 
 class _CommandBox extends StatelessWidget {
-  const _CommandBox({super.key, required this.command});
+  const _CommandBox({required this.command});
   final String command;
 
   @override

@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/signup_form_panel.dart';
 import 'services/signup_service.dart';
+import '../verification/verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -55,12 +56,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Navigator.pushReplacementNamed(
           context,
           '/verification',
-          arguments: _emailController.text.trim(),
+          arguments: VerificationArgs(
+            email: _emailController.text.trim(),
+            isFromLogin: false, // ← جاي من signup
+          ),
         );
       }
     } on DioException catch (e) {
-      _showError(
-          'Error: ${e.message} | Status: ${e.response?.statusCode} | Data: ${e.response?.data}');
+      final msg = e.response?.statusCode == 409
+          ? 'Account already exists'
+          : 'Connection error. Please try again.';
+      _showError(msg);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

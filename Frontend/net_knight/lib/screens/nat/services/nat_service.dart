@@ -1,18 +1,16 @@
 import 'package:dio/dio.dart';
+import 'package:net_knight/core/network/base_services.dart';
 import '../models/nat_model.dart';
 
 class NatService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://paddling-levitator-impromptu.ngrok-free.dev/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    ),
-  );
+  final Dio _dio = BaseService.dio;
+
+  // ─── Get Interfaces from API ──────────────────────────
+  Future<List<String>> getInterfaces() async {
+    final response = await _dio.get('/staticfirewall/interfaces');
+    final List data = response.data['data'];
+    return data.map((e) => e['name'].toString()).toList();
+  }
 
   Future<String> previewNat(Map<String, dynamic> data) async {
     final response = await _dio.post('/preview_nat', data: data);

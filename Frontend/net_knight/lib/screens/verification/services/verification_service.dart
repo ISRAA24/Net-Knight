@@ -1,23 +1,33 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:net_knight/core/network/base_services.dart';
 
 class VerificationService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://paddling-levitator-impromptu.ngrok-free.dev/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    ),
-  );
+  final Dio _dio = BaseService.dio;
+  static const _storage = FlutterSecureStorage();
 
+  // ← Signup verification
   Future<void> verifyEmail(String email, String code) async {
-    await _dio.post(
+    final response = await _dio.post(
       '/auth/verify',
       data: {'email': email, 'code': code},
     );
+    final token = response.data['token'];
+    if (token != null) {
+      await _storage.write(key: 'auth_token', value: token);
+    }
+  }
+
+  // ← Login verification
+  Future<void> verifyLogin(String email, String code) async {
+    final response = await _dio.post(
+      '/auth/verify-login',
+      data: {'email': email, 'code': code},
+    );
+    final token = response.data['token'];
+    if (token != null) {
+      await _storage.write(key: 'auth_token', value: token);
+    }
   }
 
   Future<void> resendCode(String email) async {

@@ -11,6 +11,9 @@ class InterfaceModel {
     required this.ip,
   });
 
+  String get initials =>
+      logicalName.isNotEmpty ? logicalName.substring(0, 1).toUpperCase() : 'I';
+
   InterfaceModel copyWith({
     String? logicalName,
     String? status,
@@ -24,9 +27,11 @@ class InterfaceModel {
       );
 
   factory InterfaceModel.fromJson(Map<String, dynamic> json) => InterfaceModel(
-        logicalName: json['logicalName'] ?? '',
-        realName: json['realName'] ?? '',
-        status: json['status'] ?? 'disconnected',
+        logicalName: json['name'] ?? '', // ← name مش logicalName
+        realName: json['name'] ?? '', // ← name مش realName
+        status: json['status'] == 'up' // ← up/down مش connected/disconnected
+            ? 'connected'
+            : 'disconnected',
         ip: json['ip'] ?? '',
       );
 

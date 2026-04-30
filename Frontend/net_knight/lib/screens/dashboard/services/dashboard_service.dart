@@ -1,17 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:net_knight/core/network/base_services.dart';
 
 class DashboardService {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://paddling-levitator-impromptu.ngrok-free.dev/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    ),
-  );
+  final Dio _dio = BaseService.dio;
 
   Future<Map<String, dynamic>> getStats() async {
     final response = await _dio.get('/stats');

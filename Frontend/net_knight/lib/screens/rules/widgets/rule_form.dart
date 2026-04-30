@@ -9,6 +9,7 @@ class RuleForm extends StatelessWidget {
     super.key,
     required this.tables,
     required this.chains,
+    required this.interfaces, // ← من API بدل hardcoded
     required this.selectedTableName,
     required this.selectedChainName,
     required this.ipSourceController,
@@ -27,6 +28,7 @@ class RuleForm extends StatelessWidget {
 
   final List<String> tables;
   final List<String> chains;
+  final List<String> interfaces;
   final String selectedTableName;
   final String selectedChainName;
   final TextEditingController ipSourceController;
@@ -42,7 +44,6 @@ class RuleForm extends StatelessWidget {
   final ValueChanged<String?> onActionChanged;
   final VoidCallback onChanged;
 
-  static const _interfaces = ['ens33', 'eth0', 'lo'];
   static const _protocols = ['tcp', 'udp', 'icmp', 'any'];
   static const _actions = ['accept', 'reject', 'drop', 'log'];
 
@@ -91,12 +92,14 @@ class RuleForm extends StatelessWidget {
         // ─── Interface ────────────────────────────────
         _FieldWrapper(
           label: 'Interface',
-          child: _buildDropdownOptional(
-            _interfaces,
-            selectedInterface,
-            onInterfaceChanged,
-            'Select interface',
-          ),
+          child: interfaces.isEmpty
+              ? const _LoadingField()
+              : _buildDropdownOptional(
+                  interfaces,
+                  selectedInterface,
+                  onInterfaceChanged,
+                  'Select interface',
+                ),
         ),
 
         // ─── Protocol ─────────────────────────────────

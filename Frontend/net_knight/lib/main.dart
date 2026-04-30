@@ -20,7 +20,7 @@ class NetKnight extends StatelessWidget {
     return MaterialApp(
       title: 'NetKnight',
       debugShowCheckedModeBanner: false,
-      home: const DashboardScreen(),
+      home: const LogInScreen(),
       routes: {
         '/login': (context) => const LogInScreen(),
         '/signup': (context) => const SignUpScreen(),
@@ -30,13 +30,16 @@ class NetKnight extends StatelessWidget {
         '/rules': (context) => const RulesScreen(),
         '/interfaces': (context) => const InterfacesScreen(),
         '/nat': (context) => const NATScreen(),
-        '/users': (context) => const UserManagementScreen()
+        '/users': (context) => const UserManagementScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/verification') {
-          final email = settings.arguments as String;
+          final args = settings.arguments as VerificationArgs?;
           return MaterialPageRoute(
-            builder: (_) => VerificationScreen(email: email),
+            builder: (_) => VerificationScreen(
+              args:
+                  args ?? const VerificationArgs(email: '', isFromLogin: false),
+            ),
             settings: settings,
           );
         }
