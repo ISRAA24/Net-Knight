@@ -7,7 +7,7 @@ class TablesService {
 
   Future<String> previewTable(TableModel table) async {
     final response = await _dio.post(
-      '/preview_table',
+      '${BaseService.previewBaseUrl}/preview_table',
       data: {
         'table_name': table.name,
         'family': table.family,

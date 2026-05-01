@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:net_knight/core/network/base_services.dart';
 import 'package:net_knight/screens/interfaces/interfaces_screen.dart';
 import 'package:net_knight/screens/nat/nat_screen.dart';
 import 'package:net_knight/screens/rules/rules_screen.dart';
@@ -10,7 +11,11 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/tables/tables_screen.dart';
 import 'screens/chains/chains_screen.dart';
 
-void main() => runApp(const NetKnight());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await BaseService.init();
+  runApp(const NetKnight());
+}
 
 class NetKnight extends StatelessWidget {
   const NetKnight({super.key});

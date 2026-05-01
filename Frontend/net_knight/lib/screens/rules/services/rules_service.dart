@@ -20,13 +20,13 @@ class RulesService {
   // ← Interfaces من API
   Future<List<String>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
-    final List data = response.data['data'];
+    final List data = response.data['data']['interfaces'];
     return data.map((e) => e['name'].toString()).toList();
   }
 
   Future<String> previewRule(RuleModel rule) async {
     final response = await _dio.post(
-      '/preview_rule',
+      '${BaseService.previewBaseUrl}/preview_rule',
       data: {
         'family': 'ip',
         'table_name': rule.tableName,

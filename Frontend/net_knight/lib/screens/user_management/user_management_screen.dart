@@ -66,9 +66,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ),
               );
             }
-          } on DioException catch (_) {
-            _showError('Failed to add user');
+          } on DioException catch (e) {
+            _showError('${e.response?.statusCode} | ${e.response?.data}');
           }
+          // on DioException catch (_) {
+          //   _showError('Failed to add user');
+          // }
         },
       ),
     );

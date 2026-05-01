@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 const _kPrimary = Color(0xff0077c0);
 const _kDark = Color(0xff1d242b);
 
-// ← argument بيتبعت من login أو signup
 class VerificationArgs {
   final String email;
   final bool isFromLogin;
@@ -30,8 +29,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
   final _otpFieldsKey = GlobalKey<OtpFieldsState>();
   final _service = VerificationService();
   bool _isLoading = false;
+  bool _verifyCalledOnce = false;
 
-  // ─── Masked Email ──────────────────────────────────────────────
   String get _maskedEmail {
     final parts = widget.args.email.split('@');
     if (parts.length != 2) return widget.args.email;
@@ -40,34 +39,43 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return '$masked@${parts[1]}';
   }
 
-  // ─── Verify ───────────────────────────────────────────────────
   Future<void> _verify() async {
+    if (_verifyCalledOnce) return;
+
     final otp = _otpFieldsKey.currentState?.otp ?? '';
     if (otp.length < 6) {
       _showError('Please enter the complete verification code');
       return;
     }
 
+    _verifyCalledOnce = true;
     setState(() => _isLoading = true);
 
     try {
-      // ← لو جاي من login استخدم verify-login، لو من signup استخدم verify
+      bool saved = false;
+
       if (widget.args.isFromLogin) {
-        await _service.verifyLogin(widget.args.email, otp);
+        saved = await _service.verifyLogin(widget.args.email, otp);
       } else {
-        await _service.verifyEmail(widget.args.email, otp);
+        saved = await _service.verifyEmail(widget.args.email, otp);
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verified successfully!'),
-            backgroundColor: Colors.green,
-          ),
+      if (!mounted) return;
+
+      if (saved) {
+        // ← token اتحفظ → روح للـ dashboard
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/dashboard',
+          (route) => false,
         );
-        Navigator.pushReplacementNamed(context, '/dashboard');
+      } else {
+        // ← مفيش token في الـ response
+        _verifyCalledOnce = false;
+        _showError('Verification failed. Please try again.');
+        _otpFieldsKey.currentState?.clear();
       }
     } on DioException catch (e) {
+      _verifyCalledOnce = false;
       final msg = e.response?.statusCode == 400
           ? 'Invalid or expired code'
           : 'Connection error. Please try again.';
@@ -78,11 +86,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
-  // ─── Resend ───────────────────────────────────────────────────
   Future<void> _resend() async {
     try {
       await _service.resendCode(widget.args.email);
       if (mounted) {
+        _verifyCalledOnce = false;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Code resent successfully!'),
@@ -111,7 +119,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Back
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
@@ -124,10 +131,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // Icon
               const CircleAvatar(
                 radius: 28,
                 backgroundColor: _kDark,
@@ -137,10 +141,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   size: 28,
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // Title
               const Text(
                 'Verification Code',
                 style: TextStyle(
@@ -149,10 +150,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   color: _kDark,
                 ),
               ),
-
               const SizedBox(height: 10),
-
-              // Subtitle
               Text(
                 'A verification code has been sent to:\n$_maskedEmail',
                 textAlign: TextAlign.center,
@@ -162,15 +160,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   height: 1.5,
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // OTP Fields
               OtpFields(key: _otpFieldsKey),
-
               const SizedBox(height: 16),
-
-              // Resend
               TextButton(
                 onPressed: _resend,
                 child: const Text(
@@ -178,10 +170,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   style: TextStyle(color: _kPrimary),
                 ),
               ),
-
               const SizedBox(height: 32),
-
-              // Verify Button
               SizedBox(
                 width: 140,
                 child: ElevatedButton(

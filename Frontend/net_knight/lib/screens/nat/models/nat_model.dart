@@ -32,7 +32,7 @@ class SourceNatModel {
   });
 
   Map<String, dynamic> toJson() => {
-        'nat_type': 'snat',
+        'nat_type': 'source',
         'source_ip': sourceIp,
         'new_source_ip': newSourceIp,
         'output_interface': interface,
@@ -59,7 +59,7 @@ class DestinationNatModel {
   });
 
   Map<String, dynamic> toJson() => {
-        'nat_type': 'dnat',
+        'nat_type': 'destination',
         'protocol': protocol,
         'input_interface': interface,
         'dest_ip': destIp,

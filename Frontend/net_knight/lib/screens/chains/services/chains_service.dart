@@ -13,7 +13,7 @@ class ChainsService {
 
   Future<String> previewChain(ChainModel chain) async {
     final response = await _dio.post(
-      '/preview_chain',
+      '${BaseService.previewBaseUrl}/preview_chain',
       data: {
         'family': 'ip',
         'table_name': chain.tableName,

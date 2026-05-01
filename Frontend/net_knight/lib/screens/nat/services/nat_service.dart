@@ -8,12 +8,13 @@ class NatService {
   // ─── Get Interfaces from API ──────────────────────────
   Future<List<String>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
-    final List data = response.data['data'];
+    final List data = response.data['data']['interfaces'];
     return data.map((e) => e['name'].toString()).toList();
   }
 
   Future<String> previewNat(Map<String, dynamic> data) async {
-    final response = await _dio.post('/preview_nat', data: data);
+    final response = await _dio
+        .post('${BaseService.previewBaseUrl}/preview_nat', data: data);
     final result = response.data;
     if (result['status'] == 'success') return result['command'] as String;
     return '';

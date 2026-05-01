@@ -7,8 +7,7 @@ class UserManagementService {
 
   Future<List<UserModel>> getUsers() async {
     final response = await _dio.get('/users');
-    final List data =
-        response.data['data']; // ← تصحيح: كان response.data مباشرةً
+    final List data = response.data['data'];
     return data.map((e) => UserModel.fromJson(e)).toList();
   }
 

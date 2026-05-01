@@ -107,7 +107,6 @@ class _NATScreenState extends State<NATScreen> {
   void _updatePreview() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () async {
-      // ← تحقق إن في بيانات كافية قبل ما تبعت request
       final data = _buildPreviewData();
       final hasEnoughData = _hasRequiredFields(data);
       if (!hasEnoughData) {
@@ -152,7 +151,7 @@ class _NATScreenState extends State<NATScreen> {
         };
       case NatType.source:
         return {
-          'nat_type': 'snat',
+          'nat_type': 'source',
           'source_ip': _snatSourceIpCtrl.text.trim(),
           'new_source_ip': _snatNewSourceIpCtrl.text.trim(),
           'output_interface': _snatInterface ?? '',
@@ -160,7 +159,7 @@ class _NATScreenState extends State<NATScreen> {
         };
       case NatType.destination:
         return {
-          'nat_type': 'dnat',
+          'nat_type': 'destination',
           'input_interface': _dnatInterface ?? '',
           'dest_ip': _dnatDestIpCtrl.text.trim(),
           'int_port': _dnatIntPortCtrl.text.trim(),
@@ -228,7 +227,7 @@ class _NATScreenState extends State<NATScreen> {
 
       if (mounted) {
         setState(() => _isSuccess = true);
-        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
+
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           setState(() => _isSuccess = false);
@@ -236,11 +235,15 @@ class _NATScreenState extends State<NATScreen> {
         }
       }
     } on DioException catch (e) {
-      final msg = e.response?.statusCode == 409
-          ? 'Rule already exists'
-          : 'Connection error. Please try again.';
-      _showError(msg);
-    } finally {
+      _showError('${e.response?.statusCode} | ${e.response?.data}');
+    }
+    // on DioException catch (e) {
+    //   final msg = e.response?.statusCode == 409
+    //       ? 'Rule already exists'
+    //       : 'Connection error. Please try again.';
+    //   _showError(msg);
+    // }
+    finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }

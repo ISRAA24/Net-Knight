@@ -22,6 +22,7 @@ class _LogInScreenState extends State<LogInScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _loginCalledOnce = false; // ← guard ضد double call
 
   @override
   void dispose() {
@@ -31,7 +32,11 @@ class _LogInScreenState extends State<LogInScreen> {
   }
 
   Future<void> _login() async {
+    // ← لو اتكالت قبل كده متكالهاش تاني
+    if (_loginCalledOnce) return;
     if (!_formKey.currentState!.validate()) return;
+
+    _loginCalledOnce = true;
     setState(() => _isLoading = true);
 
     try {
@@ -51,6 +56,7 @@ class _LogInScreenState extends State<LogInScreen> {
         );
       }
     } on DioException catch (e) {
+      _loginCalledOnce = false; // ← لو فشل خليها تتكال تاني
       final message = e.response?.statusCode == 401
           ? 'Invalid username or password'
           : 'Connection error. Please try again.';
@@ -62,8 +68,7 @@ class _LogInScreenState extends State<LogInScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(message), backgroundColor: const Color(0xffef4444)),
+      SnackBar(content: Text(message), backgroundColor: Color(0xffef4444)),
     );
   }
 
@@ -153,14 +158,15 @@ class _LoginFormPanel extends StatelessWidget {
               suffixIcon: IconButton(
                 icon: Icon(
                   obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: const Color(0xfffafafa).withOpacity(0.6),
+                  color: Color(0xfffafafa).withOpacity(0.6),
                 ),
                 onPressed: onToggleObscure,
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Please enter your password';
-                if (v.length < 8)
-                  return 'Password must be at least 8 characters';
+                if (v.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
                 return null;
               },
             ),
