@@ -7,10 +7,10 @@ class SplashService {
   Future<bool> hasUsers() async {
     try {
       final response = await _dio.get('/users');
-      final List users = response.data;
+      final List users = response.data['data'];
       return users.isNotEmpty;
     } catch (_) {
-      return false;
+      return true;
     }
   }
 }

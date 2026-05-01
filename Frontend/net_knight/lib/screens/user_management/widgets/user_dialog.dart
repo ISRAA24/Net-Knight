@@ -16,8 +16,8 @@ class UserDialog extends StatefulWidget {
     this.isLoading = false,
   });
 
-  final void Function(String name, String email, String password, String role)
-      onSave;
+  final Future<void> Function(
+      String name, String email, String password, String role) onSave;
   final bool isEditing;
   final String? initialName;
   final String? initialEmail;
@@ -34,6 +34,7 @@ class _UserDialogState extends State<UserDialog> {
   late final TextEditingController _password;
   late String _role;
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -54,10 +55,23 @@ class _UserDialogState extends State<UserDialog> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_name.text.trim().isEmpty || _email.text.trim().isEmpty) return;
-    widget.onSave(_name.text.trim(), _email.text.trim(), _password.text, _role);
-    Navigator.pop(context);
+
+    setState(() => _isLoading = true);
+    try {
+      // ← استنى الـ API call تخلص الأول
+      await widget.onSave(
+        _name.text.trim(),
+        _email.text.trim(),
+        _password.text,
+        _role,
+      );
+      // ← بعد ما تخلص بنجاح اقفل الـ dialog
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -115,9 +129,9 @@ class _UserDialogState extends State<UserDialog> {
               Align(
                 alignment: Alignment.bottomRight,
                 child: FloatingActionButton.small(
-                  onPressed: widget.isLoading ? null : _submit,
+                  onPressed: _isLoading ? null : _submit,
                   backgroundColor: _kDark,
-                  child: widget.isLoading
+                  child: _isLoading
                       ? const Padding(
                           padding: EdgeInsets.all(8),
                           child: CircularProgressIndicator(

@@ -6,12 +6,12 @@ class UserCard extends StatelessWidget {
   const UserCard({
     super.key,
     required this.user,
-    required this.onEdit,
+    this.onEdit,
     this.onDelete,
   });
 
   final UserModel user;
-  final VoidCallback onEdit;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -54,12 +54,12 @@ class UserCard extends StatelessWidget {
             ),
           ),
 
-          // ─── Edit ─────────────────────────────
-          IconButton(
-            icon:
-                const Icon(LucideIcons.pencil, color: Colors.white70, size: 18),
-            onPressed: onEdit,
-          ),
+          if (onEdit != null)
+            IconButton(
+              icon: const Icon(LucideIcons.pencil,
+                  color: Colors.white70, size: 18),
+              onPressed: onEdit,
+            ),
 
           if (onDelete != null)
             IconButton(

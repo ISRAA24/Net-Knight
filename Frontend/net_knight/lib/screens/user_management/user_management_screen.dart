@@ -50,28 +50,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       context: context,
       builder: (_) => UserDialog(
         onSave: (name, email, password, role) async {
-          try {
-            await _service.addUser(
-              name: name,
-              email: email,
-              password: password,
-              role: role,
+          await _service.addUser(
+            name: name,
+            email: email,
+            password: password,
+            role: role,
+          );
+          await _loadUsers();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('User added successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
-            await _loadUsers();
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('User added successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } on DioException catch (e) {
-            _showError('${e.response?.statusCode} | ${e.response?.data}');
           }
-          // on DioException catch (_) {
-          //   _showError('Failed to add user');
-          // }
         },
       ),
     );
@@ -87,22 +80,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         initialEmail: user.email,
         initialRole: user.role,
         onSave: (name, email, password, role) async {
-          try {
-            await _service.editUser(
-              user.id,
-              user.copyWith(name: name, email: email, role: role),
+          await _service.editUser(
+            user.id,
+            user.copyWith(name: name, email: email, role: role),
+          );
+          await _loadUsers();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('User updated successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
-            await _loadUsers();
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('User updated successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } on DioException catch (_) {
-            _showError('Failed to update user');
           }
         },
       ),
@@ -147,7 +136,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  bool _isDeletable(UserModel user) => user.role != 'Super Admin';
+  bool _isActionAllowed(UserModel user) =>
+      user.role != 'super_admin' && user.role != 'Super Admin';
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -176,16 +166,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           )
                         : Stack(
                             children: [
-                              ListView.builder(
-                                itemCount: _users.length,
-                                itemBuilder: (_, i) => UserCard(
-                                  user: _users[i],
-                                  onEdit: () => _openEditDialog(_users[i]),
-                                  onDelete: _isDeletable(_users[i])
-                                      ? () => _deleteUser(_users[i])
-                                      : null,
-                                ),
-                              ),
+                              _users.isEmpty
+                                  ? const Center(
+                                      child: Text('No users found'),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: _users.length,
+                                      itemBuilder: (_, i) => UserCard(
+                                        user: _users[i],
+                                        onEdit: _isActionAllowed(_users[i])
+                                            ? () => _openEditDialog(_users[i])
+                                            : null,
+                                        onDelete: _isActionAllowed(_users[i])
+                                            ? () => _deleteUser(_users[i])
+                                            : null,
+                                      ),
+                                    ),
                               Positioned(
                                 bottom: 20,
                                 right: 20,
