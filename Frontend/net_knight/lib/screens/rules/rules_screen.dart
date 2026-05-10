@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/nk_colors.dart';
+import '../../core/models/table_entry.dart';
+import '../../core/widgets/command_preview.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/rule_model.dart';
 import 'services/rules_service.dart';
 import 'widgets/rule_form.dart';
-import 'widgets/command_preview.dart';
 
 class RulesScreen extends StatefulWidget {
   const RulesScreen({super.key});
@@ -23,10 +24,11 @@ class _RulesScreenState extends State<RulesScreen> {
   final _portDestController = TextEditingController();
   final _service = RulesService();
 
-  List<String> _tables = [];
+  List<TableEntry> _tables = [];
   List<String> _chains = [];
-  List<String> _interfaces = []; // ← من API
+  List<String> _interfaces = [];
   String _selectedTableName = '';
+  String _selectedTableFamily = 'ip';
   String _selectedChainName = '';
   String? _selectedInterface;
   String? _selectedProtocol;
@@ -57,14 +59,14 @@ class _RulesScreenState extends State<RulesScreen> {
     super.dispose();
   }
 
-  // ─── Load Tables ──────────────────────────────────
   Future<void> _loadTables() async {
     try {
       final tables = await _service.getTables();
       if (mounted) {
         setState(() {
           _tables = tables;
-          _selectedTableName = tables.isNotEmpty ? tables.first : '';
+          _selectedTableName = tables.isNotEmpty ? tables.first.name : '';
+          _selectedTableFamily = tables.isNotEmpty ? tables.first.family : 'ip';
         });
         _updatePreview();
       }
@@ -74,7 +76,6 @@ class _RulesScreenState extends State<RulesScreen> {
     }
   }
 
-  // ─── Load Chains ──────────────────────────────────
   Future<void> _loadChains() async {
     try {
       final chains = await _service.getChains();
@@ -91,7 +92,6 @@ class _RulesScreenState extends State<RulesScreen> {
     }
   }
 
-  // ─── Load Interfaces ──────────────────────────────
   Future<void> _loadInterfaces() async {
     try {
       final interfaces = await _service.getInterfaces();
@@ -102,13 +102,13 @@ class _RulesScreenState extends State<RulesScreen> {
     }
   }
 
-  // ─── Reset Fields ─────────────────────────────────
   void _resetFields() {
     _ipSourceController.clear();
     _ipDestController.clear();
     _portDestController.clear();
     setState(() {
-      _selectedTableName = _tables.isNotEmpty ? _tables.first : '';
+      _selectedTableName = _tables.isNotEmpty ? _tables.first.name : '';
+      _selectedTableFamily = _tables.isNotEmpty ? _tables.first.family : 'ip';
       _selectedChainName = _chains.isNotEmpty ? _chains.first : '';
       _selectedInterface = null;
       _selectedProtocol = null;
@@ -117,10 +117,9 @@ class _RulesScreenState extends State<RulesScreen> {
     });
   }
 
-  // ─── Preview (debounced) ──────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (_selectedTableName.isEmpty || _selectedChainName.isEmpty) {
         if (mounted) setState(() => _previewCommand = '');
         return;
@@ -135,6 +134,7 @@ class _RulesScreenState extends State<RulesScreen> {
           interface: _selectedInterface ?? '',
           protocol: _selectedProtocol ?? '',
           action: _selectedAction ?? '',
+          family: _selectedTableFamily,
         );
         final command = await _service.previewRule(rule);
         if (mounted) setState(() => _previewCommand = command);
@@ -144,13 +144,11 @@ class _RulesScreenState extends State<RulesScreen> {
     });
   }
 
-  // ─── On Any Field Changed ─────────────────────────
   void _onChanged() {
     if (_isSuccess) setState(() => _isSuccess = false);
     _updatePreview();
   }
 
-  // ─── Add Rule ─────────────────────────────────────
   Future<void> _addRule() async {
     if (_selectedTableName.isEmpty ||
         _selectedChainName.isEmpty ||
@@ -171,6 +169,7 @@ class _RulesScreenState extends State<RulesScreen> {
         interface: _selectedInterface ?? '',
         protocol: _selectedProtocol ?? '',
         action: _selectedAction ?? '',
+        family: _selectedTableFamily,
       );
       await _service.addRule(rule);
       if (mounted) {
@@ -216,7 +215,7 @@ class _RulesScreenState extends State<RulesScreen> {
                       children: [
                         SingleChildScrollView(
                           child: RuleForm(
-                            tables: _tables,
+                            tables: _tables.map((e) => e.name).toList(),
                             chains: _chains,
                             interfaces: _interfaces,
                             selectedTableName: _selectedTableName,
@@ -228,7 +227,14 @@ class _RulesScreenState extends State<RulesScreen> {
                             selectedProtocol: _selectedProtocol,
                             selectedAction: _selectedAction,
                             onTableChanged: (val) {
-                              setState(() => _selectedTableName = val);
+                              setState(() {
+                                _selectedTableName = val;
+                                _selectedTableFamily = _tables
+                                    .firstWhere((e) => e.name == val,
+                                        orElse: () =>
+                                            TableEntry(name: val, family: 'ip'))
+                                    .family;
+                              });
                               _onChanged();
                             },
                             onChainChanged: (val) => setState(() {
@@ -257,6 +263,7 @@ class _RulesScreenState extends State<RulesScreen> {
                           child: CommandPreview(
                             command: _previewCommand,
                             isSuccess: _isSuccess,
+                            successMessage: 'Rule added successfully',
                           ),
                         ),
                         Positioned(
@@ -280,8 +287,6 @@ class _RulesScreenState extends State<RulesScreen> {
   }
 }
 
-// ─── Top Bar ──────────────────────────────────────────────
-
 class _TopBar extends StatelessWidget {
   final String title;
   const _TopBar({required this.title});
@@ -295,14 +300,12 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.rajdhani(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1D242B),
-                ),
-              ),
+              Text(title,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1D242B),
+                  )),
               const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
             ],
           ),
@@ -314,11 +317,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── Add Button ───────────────────────────────────────────
-
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.isLoading, required this.onTap});
-
   final bool isLoading;
   final VoidCallback onTap;
 

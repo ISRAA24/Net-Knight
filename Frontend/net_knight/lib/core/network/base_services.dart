@@ -36,8 +36,7 @@ class BaseService {
     )..interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) async {
-            final token =
-                await TokenStorage.getToken(); // ← غيري لـ TokenStorage
+            final token = await TokenStorage.getToken();
             if (token != null && token.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $token';
             }
@@ -57,10 +56,46 @@ class BaseService {
 }
 
 // ─── Token Storage ────────────────────────────────────────
-// بيشتغل على ويب وموبايل وديسكتوب
+
 class TokenStorage {
   static const _storage = FlutterSecureStorage();
   static const _key = 'auth_token';
+  static const _usernameKey = 'username';
+  static const _roleKey = 'role';
+
+  static Future<void> saveUserData({
+    required String username,
+    required String role,
+  }) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_usernameKey, username);
+      await prefs.setString(_roleKey, role);
+    } else {
+      await _storage.write(key: _usernameKey, value: username);
+      await _storage.write(key: _roleKey, value: role);
+    }
+  }
+
+  // ─── Get Username ─────────────────────────────────
+  static Future<String> getUsername() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_usernameKey) ?? 'User';
+    } else {
+      return await _storage.read(key: _usernameKey) ?? 'User';
+    }
+  }
+
+  // ─── Get Role ─────────────────────────────────────
+  static Future<String> getRole() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_roleKey) ?? '';
+    } else {
+      return await _storage.read(key: _roleKey) ?? '';
+    }
+  }
 
   static Future<void> saveToken(String token) async {
     if (kIsWeb) {

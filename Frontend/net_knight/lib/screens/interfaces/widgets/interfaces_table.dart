@@ -10,12 +10,10 @@ class InterfacesTable extends StatelessWidget {
     super.key,
     required this.interfaces,
     required this.onEdit,
-    required this.onDelete,
   });
 
   final List<InterfaceModel> interfaces;
   final ValueChanged<InterfaceModel> onEdit;
-  final ValueChanged<InterfaceModel> onDelete;
 
   static const _columnWidths = {
     0: FlexColumnWidth(2.5),
@@ -87,10 +85,7 @@ class InterfacesTable extends StatelessWidget {
         _DataCell(item.realName, color: const Color(0xFF4B5563)),
         _DataCell(item.status, color: statusColor),
         _DataCell(item.ip),
-        _ActionsCell(
-          onEdit: () => onEdit(item),
-          onDelete: () => onDelete(item),
-        ),
+        _ActionsCell(onEdit: () => onEdit(item)),
       ],
     );
   }
@@ -133,9 +128,8 @@ class _DataCell extends StatelessWidget {
 }
 
 class _ActionsCell extends StatelessWidget {
-  const _ActionsCell({required this.onEdit, required this.onDelete});
+  const _ActionsCell({required this.onEdit});
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -145,8 +139,6 @@ class _ActionsCell extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _IconAction(icon: Icons.edit, onTap: onEdit),
-          const SizedBox(width: 8),
-          _IconAction(icon: Icons.delete, onTap: onDelete),
         ],
       ),
     );

@@ -5,6 +5,7 @@ class ChainModel {
   final String policy;
   final String type;
   final int priority;
+  final String family; // ← اتضاف
 
   const ChainModel({
     required this.tableName,
@@ -13,6 +14,7 @@ class ChainModel {
     required this.policy,
     required this.type,
     required this.priority,
+    this.family = 'ip', // ← default ip
   });
 
   Map<String, dynamic> toJson() => {
@@ -22,8 +24,6 @@ class ChainModel {
         'policy': policy,
         'type': type,
         'priority': priority,
+        'family': family,
       };
-
-  String toCommand() =>
-      'nft add chain $type $tableName $chainName { type $type hook $hook priority $priority; policy $policy; }';
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/nk_colors.dart';
+import '../../core/widgets/command_preview.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/nat_model.dart';
 import 'services/nat_service.dart';
@@ -11,7 +12,6 @@ import 'widgets/nat_type_selector.dart';
 import 'widgets/masquerade_form.dart';
 import 'widgets/source_nat_form.dart';
 import 'widgets/destination_nat_form.dart';
-import 'widgets/command_preview.dart';
 
 class NATScreen extends StatefulWidget {
   const NATScreen({super.key});
@@ -23,28 +23,21 @@ class NATScreen extends StatefulWidget {
 class _NATScreenState extends State<NATScreen> {
   final _service = NatService();
 
-  // ─── Interfaces from API ──────────────────
   List<String> _interfaces = [];
-
-  // ─── Type ─────────────────────────────────
   NatType _selectedType = NatType.masquerade;
   bool _isSuccess = false;
   bool _isLoading = false;
 
-  // ─── Preview ──────────────────────────────
   String _previewCommand = '';
   Timer? _debounce;
 
-  // ─── Masquerade ───────────────────────────
   final _masqSourceIpCtrl = TextEditingController();
   String? _masqInterface;
 
-  // ─── Source NAT ───────────────────────────
   final _snatSourceIpCtrl = TextEditingController();
   final _snatNewSourceIpCtrl = TextEditingController();
   String? _snatInterface;
 
-  // ─── Destination NAT ──────────────────────
   final _dnatDestIpCtrl = TextEditingController();
   final _dnatExtPortCtrl = TextEditingController();
   final _dnatIntPortCtrl = TextEditingController();
@@ -75,7 +68,6 @@ class _NATScreenState extends State<NATScreen> {
     super.dispose();
   }
 
-  // ─── Load Interfaces ──────────────────────
   Future<void> _loadInterfaces() async {
     try {
       final interfaces = await _service.getInterfaces();
@@ -86,7 +78,6 @@ class _NATScreenState extends State<NATScreen> {
     }
   }
 
-  // ─── Reset Fields ─────────────────────────
   void _resetFields() {
     _masqSourceIpCtrl.clear();
     _snatSourceIpCtrl.clear();
@@ -103,13 +94,11 @@ class _NATScreenState extends State<NATScreen> {
     });
   }
 
-  // ─── Preview (debounced) ──────────────────
   void _updatePreview() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       final data = _buildPreviewData();
-      final hasEnoughData = _hasRequiredFields(data);
-      if (!hasEnoughData) {
+      if (!_hasRequiredFields(data)) {
         if (mounted) setState(() => _previewCommand = '');
         return;
       }
@@ -151,7 +140,7 @@ class _NATScreenState extends State<NATScreen> {
         };
       case NatType.source:
         return {
-          'nat_type': 'source',
+          'nat_type': 'snat',
           'source_ip': _snatSourceIpCtrl.text.trim(),
           'new_source_ip': _snatNewSourceIpCtrl.text.trim(),
           'output_interface': _snatInterface ?? '',
@@ -159,7 +148,7 @@ class _NATScreenState extends State<NATScreen> {
         };
       case NatType.destination:
         return {
-          'nat_type': 'destination',
+          'nat_type': 'dnat',
           'input_interface': _dnatInterface ?? '',
           'dest_ip': _dnatDestIpCtrl.text.trim(),
           'int_port': _dnatIntPortCtrl.text.trim(),
@@ -170,13 +159,11 @@ class _NATScreenState extends State<NATScreen> {
     }
   }
 
-  // ─── On Any Field Changed ─────────────────
   void _onChanged() {
     if (_isSuccess) setState(() => _isSuccess = false);
     _updatePreview();
   }
 
-  // ─── Add Rule ─────────────────────────────
   Future<void> _addRule() async {
     setState(() => _isLoading = true);
     try {
@@ -191,7 +178,6 @@ class _NATScreenState extends State<NATScreen> {
             interface: _masqInterface!,
           ));
           break;
-
         case NatType.source:
           if (_snatSourceIpCtrl.text.trim().isEmpty ||
               _snatInterface == null ||
@@ -205,7 +191,6 @@ class _NATScreenState extends State<NATScreen> {
             newSourceIp: _snatNewSourceIpCtrl.text.trim(),
           ));
           break;
-
         case NatType.destination:
           if (_dnatProtocol == null ||
               _dnatInterface == null ||
@@ -227,7 +212,6 @@ class _NATScreenState extends State<NATScreen> {
 
       if (mounted) {
         setState(() => _isSuccess = true);
-
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           setState(() => _isSuccess = false);
@@ -235,15 +219,11 @@ class _NATScreenState extends State<NATScreen> {
         }
       }
     } on DioException catch (e) {
-      _showError('${e.response?.statusCode} | ${e.response?.data}');
-    }
-    // on DioException catch (e) {
-    //   final msg = e.response?.statusCode == 409
-    //       ? 'Rule already exists'
-    //       : 'Connection error. Please try again.';
-    //   _showError(msg);
-    // }
-    finally {
+      final msg = e.response?.statusCode == 409
+          ? 'Rule already exists'
+          : 'Connection error. Please try again.';
+      _showError(msg);
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -272,7 +252,6 @@ class _NATScreenState extends State<NATScreen> {
                     child: Stack(
                       alignment: Alignment.topLeft,
                       children: [
-                        // ─── Form ──────────────────────
                         SingleChildScrollView(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,8 +269,6 @@ class _NATScreenState extends State<NATScreen> {
                             ],
                           ),
                         ),
-
-                        // ─── Command Preview ───────────
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -299,10 +276,9 @@ class _NATScreenState extends State<NATScreen> {
                           child: CommandPreview(
                             command: _previewCommand,
                             isSuccess: _isSuccess,
+                            successMessage: 'NAT rule added successfully',
                           ),
                         ),
-
-                        // ─── FAB ───────────────────────
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -370,8 +346,6 @@ class _NATScreenState extends State<NATScreen> {
   }
 }
 
-// ─── Top Bar ──────────────────────────────────────────────
-
 class _TopBar extends StatelessWidget {
   final String title;
   const _TopBar({required this.title});
@@ -385,14 +359,12 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.rajdhani(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1D242B),
-                ),
-              ),
+              Text(title,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1D242B),
+                  )),
               const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
             ],
           ),
@@ -404,11 +376,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── Add Button ───────────────────────────────────────────
-
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.isLoading, required this.onTap});
-
   final bool isLoading;
   final VoidCallback onTap;
 

@@ -3,7 +3,9 @@ import 'package:net_knight/core/network/base_services.dart';
 import 'package:net_knight/screens/interfaces/interfaces_screen.dart';
 import 'package:net_knight/screens/nat/nat_screen.dart';
 import 'package:net_knight/screens/rules/rules_screen.dart';
+import 'package:net_knight/screens/splash/splash_screen.dart';
 import 'package:net_knight/screens/user_management/user_management_screen.dart';
+import 'package:net_knight/screens/rule_management/rule_management_screen.dart';
 import 'screens/log_in/log_in_screen.dart';
 import 'screens/sign_up/sign_up_screen.dart';
 import 'screens/verification/verification_screen.dart';
@@ -25,7 +27,7 @@ class NetKnight extends StatelessWidget {
     return MaterialApp(
       title: 'NetKnight',
       debugShowCheckedModeBanner: false,
-      home: const LogInScreen(),
+      home: const SplashScreen(),
       routes: {
         '/login': (context) => const LogInScreen(),
         '/signup': (context) => const SignUpScreen(),
@@ -36,6 +38,7 @@ class NetKnight extends StatelessWidget {
         '/interfaces': (context) => const InterfacesScreen(),
         '/nat': (context) => const NATScreen(),
         '/users': (context) => const UserManagementScreen(),
+        '/rules-management': (context) => const RuleManagementScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/verification') {

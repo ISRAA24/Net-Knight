@@ -11,8 +11,11 @@ class VerificationService {
       data: {'email': email, 'code': code},
     );
     final token = response.data['token'];
+    final username = response.data['username'] ?? response.data['name'] ?? '';
+    final role = response.data['role'] ?? '';
     if (token != null) {
-      await TokenStorage.saveToken(token.toString()); // ← TokenStorage
+      await TokenStorage.saveToken(token.toString());
+      await TokenStorage.saveUserData(username: username, role: role);
       return true;
     }
     return false;
@@ -25,8 +28,11 @@ class VerificationService {
       data: {'email': email, 'code': code},
     );
     final token = response.data['token'];
+    final username = response.data['username'] ?? response.data['name'] ?? '';
+    final role = response.data['role'] ?? '';
     if (token != null) {
-      await TokenStorage.saveToken(token.toString()); // ← TokenStorage
+      await TokenStorage.saveToken(token.toString());
+      await TokenStorage.saveUserData(username: username, role: role);
       return true;
     }
     return false;

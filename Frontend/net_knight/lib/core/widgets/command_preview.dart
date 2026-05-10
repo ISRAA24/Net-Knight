@@ -2,46 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const _kTerminalBg = Color(0xFF1E252B);
-
+const _kGreen = Color(0xFF22C55E);
 class CommandPreview extends StatelessWidget {
   const CommandPreview({
     super.key,
     required this.command,
     required this.isSuccess,
+    this.successMessage = 'Added successfully',
   });
 
   final String command;
   final bool isSuccess;
+  final String successMessage;
 
   @override
   Widget build(BuildContext context) {
-    // لو success → رسالة النجاح
-    if (isSuccess) return const _SuccessMessage();
+    if (isSuccess) return _SuccessMessage(message: successMessage);
 
-    // لو command فاضي → متعرضش حاجة
     if (command.isEmpty) return const SizedBox.shrink();
 
-    // لو في command → اعرضه
     return _CommandBox(command: command);
   }
 }
 
-// ─── Success ──────────────────────────────────────────────
+// ─── Success Message ──────────────────────────────────────
 
 class _SuccessMessage extends StatelessWidget {
-  const _SuccessMessage();
+  const _SuccessMessage({required this.message});
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 22),
+        const Icon(Icons.check_circle, color: _kGreen, size: 22),
         const SizedBox(width: 8),
         Text(
-          'Table added successfully',
+          message,
           style: GoogleFonts.rajdhani(
-            color: const Color(0xFF22C55E),
+            color: _kGreen,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -55,7 +55,6 @@ class _SuccessMessage extends StatelessWidget {
 
 class _CommandBox extends StatelessWidget {
   const _CommandBox({required this.command});
-
   final String command;
 
   @override
@@ -70,14 +69,15 @@ class _CommandBox extends StatelessWidget {
         children: [
           const Text(
             r'$ ',
-            style: TextStyle(
-                color: Color(0xff22c55e), fontWeight: FontWeight.bold),
+            style: TextStyle(color: _kGreen, fontWeight: FontWeight.bold),
           ),
           Expanded(
             child: Text(
               command,
-              style:
-                  GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 14),
+              style: GoogleFonts.jetBrainsMono(
+                color: const Color(0xfffafafa),
+                fontSize: 14,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),

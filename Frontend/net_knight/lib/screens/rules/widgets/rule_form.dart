@@ -9,7 +9,7 @@ class RuleForm extends StatelessWidget {
     super.key,
     required this.tables,
     required this.chains,
-    required this.interfaces, // ← من API بدل hardcoded
+    required this.interfaces,
     required this.selectedTableName,
     required this.selectedChainName,
     required this.ipSourceController,
@@ -44,7 +44,8 @@ class RuleForm extends StatelessWidget {
   final ValueChanged<String?> onActionChanged;
   final VoidCallback onChanged;
 
-  static const _protocols = ['tcp', 'udp', 'icmp', 'any'];
+  // ← شيلنا 'any' من الـ protocols
+  static const _protocols = ['tcp', 'udp', 'icmp'];
   static const _actions = ['accept', 'reject', 'drop', 'log'];
 
   @override
@@ -53,43 +54,43 @@ class RuleForm extends StatelessWidget {
       spacing: 60,
       runSpacing: 10,
       children: [
-        // ─── Table Name ──────
+        // ─── Table Name (required) ────────────────────
         _FieldWrapper(
-          label: 'Table name',
+          label: 'Table name *',
           child: tables.isEmpty
               ? const _LoadingField()
               : _buildDropdownRequired(
                   tables, selectedTableName, onTableChanged),
         ),
 
-        // ─── Chain Name ─────
+        // ─── Chain Name (required) ────────────────────
         _FieldWrapper(
-          label: 'Chain name',
+          label: 'Chain name *',
           child: chains.isEmpty
               ? const _LoadingField()
               : _buildDropdownRequired(
                   chains, selectedChainName, onChainChanged),
         ),
 
-        // ─── IP Source ────────────────────────────────
+        // ─── IP Source (optional) ─────────────────────
         _FieldWrapper(
           label: 'IP source',
           child: _buildTextField(ipSourceController, '192.168.1.0/24'),
         ),
 
-        // ─── IP Destination ───────────────────────────
+        // ─── IP Destination (optional) ────────────────
         _FieldWrapper(
           label: 'IP destination',
           child: _buildTextField(ipDestController, '8.8.8.8'),
         ),
 
-        // ─── Port Destination ─────────────────────────
+        // ─── Port Destination (optional) ──────────────
         _FieldWrapper(
           label: 'Port destination',
           child: _buildTextField(portDestController, '80,443,22'),
         ),
 
-        // ─── Interface ────────────────────────────────
+        // ─── Interface (optional) ─────────────────────
         _FieldWrapper(
           label: 'Interface',
           child: interfaces.isEmpty
@@ -102,7 +103,7 @@ class RuleForm extends StatelessWidget {
                 ),
         ),
 
-        // ─── Protocol ─────────────────────────────────
+        // ─── Protocol (optional) ──────────────────────
         _FieldWrapper(
           label: 'Protocol',
           child: _buildDropdownOptional(
@@ -113,21 +114,20 @@ class RuleForm extends StatelessWidget {
           ),
         ),
 
-        // ─── Action ───────────────────────────────────
+        // ─── Action (required) ────────────────────────
         _FieldWrapper(
-          label: 'Action',
-          child: _buildDropdownOptional(
+          label: 'Action *',
+          child: _buildDropdownRequired(
             _actions,
-            selectedAction,
-            onActionChanged,
-            'Select action',
+            selectedAction ?? _actions.first,
+            (val) => onActionChanged(val),
           ),
         ),
       ],
     );
   }
 
-  // ─── Required Dropdown ─────────────
+  // ─── Required Dropdown ────────────────────────────
   Widget _buildDropdownRequired(
       List<String> items, String value, ValueChanged<String> onChanged) {
     final safeValue = items.contains(value) ? value : items.first;

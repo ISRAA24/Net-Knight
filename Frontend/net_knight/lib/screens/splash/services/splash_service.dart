@@ -10,7 +10,7 @@ class SplashService {
       final List users = response.data['data'];
       return users.isNotEmpty;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 }

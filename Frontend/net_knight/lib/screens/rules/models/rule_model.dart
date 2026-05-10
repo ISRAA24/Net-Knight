@@ -7,6 +7,7 @@ class RuleModel {
   final String interface;
   final String protocol;
   final String action;
+  final String family; // ← اتضاف
 
   const RuleModel({
     required this.tableName,
@@ -17,6 +18,7 @@ class RuleModel {
     required this.interface,
     required this.protocol,
     required this.action,
+    this.family = 'ip', // ← default ip
   });
 
   Map<String, dynamic> toJson() => {
@@ -28,5 +30,6 @@ class RuleModel {
         'interface': interface,
         'protocol': protocol,
         'action': action,
+        'family': family,
       };
 }

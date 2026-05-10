@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/nk_colors.dart';
-import '../../../core/theme/nk_text_styles.dart';
+import 'package:net_knight/core/network/base_services.dart';
+import 'package:net_knight/core/theme/nk_colors.dart';
+import 'package:net_knight/core/theme/nk_text_styles.dart';
 
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
@@ -16,74 +17,37 @@ class Sidebar extends StatelessWidget {
       color: NKColors.sidebar,
       child: Column(
         children: [
-          _SidebarLogo(),
+          const _SidebarLogo(),
           const Divider(color: Color(0xFFF2F4F7)),
           Expanded(
             child: ListView(
               children: [
                 const _NavSection('DASHBOARD'),
-                _NavItem(
-                  LucideIcons.activity,
-                  'Statistics',
-                  route: '/dashboard',
-                  isActive: currentRoute == '/dashboard',
-                ),
-                _NavItem(
-                  LucideIcons.cpu,
-                  'AI Generated Rules',
-                  route: '/ai-rules',
-                  isActive: currentRoute == '/ai-rules',
-                ),
-                _NavItem(
-                  LucideIcons.list,
-                  'Rules Management',
-                  route: '/rules-management',
-                  isActive: currentRoute == '/rules-management',
-                ),
+                _NavItem(LucideIcons.activity, 'Statistics',
+                    route: '/dashboard',
+                    isActive: currentRoute == '/dashboard'),
+                _NavItem(LucideIcons.cpu, 'AI Generated Rules',
+                    route: '/ai-rules', isActive: currentRoute == '/ai-rules'),
+                _NavItem(LucideIcons.list, 'Rules Management',
+                    route: '/rules-management',
+                    isActive: currentRoute == '/rules-management'),
                 const _NavSection('STATIC RULES'),
-                _NavItem(
-                  LucideIcons.monitor,
-                  'Interfaces',
-                  route: '/interfaces',
-                  isActive: currentRoute == '/interfaces',
-                ),
-                _NavItem(
-                  LucideIcons.table,
-                  'Tables',
-                  route: '/tables',
-                  isActive: currentRoute == '/tables',
-                ),
-                _NavItem(
-                  LucideIcons.database,
-                  'Chains',
-                  route: '/chains',
-                  isActive: currentRoute == '/chains',
-                ),
-                _NavItem(
-                  LucideIcons.layers,
-                  'Rules',
-                  route: '/rules',
-                  isActive: currentRoute == '/rules',
-                ),
-                _NavItem(
-                  LucideIcons.workflow,
-                  'NAT',
-                  route: '/nat',
-                  isActive: currentRoute == '/nat',
-                ),
+                _NavItem(LucideIcons.monitor, 'Interfaces',
+                    route: '/interfaces',
+                    isActive: currentRoute == '/interfaces'),
+                _NavItem(LucideIcons.table, 'Tables',
+                    route: '/tables', isActive: currentRoute == '/tables'),
+                _NavItem(LucideIcons.database, 'Chains',
+                    route: '/chains', isActive: currentRoute == '/chains'),
+                _NavItem(LucideIcons.layers, 'Rules',
+                    route: '/rules', isActive: currentRoute == '/rules'),
+                _NavItem(LucideIcons.workflow, 'NAT',
+                    route: '/nat', isActive: currentRoute == '/nat'),
                 const _NavSection('ADMINISTRATION'),
-                _NavItem(
-                  LucideIcons.users,
-                  'User Management',
-                  route: '/users',
-                  isActive: currentRoute == '/users',
-                ),
-                _NavItem(
-                  LucideIcons.file,
-                  'Reports',
-                  route: '/reports',
-                  isActive: currentRoute == '/reports',
-                ),
+                _NavItem(LucideIcons.users, 'User Management',
+                    route: '/users', isActive: currentRoute == '/users'),
+                _NavItem(LucideIcons.file, 'Reports',
+                    route: '/reports', isActive: currentRoute == '/reports'),
               ],
             ),
           ),
@@ -94,14 +58,18 @@ class Sidebar extends StatelessWidget {
   }
 }
 
+// ── Logo ────────────────────────────────────────────────────────────────────
+
 class _SidebarLogo extends StatelessWidget {
+  const _SidebarLogo();
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const Icon(LucideIcons.shieldCheck, color: NKColors.blue, size: 30),
+          Image.asset('assets/images/logo.png', width: 30, height: 30),
           const SizedBox(width: 10),
           Text(
             'NETKNIGHT',
@@ -117,9 +85,11 @@ class _SidebarLogo extends StatelessWidget {
   }
 }
 
+// ── Section label ────────────────────────────────────────────────────────────
+
 class _NavSection extends StatelessWidget {
-  final String title;
   const _NavSection(this.title);
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -130,17 +100,20 @@ class _NavSection extends StatelessWidget {
   }
 }
 
+// ── Nav item ─────────────────────────────────────────────────────────────────
+
 class _NavItem extends StatelessWidget {
+  const _NavItem(this.icon, this.label,
+      {required this.route, this.isActive = false});
+
   final IconData icon;
   final String label;
   final String route;
   final bool isActive;
 
-  const _NavItem(this.icon, this.label,
-      {required this.route, this.isActive = false});
-
   @override
   Widget build(BuildContext context) {
+    final color = isActive ? const Color(0xFFDBDFE6) : const Color(0xFFB7A7A7);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2),
       decoration: BoxDecoration(
@@ -153,27 +126,56 @@ class _NavItem extends StatelessWidget {
         color: isActive ? NKColors.blue.withOpacity(0.1) : Colors.transparent,
       ),
       child: ListTile(
-        leading: Icon(icon,
-            size: 18,
-            color:
-                isActive ? const Color(0xFFDBDFE6) : const Color(0xFFB7A7A7)),
-        title: Text(label,
-            style: NKTextStyles.sidebarLabel.copyWith(
-              color: isActive ? const Color(0xFFF7F5F5) : null,
-            )),
+        leading: Icon(icon, size: 18, color: color),
+        title: Text(
+          label,
+          style: NKTextStyles.sidebarLabel.copyWith(
+            color: isActive ? const Color(0xFFF7F5F5) : null,
+          ),
+        ),
         dense: true,
         onTap: () {
-          if (!isActive) {
-            Navigator.pushReplacementNamed(context, route);
-          }
+          if (!isActive) Navigator.pushReplacementNamed(context, route);
         },
       ),
     );
   }
 }
 
-class _UserFooter extends StatelessWidget {
+// ── User footer ───────────────────────────────────────────────────────────────
+
+class _UserFooter extends StatefulWidget {
   const _UserFooter();
+
+  @override
+  State<_UserFooter> createState() => _UserFooterState();
+}
+
+class _UserFooterState extends State<_UserFooter> {
+  String _username = 'User';
+  String _role = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted)
+      setState(() {
+        _username = username;
+        _role = role;
+      });
+  }
+
+  String get _initials {
+    if (_username.length >= 2) return _username.substring(0, 2).toUpperCase();
+    if (_username.isNotEmpty) return _username[0].toUpperCase();
+    return 'U';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,18 +186,23 @@ class _UserFooter extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+            onTap: () {
+              TokenStorage.deleteToken();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
                   Icon(Icons.logout, size: 16, color: Color(0xFFCAD0D9)),
                   SizedBox(width: 10),
-                  Text('Log Out',
-                      style: TextStyle(
-                          color: Color(0xFFCBD1D9),
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    'Log Out',
+                    style: TextStyle(
+                        color: Color(0xFFCBD1D9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -205,27 +212,30 @@ class _UserFooter extends StatelessWidget {
             child: Divider(color: Color(0xFF4F5B6B), height: 1),
           ),
           Row(
-            children: const [
+            children: [
               CircleAvatar(
                 radius: 17,
-                backgroundColor: Color(0xFFF2F5F8),
-                child: Text('RA',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black)),
+                backgroundColor: const Color(0xFFF2F5F8),
+                child: Text(
+                  _initials,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Root Admin',
-                      style: TextStyle(
+                  Text(_username,
+                      style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: Colors.white)),
-                  Text('Super Admin',
-                      style: TextStyle(fontSize: 11, color: Color(0xFFB1B9C4))),
+                  Text(_role,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFFB1B9C4))),
                 ],
               ),
             ],

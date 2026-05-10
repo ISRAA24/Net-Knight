@@ -27,9 +27,9 @@ class InterfaceModel {
       );
 
   factory InterfaceModel.fromJson(Map<String, dynamic> json) => InterfaceModel(
-        logicalName: json['name'] ?? '', // ← name مش logicalName
-        realName: json['name'] ?? '', // ← name مش realName
-        status: json['status'] == 'up' // ← up/down مش connected/disconnected
+        logicalName: json['name'] ?? '', 
+        realName: json['name'] ?? '',
+        status: json['status'] == 'up' 
             ? 'connected'
             : 'disconnected',
         ip: json['ip'] ?? '',

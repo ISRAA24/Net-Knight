@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/nk_colors.dart';
+import '../../core/models/table_entry.dart';
+import '../../core/widgets/command_preview.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/chain_model.dart';
 import 'services/chains_service.dart';
 import 'widgets/chain_form.dart';
-import 'widgets/command_preview.dart';
 
 class ChainsScreen extends StatefulWidget {
   const ChainsScreen({super.key});
@@ -22,8 +23,9 @@ class _ChainsScreenState extends State<ChainsScreen> {
   final _priorityController = TextEditingController(text: '0');
   final _service = ChainsService();
 
-  List<String> _tables = [];
+  List<TableEntry> _tables = [];
   String _selectedTableName = '';
+  String _selectedTableFamily = 'ip';
   String _selectedHook = 'prerouting';
   String _selectedPolicy = 'accept';
   String _selectedType = 'route';
@@ -49,14 +51,14 @@ class _ChainsScreenState extends State<ChainsScreen> {
     super.dispose();
   }
 
-  // ─── Load Tables ──────────────────────────────────────
   Future<void> _loadTables() async {
     try {
       final tables = await _service.getTables();
       if (mounted) {
         setState(() {
           _tables = tables;
-          _selectedTableName = tables.isNotEmpty ? tables.first : '';
+          _selectedTableName = tables.isNotEmpty ? tables.first.name : '';
+          _selectedTableFamily = tables.isNotEmpty ? tables.first.family : 'ip';
         });
         _updatePreview();
       }
@@ -66,12 +68,12 @@ class _ChainsScreenState extends State<ChainsScreen> {
     }
   }
 
-  // ─── Reset Fields ─────────────────────────────────────
   void _resetFields() {
     _chainNameController.clear();
     _priorityController.text = '0';
     setState(() {
-      _selectedTableName = _tables.isNotEmpty ? _tables.first : '';
+      _selectedTableName = _tables.isNotEmpty ? _tables.first.name : '';
+      _selectedTableFamily = _tables.isNotEmpty ? _tables.first.family : 'ip';
       _selectedHook = 'prerouting';
       _selectedPolicy = 'accept';
       _selectedType = 'route';
@@ -80,11 +82,9 @@ class _ChainsScreenState extends State<ChainsScreen> {
     });
   }
 
-  // ─── Preview (debounced) ──────────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      // ← لو table أو chain name فاضيين متبعتش request
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (_selectedTableName.isEmpty ||
           _chainNameController.text.trim().isEmpty) {
         if (mounted) setState(() => _previewCommand = '');
@@ -98,6 +98,7 @@ class _ChainsScreenState extends State<ChainsScreen> {
           policy: _selectedPolicy,
           type: _selectedType,
           priority: _priorityValue,
+          family: _selectedTableFamily,
         );
         final command = await _service.previewChain(chain);
         if (mounted) setState(() => _previewCommand = command);
@@ -107,16 +108,13 @@ class _ChainsScreenState extends State<ChainsScreen> {
     });
   }
 
-  // ─── On Any Field Changed ─────────────────────────────
   void _onChanged() {
     if (_isSuccess) setState(() => _isSuccess = false);
     _updatePreview();
   }
 
-  // ─── Add Chain ────────────────────────────────────────
   Future<void> _addChain() async {
     final chainName = _chainNameController.text.trim();
-
     if (_selectedTableName.isEmpty || chainName.isEmpty) {
       _showError('Please fill in all required fields');
       return;
@@ -132,11 +130,11 @@ class _ChainsScreenState extends State<ChainsScreen> {
         policy: _selectedPolicy,
         type: _selectedType,
         priority: _priorityValue,
+        family: _selectedTableFamily,
       );
       await _service.addChain(chain);
       if (mounted) {
         setState(() => _isSuccess = true);
-        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           setState(() => _isSuccess = false);
@@ -176,10 +174,9 @@ class _ChainsScreenState extends State<ChainsScreen> {
                     child: Stack(
                       alignment: Alignment.topLeft,
                       children: [
-                        // ─── Form ──────────────────────
                         SingleChildScrollView(
                           child: ChainForm(
-                            tables: _tables,
+                            tables: _tables.map((e) => e.name).toList(),
                             selectedTableName: _selectedTableName,
                             chainNameController: _chainNameController,
                             priorityController: _priorityController,
@@ -189,6 +186,11 @@ class _ChainsScreenState extends State<ChainsScreen> {
                             priorityValue: _priorityValue,
                             onTableChanged: (val) => setState(() {
                               _selectedTableName = val;
+                              _selectedTableFamily = _tables
+                                  .firstWhere((e) => e.name == val,
+                                      orElse: () =>
+                                          TableEntry(name: val, family: 'ip'))
+                                  .family;
                               _onChanged();
                             }),
                             onHookChanged: (val) => setState(() {
@@ -218,8 +220,6 @@ class _ChainsScreenState extends State<ChainsScreen> {
                             onChanged: _onChanged,
                           ),
                         ),
-
-                        // ─── Command Preview ───────────
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -227,10 +227,9 @@ class _ChainsScreenState extends State<ChainsScreen> {
                           child: CommandPreview(
                             command: _previewCommand,
                             isSuccess: _isSuccess,
+                            successMessage: 'Chain added successfully',
                           ),
                         ),
-
-                        // ─── FAB ───────────────────────
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -252,8 +251,6 @@ class _ChainsScreenState extends State<ChainsScreen> {
   }
 }
 
-// ─── Top Bar ──────────────────────────────────────────────
-
 class _TopBar extends StatelessWidget {
   final String title;
   const _TopBar({required this.title});
@@ -267,14 +264,12 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.rajdhani(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1D242B),
-                ),
-              ),
+              Text(title,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1D242B),
+                  )),
               const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
             ],
           ),
@@ -286,11 +281,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── Add Button ───────────────────────────────────────────
-
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.isLoading, required this.onTap});
-
   final bool isLoading;
   final VoidCallback onTap;
 

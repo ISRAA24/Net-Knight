@@ -1,14 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:net_knight/core/network/base_services.dart';
 import '../models/rule_model.dart';
+import '../../../core/models/table_entry.dart';
 
 class RulesService {
   final Dio _dio = BaseService.dio;
 
-  Future<List<String>> getTables() async {
+  // ← بيرجع TableEntry عشان نعرف الـ family
+  Future<List<TableEntry>> getTables() async {
     final response = await _dio.get('/staticfirewall/tables');
     final List data = response.data['data'];
-    return data.map((e) => e['name'].toString()).toList();
+    return data.map((e) => TableEntry.fromJson(e)).toList();
   }
 
   Future<List<String>> getChains() async {
@@ -17,7 +19,6 @@ class RulesService {
     return data.map((e) => e['name'].toString()).toList();
   }
 
-  // ← Interfaces من API
   Future<List<String>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
     final List data = response.data['data']['interfaces'];
@@ -28,7 +29,7 @@ class RulesService {
     final response = await _dio.post(
       '${BaseService.previewBaseUrl}/preview_rule',
       data: {
-        'family': 'ip',
+        'family': rule.family, // ← الـ family من الـ table
         'table_name': rule.tableName,
         'chain_name': rule.chainName,
         'ip_src': rule.ipSource,

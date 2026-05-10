@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const _kRoles = ['Admin', 'Analyst'];
+const _kRoles = ['admin', 'analyst'];
 const _kBlue = Color(0xFF3B82F6);
 const _kDark = Color(0xFF1D242B);
 

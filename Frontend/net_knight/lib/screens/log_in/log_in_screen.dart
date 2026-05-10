@@ -22,7 +22,6 @@ class _LogInScreenState extends State<LogInScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _loginCalledOnce = false; // ← guard ضد double call
 
   @override
   void dispose() {
@@ -32,11 +31,10 @@ class _LogInScreenState extends State<LogInScreen> {
   }
 
   Future<void> _login() async {
-    // ← لو اتكالت قبل كده متكالهاش تاني
-    if (_loginCalledOnce) return;
     if (!_formKey.currentState!.validate()) return;
 
-    _loginCalledOnce = true;
+    if (_isLoading) return;
+
     setState(() => _isLoading = true);
 
     try {
@@ -56,7 +54,6 @@ class _LogInScreenState extends State<LogInScreen> {
         );
       }
     } on DioException catch (e) {
-      _loginCalledOnce = false; // ← لو فشل خليها تتكال تاني
       final message = e.response?.statusCode == 401
           ? 'Invalid username or password'
           : 'Connection error. Please try again.';

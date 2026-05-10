@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/nk_colors.dart';
+import '../../core/widgets/command_preview.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/table_model.dart';
 import 'services/tables_service.dart';
 import 'widgets/table_form.dart';
-import 'widgets/command_preview.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -41,7 +41,6 @@ class _TablesScreenState extends State<TablesScreen> {
     super.dispose();
   }
 
-  // ─── Reset Fields ─────────────────────────────────────
   void _resetFields() {
     _nameController.clear();
     setState(() {
@@ -50,11 +49,9 @@ class _TablesScreenState extends State<TablesScreen> {
     });
   }
 
-  // ─── Preview (debounced) ──────────────────────────────
   void _updatePreview() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      // ← لو name فاضي متبعتش request
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (_nameController.text.trim().isEmpty) {
         if (mounted) setState(() => _previewCommand = '');
         return;
@@ -72,13 +69,11 @@ class _TablesScreenState extends State<TablesScreen> {
     });
   }
 
-  // ─── On Any Field Changed ─────────────────────────────
   void _onChanged() {
     if (_isSuccess) setState(() => _isSuccess = false);
     _updatePreview();
   }
 
-  // ─── Add Table ────────────────────────────────────────
   Future<void> _addTable() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -93,7 +88,6 @@ class _TablesScreenState extends State<TablesScreen> {
       await _service.addTable(table);
       if (mounted) {
         setState(() => _isSuccess = true);
-        // ← بعد ثانيتين يظهر الـ success ثم يعمل reset
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
           setState(() => _isSuccess = false);
@@ -133,7 +127,6 @@ class _TablesScreenState extends State<TablesScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Stack(
                       children: [
-                        // ─── Form ──────────────────────
                         TableForm(
                           nameController: _nameController,
                           selectedFamily: _selectedFamily,
@@ -143,8 +136,6 @@ class _TablesScreenState extends State<TablesScreen> {
                           }),
                           onNameChanged: (_) => _onChanged(),
                         ),
-
-                        // ─── Command Preview ───────────
                         Positioned(
                           bottom: 0,
                           left: 0,
@@ -152,10 +143,9 @@ class _TablesScreenState extends State<TablesScreen> {
                           child: CommandPreview(
                             command: _previewCommand,
                             isSuccess: _isSuccess,
+                            successMessage: 'Table added successfully',
                           ),
                         ),
-
-                        // ─── FAB ───────────────────────
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -177,8 +167,6 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 }
 
-// ─── Top Bar ──────────────────────────────────────────────
-
 class _TopBar extends StatelessWidget {
   final String title;
   const _TopBar({required this.title});
@@ -192,14 +180,12 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.rajdhani(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1D242B),
-                ),
-              ),
+              Text(title,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1D242B),
+                  )),
               const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
             ],
           ),
@@ -211,11 +197,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── Add Button ───────────────────────────────────────────
-
 class _AddButton extends StatelessWidget {
   const _AddButton({required this.isLoading, required this.onTap});
-
   final bool isLoading;
   final VoidCallback onTap;
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'widgets/otp_fields.dart';
 import 'services/verification_service.dart';
@@ -39,6 +40,30 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return '$masked@${parts[1]}';
   }
 
+  void _navigateToDashboard() {
+    if (kIsWeb) {
+      // ← على الـ web نستخدم Uri navigation بدل dart:html
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/dashboard',
+        (route) => false,
+      );
+      // لو مش شغال على الـ web نعمل reload بعد navigation
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/dashboard',
+            (route) => false,
+          );
+        }
+      });
+    } else {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/dashboard',
+        (route) => false,
+      );
+    }
+  }
+
   Future<void> _verify() async {
     if (_verifyCalledOnce) return;
 
@@ -63,13 +88,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (!mounted) return;
 
       if (saved) {
-        // ← token اتحفظ → روح للـ dashboard
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/dashboard',
-          (route) => false,
-        );
+        _navigateToDashboard();
       } else {
-        // ← مفيش token في الـ response
         _verifyCalledOnce = false;
         _showError('Verification failed. Please try again.');
         _otpFieldsKey.currentState?.clear();

@@ -85,36 +85,6 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
     }
   }
 
-  // ─── Delete ───────────────────────────────────────
-  Future<void> _deleteInterface(InterfaceModel item) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Interface'),
-        content: Text('Are you sure you want to delete "${item.logicalName}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        // await _service.deleteInterface(item.realName);
-        await _loadInterfaces();
-      } on DioException catch (_) {
-        _showError('Failed to delete interface');
-      }
-    }
-  }
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -154,7 +124,6 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
                             : InterfacesTable(
                                 interfaces: _filtered,
                                 onEdit: _showEditDialog,
-                                onDelete: _deleteInterface,
                               ),
                       ],
                     ),
