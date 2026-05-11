@@ -342,7 +342,7 @@ exports.getAllRules = async (req, res) => {
             externalIp: r.external_ip || 'Any',
             internalIp: r.internal_ip || 'Any',
             internalPort: r.internal_port || 'Any',
-            action: r.action,
+            action: "NAT",
             status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
             comment: r.comment
         }));
