@@ -89,7 +89,6 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
                               const SizedBox(height: 20),
                               RuleTable(
                                 rules: _filtered,
-                                // ← Future مباشرة للـ table يتعامل معاه
                                 onToggle: (id) => _service.toggleRule(id),
                                 onDelete: (id) async {
                                   await _service.deleteRule(id);

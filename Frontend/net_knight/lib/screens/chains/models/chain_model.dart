@@ -5,7 +5,7 @@ class ChainModel {
   final String policy;
   final String type;
   final int priority;
-  final String family; // ← اتضاف
+  final String family;
 
   const ChainModel({
     required this.tableName,
@@ -14,7 +14,7 @@ class ChainModel {
     required this.policy,
     required this.type,
     required this.priority,
-    this.family = 'ip', // ← default ip
+    this.family = 'ip',
   });
 
   Map<String, dynamic> toJson() => {

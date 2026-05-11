@@ -36,8 +36,6 @@ class _RuleTableState extends State<RuleTable> {
   @override
   void didUpdateWidget(RuleTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // لما الـ rules تتغير من فوق (reload كامل)
-    // بس حدّث اللي مفيش request شغال عليها
     for (final r in widget.rules) {
       if (!_pendingToggles.contains(r.id)) {
         _localEnabled[r.id] = r.enabled;

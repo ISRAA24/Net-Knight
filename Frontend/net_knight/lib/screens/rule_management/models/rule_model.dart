@@ -20,7 +20,7 @@ class RuleModel {
   });
 
   factory RuleModel.fromJson(Map<String, dynamic> json) => RuleModel(
-        id: json['id']?.toString() ?? '',
+        id: (json['id'] ?? json['_id'])?.toString() ?? '',
         enabled: json['status'] ?? true,
         no: json['no'] ?? 0,
         sourceIp: json['sourceIp'] ?? 'Any',
@@ -53,7 +53,7 @@ class NatRuleModel {
   });
 
   factory NatRuleModel.fromJson(Map<String, dynamic> json) => NatRuleModel(
-        id: json['id']?.toString() ?? '',
+        id: (json['id'] ?? json['_id'])?.toString() ?? '',
         enabled: json['status'] ?? true,
         no: json['no'] ?? 0,
         protocol: json['protocol'] ?? 'ANY',
