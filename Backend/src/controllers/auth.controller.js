@@ -157,6 +157,7 @@ exports.verifyLogin = async (req, res) => {
 
         user.verificationCode = undefined;
         user.verificationCodeExpires = undefined;
+        user.lastLogin = Date.now();
         await user.save();
 
         await logActivity(
@@ -182,8 +183,8 @@ exports.verifyLogin = async (req, res) => {
             username           : user.username,
             email              : user.email,
             role               : user.role,
-            mustChangedPassword: user.mustChangedPassword
-            // التوكن اتشال من الـ JSON
+            mustChangedPassword: user.mustChangedPassword,
+            token: token
         });
 
     } catch (error) {
