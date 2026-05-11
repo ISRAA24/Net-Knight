@@ -10,10 +10,8 @@ const {
 } = require('../utils/validators');
 const { getAuditLogs } = require('../controllers/audit.controller');
 
-// All routes require authentication and 'super_admin' role 
-router.use(protect);
 
-// ── Read-write routes (super_admin + admin) ────────────────────────────────────
+router.use(protect);
 
 router.get('/nat', authorize('super_admin', 'admin'), getNatRules);
 router.get('/interfaces', authorize('super_admin', 'admin'), getInterfaces);

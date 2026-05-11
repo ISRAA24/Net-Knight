@@ -2,13 +2,12 @@ const AuditLog = require('../models/AuditLog');
 
 exports.getAuditLogs = async (req, res) => {
     try {
-        // بنجيب الداتا ونرتبها من الأحدث للأقدم (-1)
+        
         const logs = await AuditLog.find().sort({ createdAt: -1 }).lean();
         
-        // تظبيط شكل الداتا عشان تناسب الجدول اللي في الصورة
         const formattedLogs = logs.map((log, index) => ({
             no: index + 1,
-            date: log.createdAt, // الفرونت إند يقدر يفرمت التاريخ والوقت بمعرفته
+            date: log.createdAt, 
             userName: log.adminName,
             action: log.action,
             target: log.target,

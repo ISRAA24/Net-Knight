@@ -7,9 +7,9 @@ const { validate, addUserSchema, updateUserSchema } = require('../utils/validato
 
 router.route('/')   
     .get(getAllUsers); 
-// All user-management routes require a valid token AND super_admin role
+
 router.use(protect);
-router.use(authorize('super_admin', 'admin')); // ممكن نخلي الأدمين يشوف بس مش يعدل
+router.use(authorize('super_admin', 'admin')); 
 
 router.route('/')
     .post(validate(addUserSchema), addUser)     

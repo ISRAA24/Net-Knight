@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
     mustChangedPassword: { type: Boolean, default: false },
     lastLogin: {
         type: Date,
-        default: null // في الأول بيكون null لحد ما يعمل أول لوجين
+        default: null 
     }
 }
 , { timestamps: true }
@@ -27,7 +27,6 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Hash password before saving if it was modified
 userSchema.pre('save', async function () {
     if (!this.isModified('password')) {
         return; 

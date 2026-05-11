@@ -94,7 +94,7 @@ exports.getChains = async (req, res) => {
         const limit = Math.min(100, parseInt(req.query.limit) || 20);
         const skip  = (page - 1) * limit;
 
-        // لو بعت tableId في الـ query، هيفلتر عليه
+        
         const filter = req.query.tableId ? { tableId: req.query.tableId } : {};
 
         const [chains, total] = await Promise.all([
@@ -147,8 +147,8 @@ exports.addRule = async (req, res) => {
             family: table.family,
             table_name: tableName,
             chain_name: chainName,
-            ip_src: ipSource,        // كان ip_source
-            ip_dest: ipDestination,  // كان ip_destination
+            ip_src: ipSource,        
+            ip_dest: ipDestination,  
             port_dest: portDestination ? String(portDestination) : "",
             interface: networkInterface,
             protocol,
@@ -156,7 +156,7 @@ exports.addRule = async (req, res) => {
             comment: comment
         };
 
-        // send to firewall and get the handle_id back
+        
         const firewallResponse = await firewallAgent.post('/api/add_rule', payload);
         const handleId = firewallResponse.data.handle;
         
@@ -201,8 +201,8 @@ exports.addRule = async (req, res) => {
         return firewallError(res, error);
     }
 };
-// في ملف src/controllers/firewall.controller.js
 
+// PUT /api/staticfirewall/rules/:id/toggle
 exports.toggleRuleStatus = async (req, res) => {
     try {
         const rule = await Rule.findById(req.params.id);
@@ -315,13 +315,13 @@ exports.deleteRule = async (req, res) => {
 };
 exports.getAllRules = async (req, res) => {
     try {
-        // جلب البيانات من الموديلين بترتيب الأحدث
+        
         const [staticRules, natRules] = await Promise.all([
             Rule.find().sort({ createdAt: -1 }).lean(),
             NATRule.find().sort({ createdAt: -1 }).lean()
         ]);
 
-        // تهيئة بيانات الـ Static Rules لتطابق الجدول في الصورة
+        
         const formattedStatic = staticRules.map((r, index) => ({
             no: index + 1,
             id: r._id,
@@ -330,11 +330,10 @@ exports.getAllRules = async (req, res) => {
             port: r.portDestination || 'Any',
             protocol: (r.protocol || 'ANY').toUpperCase(),
             action: r.action,
-            status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
+            status: r.isActive !== undefined ? r.isActive : true, 
             comment: r.comment
         }));
 
-        // تهيئة بيانات الـ NAT Rules لتطابق الجدول في الصورة
         const formattedNat = natRules.map((r, index) => ({
             no: index + 1,
             id: r._id,
@@ -343,7 +342,7 @@ exports.getAllRules = async (req, res) => {
             internalIp: r.internal_ip || 'Any',
             internalPort: r.internal_port || 'Any',
             action: "NAT",
-            status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
+            status: r.isActive !== undefined ? r.isActive : true, 
             comment: r.comment
         }));
 

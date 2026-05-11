@@ -100,7 +100,6 @@ exports.verifyEmail = async (req, res) => {
 };
 
 // POST /api/auth/login
-// POST /api/auth/login
 // Validates credentials then sends a one-time login verification code to the user's email.
 // The client must follow up with POST /api/auth/verify-login to receive the token.
 exports.login = async (req, res) => {
@@ -221,7 +220,7 @@ exports.resendCode = async (req, res) => {
 }
 };
 
-// ======================= 3. LOGOUT =======================
+// LOGOUT
 exports.logout = async (req, res) => {
     try {
         if (req.user) {
@@ -234,10 +233,10 @@ exports.logout = async (req, res) => {
             );
         }
 
-        // ── امسح الكوكي ─────────────────────────────────────────────────
+        
         res.cookie('token', 'none', {
             httpOnly: true,
-            expires : new Date(Date.now() + 10 * 1000) // تنتهي فوراً
+            expires : new Date(Date.now() + 10 * 1000) 
         });
 
         return res.status(200).json({

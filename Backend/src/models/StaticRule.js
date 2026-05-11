@@ -22,7 +22,7 @@ const staticRuleSchema = new mongoose.Schema(
             match: [ipRegex, 'Invalid IPv4 address for Destination IP']
         },
         portDestination: { type: String },
-        networkInterface: { type: String },          // renamed from 'interface' (reserved word)
+        networkInterface: { type: String },          
         protocol: { type: String, enum: ['tcp', 'udp', 'icmp', 'any'] },
         action: { type: String, enum: ['accept', 'reject', 'drop', 'log'] },
         comment: { type: String, required: true },

@@ -4,11 +4,10 @@ const User = require('../models/User');
 exports.protect = async (req, res, next) => {
     let token;
 
-    // ── أول حاجة: دور على الكوكي ────────────────────────────────────────
+    
     if (req.cookies && req.cookies.token) {
         token = req.cookies.token;
 
-    // ── تاني حاجة: دور على الـ Authorization Header (للـ API clients) ──
     } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }

@@ -31,7 +31,7 @@ exports.updateInterface = async (req, res) => {
         const interfaceRealName = req.params.realName; 
         const { status, ipAddress } = req.body; 
 
-        // التأكد إن في داتا مبعوتة أصلاً
+        
         if (status === undefined && ipAddress === undefined) {
             return res.status(400).json({ success: false, message: "No data provided to update" });
         }
@@ -39,18 +39,15 @@ exports.updateInterface = async (req, res) => {
         let pythonResponse;
         let actionDetails = [];
 
-        // 1. معالجة الـ IP Address
-        // بنستخدم !== undefined عشان نعرف لو الحقل مبعوت أصلاً في الريكويست
         if (ipAddress !== undefined) {
             if (ipAddress === "" || ipAddress === null) {
-                // 🔴 الحالة الأولى: لو الـ IP مبعوت فاضي، نبعت أمر مسح
                 pythonResponse = await firewallAgent.post('/api/manage_interfaces', {
                     interface: interfaceRealName,
-                    action: 'del_ip' // أمر المسح الموجود في سكريبت البايثون
+                    action: 'del_ip' 
                 });
                 actionDetails.push('IP Address deleted');
             } else {
-                // 🟢 الحالة التانية: لو مبعوت IP جديد، نعمل تعديل
+               
                 pythonResponse = await firewallAgent.post('/api/manage_interfaces', {
                     interface: interfaceRealName,
                     action: 'modify_ip',
@@ -59,13 +56,12 @@ exports.updateInterface = async (req, res) => {
                 actionDetails.push(`IP changed to ${ipAddress}`);
             }
 
-            // لو حصل إيرور من البايثون أثناء معالجة الـ IP
             if (pythonResponse.data.status === "error") {
                 return res.status(400).json({ success: false, message: pythonResponse.data.message });
             }
         }
 
-        // 2. معالجة حالة الانترفيس (Up / Down)
+        
         if (status && (status === 'up' || status === 'down')) {
             pythonResponse = await firewallAgent.post('/api/manage_interfaces', {
                 interface: interfaceRealName,
@@ -78,7 +74,7 @@ exports.updateInterface = async (req, res) => {
             }
         }
 
-        // 3. تسجيل العملية في الـ Logs (لو بتستخدميها)
+        
         if (req.user && actionDetails.length > 0) {
             const { logActivity } = require('../utils/activityLogger');
             await logActivity(

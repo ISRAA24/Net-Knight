@@ -1,4 +1,3 @@
-// src/utils/activityLogger.js
 const AuditLog = require('../models/AuditLog');
 
 exports.logActivity = async (adminId, adminName, action, target, details = "") => {

@@ -26,7 +26,6 @@ app.use(cookieParser());
 
 const corsOptions = {
     origin: (origin, cb) => {
-        // السماح لكل الـ origins
         return cb(null, true);
     },
     credentials: true,
@@ -34,12 +33,11 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// ← لازم يكون قبل helmet وقبل أي routes
 app.use(cors(corsOptions));
 app.options(/(.*)/, cors(corsOptions));
 // ── Security middleware ──────────────────────────────────────────────────────
 app.use(helmet({
-    contentSecurityPolicy: false, // ← ده اللي بيحل المشكلة
+    contentSecurityPolicy: false, 
 }));
 // app.options(/(.*)/, cors());
 // const allowedOrigins = process.env.ALLOWED_ORIGINS
