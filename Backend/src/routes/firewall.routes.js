@@ -32,4 +32,5 @@ router.patch('/rules/:id/toggle', authorize('super_admin', 'admin'), toggleRuleS
 router.put('/nat/:id', authorize('super_admin', 'admin'), editNatRule);
 router.get('/logs', authorize('super_admin', 'admin', 'analyst'), getAuditLogs);
 
+
 module.exports = router;

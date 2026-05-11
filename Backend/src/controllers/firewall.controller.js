@@ -328,7 +328,7 @@ exports.getAllRules = async (req, res) => {
             sourceIp: r.ipSource || 'Any',
             destIp: r.ipDestination || 'Any',
             port: r.portDestination || 'Any',
-            protocol: r.protocol.toUpperCase(),
+            protocol: (r.protocol || 'ANY').toUpperCase(),
             action: r.action,
             status: r.isActive !== undefined ? r.isActive : true, // مفتاح الحالة (Toggle)
             comment: r.comment
@@ -338,7 +338,7 @@ exports.getAllRules = async (req, res) => {
         const formattedNat = natRules.map((r, index) => ({
             no: index + 1,
             id: r._id,
-            protocol: r.protocol.toUpperCase(),
+            protocol: (r.protocol || 'ANY').toUpperCase(),
             externalIp: r.external_ip || 'Any',
             internalIp: r.internal_ip || 'Any',
             internalPort: r.internal_port || 'Any',

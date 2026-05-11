@@ -23,21 +23,40 @@ connectDB();
 const app = express();
 app.set('trust proxy', 1);
 app.use(cookieParser());
+
+const corsOptions = {
+    origin: (origin, cb) => {
+        // السماح لكل الـ origins
+        return cb(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// ← لازم يكون قبل helmet وقبل أي routes
+app.use(cors(corsOptions));
+app.options(/(.*)/, cors(corsOptions));
 // ── Security middleware ──────────────────────────────────────────────────────
-app.use(helmet());
-
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : [];
-
-app.use(cors({
-    origin:(origin, cb) => {
-        if (!origin) return cb(null, true);
-        if (allowedOrigins.includes(origin)) return cb(null, true);
-        cb(new Error(`CORS: origin '${origin}' not allowed`));
-        },
-        credentials: true
+app.use(helmet({
+    contentSecurityPolicy: false, // ← ده اللي بيحل المشكلة
 }));
+// app.options(/(.*)/, cors());
+// const allowedOrigins = process.env.ALLOWED_ORIGINS
+//     ? process.env.ALLOWED_ORIGINS.split(',')
+//     : [];
+
+// app.use(cors({
+//     origin:(origin, cb) => {
+//         if (!origin) return cb(null, origin);
+
+//         return cb(null, true);
+//         //if (allowedOrigins.includes(origin)) return cb(null, true);
+//         //cb(new Error(`CORS: origin '${origin}' not allowed`));
+//         },
+//         credentials: true
+// }));
+
 app.use(express.json({ limit: '10kb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -45,6 +64,6 @@ app.use('/api/staticfirewall', firewallRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3003;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on port ${PORT}`);
 });

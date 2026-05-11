@@ -14,7 +14,11 @@ const userSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
     verificationCodeExpires: { type: Date },
-    mustChangedPassword: { type: Boolean, default: false }
+    mustChangedPassword: { type: Boolean, default: false },
+    lastLogin: {
+        type: Date,
+        default: null // في الأول بيكون null لحد ما يعمل أول لوجين
+    }
 }
 , { timestamps: true }
 );
