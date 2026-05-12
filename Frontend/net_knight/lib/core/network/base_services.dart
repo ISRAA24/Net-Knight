@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 class BaseService {
   static Dio? _dioInstance;
+  // ignore: unused_field
   static const _storage = FlutterSecureStorage();
   static const String previewBaseUrl = 'http://100.92.143.50:5000/api';
 
