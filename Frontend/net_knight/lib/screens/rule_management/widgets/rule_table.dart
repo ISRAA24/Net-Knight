@@ -229,6 +229,7 @@ class _TH extends StatelessWidget {
 }
 
 class _TD extends StatelessWidget {
+  // ignore: unused_element_parameter
   const _TD(this.text, {required this.flex, this.color, this.size = 13});
   final String text;
   final int flex;
