@@ -36,7 +36,7 @@ const natRuleSchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isActive: { 
         type: Boolean, 
-        default: true // الرول بتنزل مفعلة تلقائياً أول ما تتكريت
+        default: true 
     },
     comment: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }

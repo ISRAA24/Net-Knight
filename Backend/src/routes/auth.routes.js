@@ -9,7 +9,7 @@ const { validate, signupSchema, loginSchema, verifyEmailSchema, resendCodeSchema
 router.use(
     ['/signup', '/verify', '/resend-code'],
     rateLimit({
-        windowMs: 60 * 60 * 1000, // 1 hour
+        windowMs: 60 * 60 * 1000, 
         max: 100,
         standardHeaders: true,
         legacyHeaders: false,
@@ -20,7 +20,7 @@ router.use(
 router.use(
     '/login',
     rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
+        windowMs: 15 * 60 * 1000, 
         max: 100,
         standardHeaders: true,
         legacyHeaders: false,
@@ -29,9 +29,6 @@ router.use(
 );
 
 
-
-
-// Routes
 router.post('/signup', validate(signupSchema), signup);
 router.post('/login', validate(loginSchema), login);
 router.post('/verify', validate(verifyEmailSchema), verifyEmail);

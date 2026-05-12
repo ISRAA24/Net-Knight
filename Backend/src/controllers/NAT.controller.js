@@ -4,12 +4,12 @@ const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
 const { logActivity } = require('../utils/activityLogger');
 
-// Helper function to build Python payload
+
 const buildPythonPayload = (data, finalComment) => {
     const payload = { nat_type: data.nat_type, comment: finalComment };
 
     if (data.nat_type === 'masquerade') {
-        // كده النود هياخد الـ source_ip والـ output_interface زي ما هما مبعوتين
+        
         if (data.source_ip) payload.source_ip = data.source_ip;
         payload.output_interface = data.output_interface || data.network_interface; 
         
@@ -20,7 +20,7 @@ const buildPythonPayload = (data, finalComment) => {
         
     } else if (data.nat_type === 'destination') {
         payload.input_interface = data.input_interface || data.network_interface;
-        payload.dest_ip = data.dest_ip; // Internal IP in UI is dest_ip
+        payload.dest_ip = data.dest_ip; 
         payload.int_port = data.int_port;
         payload.protocol = data.protocol || 'tcp';
         payload.ext_port = data.ext_port;
@@ -35,11 +35,10 @@ exports.addNatRule = async (req, res) => {
        const finalComment = `nat_${Date.now()}`;
         const data = req.body;
         const payload = buildPythonPayload(req.body, finalComment);
-        // 1. Validate the provided IP addresses
        let ipsToValidate = [];
 
         if (data.nat_type === 'masquerade') {
-            // لو باعت source_ip، افحصه
+            
             if (data.source_ip) {
                 ipsToValidate.push(['Source IP', data.source_ip]);
             }
@@ -60,7 +59,7 @@ exports.addNatRule = async (req, res) => {
                 });
             }
         }
-        // 🔍 حطي السطر ده في ملف src/controllers/NAT.controller.js قبل الـ post
+       
 console.log("🚀 Sending to Firewall Agent:", JSON.stringify(payload, null, 2));
 
         const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
@@ -69,7 +68,7 @@ console.log("🚀 Sending to Firewall Agent:", JSON.stringify(payload, null, 2))
             return res.status(400).json({ success: false, message: "Firewall rejected NAT rule", details: firewallResponse.data.output ,python_error: firewallResponse.data });
         }
 
-        // 2. Save to DB
+        
         const newNat = await NatRule.create({
             ...req.body,
             handleId: firewallResponse.data.handle,
@@ -77,7 +76,7 @@ console.log("🚀 Sending to Firewall Agent:", JSON.stringify(payload, null, 2))
             createdBy: req.user._id
         });
 
-        // 3. Log Activity
+        
         await logActivity(
             req.user._id, 
             req.user.username, 
@@ -91,7 +90,7 @@ console.log("🚀 Sending to Firewall Agent:", JSON.stringify(payload, null, 2))
         return firewallError(res, error, "Failed to add NAT rule");
     }
 };
-//GET /api/firewall/nat
+
 exports.getNatRules = async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -120,9 +119,9 @@ exports.toggleNatRuleStatus = async (req, res) => {
         if (!natrule) return res.status(404).json({ message: 'NAT Rule not found' });
 
         if (natrule.isActive) {
-            // ── Disable: remove from firewall ──────────────────────────────
+            
             const firewallResponse = await firewallAgent.delete('/api/delete_nat', {
-                data: {                          // axios.delete needs `data` key
+                data: {                         
                     nat_type: natrule.nat_type,
                     handle  : natrule.handleId
                 }
@@ -147,7 +146,7 @@ exports.toggleNatRuleStatus = async (req, res) => {
             });
 
         } else {
-            // ── Enable: re-add to firewall using stored fields ─────────────
+           
             const payload = buildPythonPayload(natrule, natrule.comment);
 
             const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
@@ -177,13 +176,13 @@ exports.toggleNatRuleStatus = async (req, res) => {
 };
 
 
-//    DELETE /api/firewall/nat/:id
+
 exports.deleteNatRule = async (req, res) => {
     try {
         const rule = await NatRule.findById(req.params.id);
         if (!rule) return res.status(404).json({ message: 'NAT Rule not found' });
 
-        // 1. Delete from Firewall (Requires nat_type and handle according to firewall.py)
+        
         if (rule.isActive && rule.handleId) {
             const firewallResponse = await firewallAgent.delete('/api/delete_nat', {
                 data: { nat_type: rule.nat_type, handle: rule.handleId }
@@ -203,49 +202,6 @@ exports.deleteNatRule = async (req, res) => {
             `Removed from firewall and DB`);
 
         res.status(200).json({ success: true, message: 'NAT Rule deleted successfully' });
-    } catch (error) {
-        return firewallError(res, error);
-    }
-};
-
-exports.editNatRule = async (req, res) => {
-    try {
-        const rule = await NatRule.findById(req.params.id);
-        if (!rule) return res.status(404).json({ message: 'NAT Rule not found' });
-
-        const updatedData = { ...rule.toObject(), ...req.body }; // دمج الداتا القديمة مع التعديلات
-        
-        // 1. امسح الرول القديمة من اللينكس
-        if (rule.isActive && rule.handleId) {
-            await firewallAgent.delete('/api/delete_nat', {
-                data: { nat_type: rule.nat_type, handle: rule.handleId }
-            });
-        }
-
-        // 2. جهز الداتا الجديدة وابعتها للينكس كأنها رول جديدة
-        const payload = buildPythonPayload(updatedData, rule.comment); // هنحافظ على نفس الكومنت القديم
-        const firewallResponse = await firewallAgent.post('/api/add_nat', payload);
-
-        if (firewallResponse.data.status === "error" || !firewallResponse.data.handle) {
-            return res.status(400).json({ success: false, message: "Failed to apply edited rule to Firewall", details: firewallResponse.data.output });
-        }
-
-        // 3. تحديث الداتابيس بالبيانات الجديدة والـ Handle الجديد
-        const updatedRule = await NatRule.findByIdAndUpdate(req.params.id, {
-            ...req.body,
-            handleId: firewallResponse.data.handle,
-            isActive: true
-        }, { new: true });
-
-        // 4. Log Activity
-       await logActivity(
-        req.user._id, 
-        req.user.username, 
-        `Edit ${updatedRule.nat_type.toUpperCase()} NAT`,
-        `Handle updated to ${updatedRule.handleId}`
-    );
-
-        res.status(200).json({ success: true, data: updatedRule, message: 'NAT Rule updated successfully' });
     } catch (error) {
         return firewallError(res, error);
     }
