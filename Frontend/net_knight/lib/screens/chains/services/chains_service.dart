@@ -6,7 +6,6 @@ import '../../../core/models/table_entry.dart';
 class ChainsService {
   final Dio _dio = BaseService.dio;
 
-  // ← بيرجع TableEntry عشان نعرف الـ family
   Future<List<TableEntry>> getTables() async {
     final response = await _dio.get('/staticfirewall/tables');
     final List data = response.data['data'];
@@ -17,7 +16,7 @@ class ChainsService {
     final response = await _dio.post(
       '${BaseService.previewBaseUrl}/preview_chain',
       data: {
-        'family': chain.family, // ← الـ family من الـ table
+        'family': chain.family, 
         'table_name': chain.tableName,
         'chain_name': chain.chainName,
         'hook': chain.hook,

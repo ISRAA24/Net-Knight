@@ -5,11 +5,10 @@ import '../models/interface_model.dart';
 class InterfacesService {
   final Dio _dio = BaseService.dio;
 
-  // ─── جيب كل الـ interfaces ────────────────────────
+  // ─── Get interfaces ────────────────────────
   Future<List<InterfaceModel>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
 
-    print('INTERFACES RESPONSE: ${response.data}'); // ← مؤقتاً
 
     final data = response.data['data'];
 
@@ -22,19 +21,14 @@ class InterfacesService {
     return [];
   }
 
-  // ─── عدل الـ interface ────────────────────────────
+  // ─── Edit interface ────────────────────────────
   Future<void> editInterface(String realName, InterfaceModel updated) async {
     await _dio.put(
-      '/staticfirewall/interfaces/$realName', // ← realName في الـ URL
+      '/staticfirewall/interfaces/$realName',
       data: {
         'status': updated.status == 'connected' ? 'up' : 'down',
         'ipAddress': updated.ip,
       },
     );
   }
-
-  // // ─── احذف الـ interface ───────────────────────────
-  // Future<void> deleteInterface(String realName) async {
-  //   await _dio.delete('/staticfirewall/interfaces/$realName');
-  // }
 }

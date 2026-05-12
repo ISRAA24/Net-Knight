@@ -7,7 +7,7 @@ class RuleModel {
   final String interface;
   final String protocol;
   final String action;
-  final String family; // ← اتضاف
+  final String family; 
 
   const RuleModel({
     required this.tableName,

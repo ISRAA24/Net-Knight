@@ -58,7 +58,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           '/verification',
           arguments: VerificationArgs(
             email: _emailController.text.trim(),
-            isFromLogin: false, // ← جاي من signup
+            isFromLogin: false,
           ),
         );
       }

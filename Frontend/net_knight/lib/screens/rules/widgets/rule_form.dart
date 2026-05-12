@@ -44,7 +44,6 @@ class RuleForm extends StatelessWidget {
   final ValueChanged<String?> onActionChanged;
   final VoidCallback onChanged;
 
-  // ← شيلنا 'any' من الـ protocols
   static const _protocols = ['tcp', 'udp', 'icmp'];
   static const _actions = ['accept', 'reject', 'drop', 'log'];
 

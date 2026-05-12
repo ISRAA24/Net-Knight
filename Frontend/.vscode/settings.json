@@ -1,5 +1,11 @@
 {
     "cSpell.words": [
-        "prerouting"
+        "dnat",
+        "masq",
+        "prefs",
+        "prerouting",
+        "rajdhani",
+        "snat",
+        "staticfirewall"
     ]
 }

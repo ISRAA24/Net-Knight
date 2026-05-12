@@ -42,12 +42,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   void _navigateToDashboard() {
     if (kIsWeb) {
-      // ← على الـ web نستخدم Uri navigation بدل dart:html
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/dashboard',
         (route) => false,
       );
-      // لو مش شغال على الـ web نعمل reload بعد navigation
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil(

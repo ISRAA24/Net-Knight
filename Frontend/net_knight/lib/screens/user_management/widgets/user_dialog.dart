@@ -60,14 +60,12 @@ class _UserDialogState extends State<UserDialog> {
 
     setState(() => _isLoading = true);
     try {
-      // ← استنى الـ API call تخلص الأول
       await widget.onSave(
         _name.text.trim(),
         _email.text.trim(),
         _password.text,
         _role,
       );
-      // ← بعد ما تخلص بنجاح اقفل الـ dialog
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isLoading = false);

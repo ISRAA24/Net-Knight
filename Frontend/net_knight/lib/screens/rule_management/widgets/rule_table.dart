@@ -22,7 +22,6 @@ class RuleTable extends StatefulWidget {
 class _RuleTableState extends State<RuleTable> {
   final Set<String> _pendingToggles = {};
 
-  // ← local map عشان نحمي الـ state من الـ parent setState
   late Map<String, bool> _localEnabled;
 
   @override
@@ -62,14 +61,13 @@ class _RuleTableState extends State<RuleTable> {
     final current = _localEnabled[rule.id] ?? rule.enabled;
 
     setState(() {
-      _localEnabled[rule.id] = !current; // ← غير في الـ local map بس
+      _localEnabled[rule.id] = !current;
       _pendingToggles.add(rule.id);
     });
 
     try {
       await widget.onToggle(rule.id);
     } catch (_) {
-      // لو الـ API فشل ارجع للحالة الأصلية
       if (mounted) setState(() => _localEnabled[rule.id] = current);
     } finally {
       if (mounted) setState(() => _pendingToggles.remove(rule.id));
@@ -133,7 +131,6 @@ class _RuleTableState extends State<RuleTable> {
                     itemBuilder: (_, i) {
                       final rule = widget.rules[i];
                       final isPending = _pendingToggles.contains(rule.id);
-                      // ← اقرأ من الـ local map مش من rule.enabled
                       final isEnabled = _localEnabled[rule.id] ?? rule.enabled;
 
                       return IntrinsicHeight(
