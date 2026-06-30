@@ -14,6 +14,7 @@ const connectDB = require('./src/config/db');
 const authRoutes = require('./src/routes/auth.routes');
 const userRoutes = require('./src/routes/user.routes');
 const firewallRoutes = require('./src/routes/firewall.routes');
+const aiRoutes = require('./src/routes/ai.routes');
 const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
@@ -59,6 +60,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/staticfirewall', firewallRoutes);
+app.use('/api/ai', aiRoutes);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3003;
