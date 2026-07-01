@@ -323,7 +323,7 @@ exports.deleteRule = async (req, res) => {
 exports.getAllRules = async (req, res) => {
     try {
         // 1. نجيب الرولز الثابتة (Static) من جدولها
-        const staticRules = await StaticRule.find().lean();
+        const staticRules = await Rule.find().lean();
 
         // 2. نجيب رولز الذكاء الاصطناعي (AI) المعتمدة فقط (Approved أو Auto-approved)
         const aiRules = await AIRule.find({ 
