@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:net_knight/core/network/base_services.dart';
-import 'package:net_knight/screens/interfaces/interfaces_screen.dart';
-import 'package:net_knight/screens/nat/nat_screen.dart';
-import 'package:net_knight/screens/rules/rules_screen.dart';
-import 'package:net_knight/screens/splash/splash_screen.dart';
-import 'package:net_knight/screens/user_management/user_management_screen.dart';
-import 'package:net_knight/screens/rule_management/rule_management_screen.dart';
-import 'screens/log_in/log_in_screen.dart';
-import 'screens/sign_up/sign_up_screen.dart';
-import 'screens/verification/verification_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/tables/tables_screen.dart';
-import 'screens/chains/chains_screen.dart';
+import 'package:net_knight/screens/admin/interfaces/interfaces_screen.dart';
+import 'package:net_knight/screens/admin/nat/nat_screen.dart';
+import 'package:net_knight/screens/admin/rules/rules_screen.dart';
+import 'package:net_knight/screens/admin/splash/splash_screen.dart';
+import 'package:net_knight/screens/admin/user_management/user_management_screen.dart';
+import 'package:net_knight/screens/admin/rule_management/rule_management_screen.dart';
+import 'package:net_knight/screens/admin/log_in/log_in_screen.dart';
+import 'package:net_knight/screens/admin/sign_up/sign_up_screen.dart';
+import 'package:net_knight/screens/admin/verification/verification_screen.dart';
+import 'package:net_knight/screens/admin/dashboard/dashboard_screen.dart';
+import 'package:net_knight/screens/admin/tables/tables_screen.dart';
+import 'package:net_knight/screens/admin/chains/chains_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
