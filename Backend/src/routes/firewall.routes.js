@@ -27,7 +27,6 @@ router.post('/nat', authorize('super_admin', 'admin'), validate(addNatRuleSchema
 router.delete('/nat/:id', authorize('super_admin', 'admin'), deleteNatRule);
 router.patch('/nat/:id/toggle', authorize('super_admin', 'admin'), toggleNatRuleStatus);
 router.patch('/rules/:id/toggle', authorize('super_admin', 'admin'), toggleRuleStatus);
-router.put('/nat/:id', authorize('super_admin', 'admin'), editNatRule);
 router.get('/logs', authorize('super_admin', 'admin', 'analyst'), getAuditLogs);
 
 

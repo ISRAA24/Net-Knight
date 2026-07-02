@@ -5,8 +5,9 @@ const Rule = require('../models/StaticRule');
 const firewallAgent = require('../config/firewallAgent');
 const logger = require('../utils/logger');
 const { validateIpFields, firewallError } = require('../utils/firewall.helpers');
-const NATRule = require('../models/NATrules'); 
+const NATRule = require('../models/NATrules');
 const { logActivity } = require('../utils/activityLogger');
+const AIRule = require('../models/AIRule');
 
 // ======================= TABLES =======================
 exports.addTable = async (req, res) => {
@@ -16,9 +17,9 @@ exports.addTable = async (req, res) => {
         const newTable = await Table.create({ name, family, createdBy: req.user._id });
         res.status(201).json({ success: true, data: newTable });
         await logActivity(
-            req.user._id, 
-            req.user.username, 
-            "Add Table",  
+            req.user._id,
+            req.user.username,
+            "Add Table",
             `Added Table ${name} with Family: ${family}`
         );
     } catch (error) {
@@ -28,9 +29,9 @@ exports.addTable = async (req, res) => {
 // GET /api/staticfirewall/tables
 exports.getTables = async (req, res) => {
     try {
-        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 20);
-        const skip  = (page - 1) * limit;
+        const skip = (page - 1) * limit;
 
         const [tables, total] = await Promise.all([
             Table.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -38,11 +39,11 @@ exports.getTables = async (req, res) => {
         ]);
 
         return res.status(200).json({
-            success   : true,
+            success: true,
             total,
             page,
             totalPages: Math.ceil(total / limit),
-            data      : tables
+            data: tables
         });
     } catch (error) {
         logger.error(`getTables error: ${error.message}`);
@@ -78,9 +79,9 @@ exports.addChain = async (req, res) => {
         });
         res.status(201).json({ success: true, data: newChain });
         await logActivity(
-            req.user._id, 
-            req.user.username, 
-            "Add Chain",  
+            req.user._id,
+            req.user.username,
+            "Add Chain",
             `Added Chain ${name} to Table ${tableName}`
         );
     } catch (error) {
@@ -90,11 +91,11 @@ exports.addChain = async (req, res) => {
 // GET /api/staticfirewall/chains?tableId=...
 exports.getChains = async (req, res) => {
     try {
-        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 20);
-        const skip  = (page - 1) * limit;
+        const skip = (page - 1) * limit;
 
-        
+
         const filter = req.query.tableId ? { tableId: req.query.tableId } : {};
 
         const [chains, total] = await Promise.all([
@@ -103,11 +104,11 @@ exports.getChains = async (req, res) => {
         ]);
 
         return res.status(200).json({
-            success   : true,
+            success: true,
             total,
             page,
             totalPages: Math.ceil(total / limit),
-            data      : chains
+            data: chains
         });
     } catch (error) {
         logger.error(`getChains error: ${error.message}`);
@@ -141,14 +142,14 @@ exports.addRule = async (req, res) => {
 
         action = action === 'deny' ? 'drop' : action;
         const comment = `rule_${Date.now()}`;
-        
+
 
         const payload = {
             family: table.family,
             table_name: tableName,
             chain_name: chainName,
-            ip_src: ipSource,        
-            ip_dest: ipDestination,  
+            ip_src: ipSource,
+            ip_dest: ipDestination,
             port_dest: portDestination ? String(portDestination) : "",
             interface: networkInterface,
             protocol,
@@ -156,18 +157,18 @@ exports.addRule = async (req, res) => {
             comment: comment
         };
 
-        
+
         const firewallResponse = await firewallAgent.post('/api/add_rule', payload);
         const handleId = firewallResponse.data.handle;
-        
+
 
         if (!handleId) {
-    return res.status(500).json({ 
-        success: false, 
-        message: "Firewall Agent did not return a handle ID for the new rule.",
-        details: firewallResponse.data.output || firewallResponse.data.message || "No handle returned"
-    });
-}
+            return res.status(500).json({
+                success: false,
+                message: "Firewall Agent did not return a handle ID for the new rule.",
+                details: firewallResponse.data.output || firewallResponse.data.message || "No handle returned"
+            });
+        }
 
 
         const newRule = await Rule.create({
@@ -180,14 +181,14 @@ exports.addRule = async (req, res) => {
             networkInterface,
             protocol,
             action,
-            comment: comment, 
+            comment: comment,
             createdBy: req.user._id
         });
 
         await logActivity(
-            req.user._id, 
-            req.user.username, 
-            "Add Static Rule",  
+            req.user._id,
+            req.user.username,
+            "Add Static Rule",
             `Added Rule to ${chainName} , ${tableName} with Action: ${action}`
         );
 
@@ -196,7 +197,7 @@ exports.addRule = async (req, res) => {
             data: newRule,
             message: `Rule added with handle: ${handleId}`
         });
-        
+
     } catch (error) {
         return firewallError(res, error);
     }
@@ -216,8 +217,8 @@ exports.toggleRuleStatus = async (req, res) => {
             const firewallResponse = await firewallAgent.delete('/api/delete_rule', {
                 data: {                          // axios.delete needs `data` key
                     family: table.family,
-                    table : rule.tableName,
-                    chain : rule.chainName,
+                    table: rule.tableName,
+                    chain: rule.chainName,
                     handle: rule.handleId
                 }
             });
@@ -237,7 +238,7 @@ exports.toggleRuleStatus = async (req, res) => {
             return res.json({
                 success: true,
                 message: 'Rule disabled (Removed from Firewall)',
-                data   : rule
+                data: rule
             });
 
         } else {
@@ -245,13 +246,13 @@ exports.toggleRuleStatus = async (req, res) => {
             const payload = {
                 table_name: rule.tableName,
                 chain_name: rule.chainName,
-                family    : table.family,
-                ip_src    : rule.ipSource,
-                ip_dest   : rule.ipDestination,
-                port_dest : rule.portDestination ? String(rule.portDestination) : "",
-                protocol  : rule.protocol,
-                action    : rule.action,
-                comment   : rule.comment
+                family: table.family,
+                ip_src: rule.ipSource,
+                ip_dest: rule.ipDestination,
+                port_dest: rule.portDestination ? String(rule.portDestination) : "",
+                protocol: rule.protocol,
+                action: rule.action,
+                comment: rule.comment
             };
 
             const firewallResponse = await firewallAgent.post('/api/add_rule', payload);
@@ -271,7 +272,7 @@ exports.toggleRuleStatus = async (req, res) => {
             return res.json({
                 success: true,
                 message: 'Rule enabled (Added to Firewall)',
-                data   : rule
+                data: rule
             });
         }
 
@@ -302,58 +303,75 @@ exports.deleteRule = async (req, res) => {
 
         await rule.deleteOne();
         await logActivity(
-        req.user._id, 
-        req.user.username, 
-        "Delete Static Rule", 
-        `Deleted Rule from ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
-    );
+            req.user._id,
+            req.user.username,
+            "Delete Static Rule",
+            `Deleted Rule from ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+        );
         return res.status(200).json({ success: true, message: 'Rule deleted from Firewall and DB' });
-        
+
     } catch (error) {
         return firewallError(res, error);
     }
 };
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/staticfirewall/allRules
+// جلب ودمج الـ Static Rules و الـ AI Rules لعرضهم في شاشة واحدة
+// ─────────────────────────────────────────────────────────────────────────────
 exports.getAllRules = async (req, res) => {
     try {
-        
-        const [staticRules, natRules] = await Promise.all([
-            Rule.find().sort({ createdAt: -1 }).lean(),
-            NATRule.find().sort({ createdAt: -1 }).lean()
-        ]);
+        // 1. نجيب الرولز الثابتة (Static) من جدولها
+        const staticRules = await Rule.find().lean();
 
-        
-        const formattedStatic = staticRules.map((r, index) => ({
-            no: index + 1,
-            id: r._id,
-            sourceIp: r.ipSource || 'Any',
-            destIp: r.ipDestination || 'Any',
-            port: r.portDestination || 'Any',
-            protocol: (r.protocol || 'ANY').toUpperCase(),
-            action: r.action,
-            status: r.isActive !== undefined ? r.isActive : true, 
-            comment: r.comment
+        // 2. نجيب رولز الذكاء الاصطناعي (AI) المعتمدة فقط (Approved أو Auto-approved)
+        const aiRules = await AIRule.find({ 
+            status: { $in: ['approved', 'auto-approved'] } 
+        }).lean();
+
+        // 3. توحيد شكل الرولز الثابتة (Static Rules)
+        const formattedStaticRules = staticRules.map(rule => ({
+            _id: rule._id,
+            ruleName: rule.name || rule.ruleName || '-', // الاسم
+            sourceIp: rule.sourceIp || rule.ip || '-',   // الـ IP
+            action: rule.action || '-',                  // الـ Action
+            ruleType: rule.ruleType || 'Static',         // النوع
+            expireAt: rule.expireAt || '-',              // تاريخ الانتهاء
+            isActive: rule.isActive !== undefined ? rule.isActive : true, // الحالة
+            isAi: false // فلاج للفرونت إند للتمييز
         }));
 
-        const formattedNat = natRules.map((r, index) => ({
-            no: index + 1,
-            id: r._id,
-            protocol: (r.protocol || 'ANY').toUpperCase(),
-            externalIp: r.external_ip || 'Any',
-            internalIp: r.internal_ip || 'Any',
-            internalPort: r.internal_port || 'Any',
-            action: "NAT",
-            status: r.isActive !== undefined ? r.isActive : true, 
-            comment: r.comment
+        // 4. توحيد شكل رولز الذكاء الاصطناعي (AI Rules)
+        const formattedAiRules = aiRules.map(rule => ({
+            _id: rule._id,
+            ruleName: `AI_Dynamic_${rule.sourceIp}`,      // اسم تلقائي
+            sourceIp: rule.sourceIp || '-',
+            action: rule.action || '-',
+            ruleType: 'AI Dynamic',                       // النوع
+            expireAt: rule.expireAt || '-',
+            isActive: true, // رولز الـ AI المعتمدة تعمل دائماً
+            isAi: true 
         }));
+
+        // 5. ندمج المصفوفتين في مصفوفة واحدة
+        let allRules = [...formattedStaticRules, ...formattedAiRules];
+
+        // 6. نرتبهم من الأحدث للأقدم
+        allRules.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+            return dateB - dateA;
+        });
 
         res.status(200).json({
             success: true,
-            data: {
-                staticRules: formattedStatic,
-                natRules: formattedNat
-            }
+            count: allRules.length,
+            data: allRules
         });
+
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        logger.error(`getAllRules error: ${error.message}`);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
