@@ -5,7 +5,7 @@ const firewallAgent = require('../config/firewallAgent');
 const logger        = require('../utils/logger');
 const { firewallError } = require('../utils/firewall.helpers');
 const { logActivity }   = require('../utils/activityLogger');
-
+const { invalidateStatsCache } = require('../sockets/dashboard.socket');
 // ─────────────────────────────────────────────────────────────────────────────
 // helper: يجيب الـ IP المخزن في الرول (source أو destination)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,6 +170,8 @@ exports.reviewAIRule = async (req, res) => {
 
         await aiRule.save();
 
+        invalidateStatsCache(); 
+
         await logActivity(
             req.user._id, req.user.username,
             `AI Rule ${decision}`,
@@ -273,6 +275,8 @@ exports.deleteAIRule = async (req, res) => {
         }
 
         await rule.deleteOne();
+        
+        invalidateStatsCache(); 
 
         await logActivity(
             req.user._id,
