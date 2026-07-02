@@ -7,17 +7,22 @@ if (missing.length) {
     console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
     process.exit(1);
 }
+const https = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const {server} = require('socket.io');
+
 const connectDB = require('./src/config/db');
 const authRoutes = require('./src/routes/auth.routes');
 const userRoutes = require('./src/routes/user.routes');
 const firewallRoutes = require('./src/routes/firewall.routes');
 const aiRoutes = require('./src/routes/ai.routes');
+const dashboardRoutes     = require('./src/routes/dashboard.routes');
 const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
+const { initDashboardSocket } = require('./src/sockets/dashboard.socket');
 
 connectDB();
 
@@ -40,30 +45,31 @@ app.options(/(.*)/, cors(corsOptions));
 app.use(helmet({
     contentSecurityPolicy: false, 
 }));
-// app.options(/(.*)/, cors());
-// const allowedOrigins = process.env.ALLOWED_ORIGINS
-//     ? process.env.ALLOWED_ORIGINS.split(',')
-//     : [];
-
-// app.use(cors({
-//     origin:(origin, cb) => {
-//         if (!origin) return cb(null, origin);
-
-//         return cb(null, true);
-//         //if (allowedOrigins.includes(origin)) return cb(null, true);
-//         //cb(new Error(`CORS: origin '${origin}' not allowed`));
-//         },
-//         credentials: true
-// }));
-
 app.use(express.json({ limit: '10kb' }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/staticfirewall', firewallRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use(errorHandler);
+
+// ── HTTP Server + Socket.IO ──────────────────────────────────────────────────
+// لازم نعمل http.createServer عشان Socket.IO يشتغل على نفس الـ port
+const server = http.createServer(app);
+ 
+const io = new Server(server, {
+    cors: {
+        origin: '*', // Flutter بيتوصل من أي مكان
+        methods: ['GET', 'POST']
+    }
+});
+ 
+// بدأنا الـ Socket.IO للداشبورد
+initDashboardSocket(io);
 
 const PORT = process.env.PORT || 3003;
 app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on port ${PORT}`);
+    logger.info(`Socket.IO ready for Flutter clients`)
 });
