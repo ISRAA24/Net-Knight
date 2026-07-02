@@ -12,6 +12,8 @@ import 'package:net_knight/screens/admin/verification/verification_screen.dart';
 import 'package:net_knight/screens/admin/dashboard/dashboard_screen.dart';
 import 'package:net_knight/screens/admin/tables/tables_screen.dart';
 import 'package:net_knight/screens/admin/chains/chains_screen.dart';
+import 'package:net_knight/screens/analyst/ai_generated_rules/ai_generated_rules_screen_analyst.dart';
+import 'package:net_knight/screens/analyst/statistics/statistics_screen_analyst.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,8 @@ class NetKnight extends StatelessWidget {
         '/nat': (context) => const NATScreen(),
         '/users': (context) => const UserManagementScreen(),
         '/rules-management': (context) => const RuleManagementScreen(),
+        '/ai-rules': (context) => const AiGeneratedRulesScreenAnalyst(),
+        '/statistics': (context) => const StatisticsScreenAnalyst(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/verification') {
