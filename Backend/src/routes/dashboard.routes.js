@@ -5,7 +5,7 @@ const { protect } = require('../middleware/auth.middleware');
 
 // 🔴 Python Agent — بدون auth (Tailscale محلي)
 router.post('/metrics', receiveMetrics);
-
+router.post('/traffic-spike', receiveTrafficSpike);
 // 🔵 Flutter — بتطلب JWT
 router.get('/stats', protect, getStats);
 

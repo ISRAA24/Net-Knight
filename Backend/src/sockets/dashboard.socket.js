@@ -79,3 +79,12 @@ exports.broadcastMetrics = async (metrics) => {
         logger.error(`broadcastMetrics error: ${err.message}`);
     }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// broadcastNotification — بيتبعت من notificationHelper كل ما notification تتخلق
+// بيبعت event 'notification:new' لكل الـ Flutter clients المتوصلين
+// ─────────────────────────────────────────────────────────────────────────────
+exports.broadcastNotification = (notification) => {
+    if (!io) return;
+    io.emit('notification:new', notification);
+};

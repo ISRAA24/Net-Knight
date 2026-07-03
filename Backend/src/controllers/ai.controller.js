@@ -67,6 +67,23 @@ exports.receiveAIRule = async (req, res) => {
             expireAt
         });
 
+          // ── Notification: لو الرول محتاجة مراجعة ────────────────────────────
+        if (status === 'pending') {
+            const ip = sourceIp || ipDestination;
+            await createNotification({
+                type:     'ai_rule_pending',
+                title:    'AI rule pending review',
+                message:  `Rule generated — suspicious activity from ${ip}, awaiting your approval`,
+                severity: 'warning',
+                tag:      'Review needed',
+                relatedId:    newAIRule._id,
+                relatedModel: 'AIRule',
+                metadata: { ip, action, reason: reason || '' }
+            });
+            invalidateStatsCache(); // pendingApprovals count اتغير
+        }
+ 
+
         res.status(201).json({
             success: true,
             message: `Rule recorded as ${status}`,
@@ -192,11 +209,42 @@ exports.reviewAIRule = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveThreat = async (req, res) => {
     try {
-        const { sourceIp, attackType, severity, details } = req.body;
-
-        const newThreat = await Threat.create({ sourceIp, attackType, severity, details });
-        logger.warn(`🚨 New Threat Detected! IP: ${sourceIp}, Type: ${attackType}`);
-
+        const { sourceIp, attackType, severity, confidence, details } = req.body;
+ 
+        const newThreat = await Threat.create({
+            sourceIp,
+            attackType,
+            severity,
+            confidence: confidence || null,
+            details
+        });
+ 
+        logger.warn(`🚨 Threat Detected! IP: ${sourceIp} | Type: ${attackType} | Severity: ${severity}`);
+ 
+        // ── Notification ──────────────────────────────────────────────────────
+        // severity بيتحول لـ tag مباشرةً: "Critical" | "High" | "Medium" | "Low"
+        const tag = severity
+            ? severity.charAt(0).toUpperCase() + severity.slice(1)
+            : 'Warning';
+ 
+        // critical + high → severity نفسها، medium/low → warning
+        const notifSeverity = ['critical', 'high'].includes(severity) ? severity : 'warning';
+ 
+        const confidenceText = confidence ? ` — confidence: ${confidence}%` : '';
+ 
+        await createNotification({
+            type:     'threat_alert',
+            title:    'Threat alert detected',
+            message:  `${attackType} from ${sourceIp}${confidenceText}`,
+            severity: notifSeverity,
+            tag,
+            relatedId:    newThreat._id,
+            relatedModel: 'Threat',
+            metadata: { sourceIp, attackType, severity, confidence, details }
+        });
+ 
+        invalidateStatsCache(); // totalThreats اتغير
+ 
         res.status(201).json({ success: true, message: 'Threat recorded successfully', data: newThreat });
     } catch (error) {
         logger.error(`receiveThreat error: ${error.message}`);
@@ -275,7 +323,7 @@ exports.deleteAIRule = async (req, res) => {
         }
 
         await rule.deleteOne();
-        
+
         invalidateStatsCache(); 
 
         await logActivity(

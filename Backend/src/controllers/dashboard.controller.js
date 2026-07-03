@@ -3,7 +3,7 @@ const AIRule  = require('../models/AIRule');
 const Threat  = require('../models/Threat');
 const Rule    = require('../models/StaticRule');
 const logger  = require('../utils/logger');
-
+const { createNotification } = require('../utils/notificationHelper');
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/dashboard/metrics  ← Python بيكلم الـ endpoint ده كل ثانية
 //
@@ -79,6 +79,55 @@ exports.getStats = async (req, res) => {
         });
     } catch (error) {
         logger.error(`getStats error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/dashboard/traffic-spike  ← Python بيكلمها لما يكشف spike غير طبيعي
+//
+// Body من Python:
+// {
+//   "interface":        "eth0",
+//   "direction":        "inbound",       // inbound | outbound
+//   "currentBandwidth": 2.3,             // القيمة الحالية
+//   "threshold":        2.0,             // الـ threshold اللي اتعدى
+//   "unit":             "Gbps",          // الوحدة
+//   "message":          "..."            // اختياري - لو Python عايد يبعت message جاهزة
+// }
+// ─────────────────────────────────────────────────────────────────────────────
+
+ 
+exports.receiveTrafficSpike = async (req, res) => {
+    try {
+        const {
+            interface: iface,
+            direction,
+            currentBandwidth,
+            threshold,
+            unit = 'Gbps',
+            message
+        } = req.body;
+ 
+        if (!iface || !direction) {
+            return res.status(400).json({ success: false, message: 'interface and direction are required' });
+        }
+ 
+        const notifMessage = message
+            || `${direction.charAt(0).toUpperCase() + direction.slice(1)} traffic on ${iface} exceeded ${threshold} ${unit} — monitoring in progress`;
+ 
+        await createNotification({
+            type:     'traffic_spike',
+            title:    'Unusual traffic spike',
+            message:  notifMessage,
+            severity: 'warning',
+            tag:      'Warning',
+            metadata: { interface: iface, direction, currentBandwidth, threshold, unit }
+        });
+ 
+        return res.status(200).json({ success: true, message: 'Traffic spike recorded' });
+    } catch (error) {
+        logger.error(`receiveTrafficSpike error: ${error.message}`);
         return res.status(500).json({ success: false, message: error.message });
     }
 };

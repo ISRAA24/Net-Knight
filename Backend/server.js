@@ -52,6 +52,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/staticfirewall', firewallRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notifications',   notificationRoutes);
 app.use(errorHandler);
 
 // ── HTTP Server + Socket.IO ──────────────────────────────────────────────────
