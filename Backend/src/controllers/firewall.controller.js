@@ -235,6 +235,13 @@ exports.toggleRuleStatus = async (req, res) => {
             rule.handleId = null;
             await rule.save();
 
+            await logActivity(
+                req.user._id,
+                req.user.username,
+                "Disable Static Rule",
+                `Disabled Rule in ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+            );
+
             return res.json({
                 success: true,
                 message: 'Rule disabled (Removed from Firewall)',
@@ -268,7 +275,12 @@ exports.toggleRuleStatus = async (req, res) => {
             rule.isActive = true;
             rule.handleId = firewallResponse.data.handle;
             await rule.save();
-
+            await logActivity(
+                req.user._id,
+                req.user.username,
+                "Enable Static Rule",
+                `Re-enabled Rule in ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+            );
             return res.json({
                 success: true,
                 message: 'Rule enabled (Added to Firewall)',
@@ -326,8 +338,8 @@ exports.getAllRules = async (req, res) => {
         const staticRules = await Rule.find().lean();
 
         // 2. نجيب رولز الذكاء الاصطناعي (AI) المعتمدة فقط (Approved أو Auto-approved)
-        const aiRules = await AIRule.find({ 
-            status: { $in: ['approved', 'auto-approved'] } 
+        const aiRules = await AIRule.find({
+            status: { $in: ['approved', 'auto-approved'] }
         }).lean();
 
         // 3. توحيد شكل الرولز الثابتة (Static Rules)
@@ -351,7 +363,7 @@ exports.getAllRules = async (req, res) => {
             ruleType: 'AI Dynamic',                       // النوع
             expireAt: rule.expireAt || '-',
             isActive: true, // رولز الـ AI المعتمدة تعمل دائماً
-            isAi: true 
+            isAi: true
         }));
 
         // 5. ندمج المصفوفتين في مصفوفة واحدة
