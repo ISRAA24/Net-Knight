@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
 
 const aiRuleSchema = new mongoose.Schema({
+    requestId: { type: String, default: null },
     ruleName: { type: String }, 
     sourceIp:      { type: String, default: null },
     destinationIp: { type: String, default: null },
 
     action: { type: String, enum: ['drop', 'reject', 'accept'], required: true },
     explanation: { type: String },
-    family:    { type: String, default: 'ip' },
+    family:    { type: String, default: 'inet' },
     tableName: { type: String },
     chainName: { type: String },
     handleId:  { type: Number, default: null }, 

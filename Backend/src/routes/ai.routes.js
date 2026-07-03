@@ -9,7 +9,9 @@ const {
     getAllThreats,
     receiveThreat,
     deleteAIRule,
-    toggleAIRuleStatus
+    toggleAIRuleStatus,
+    receiveAlert,
+    receiveBandwidthAlert
 } = require('../controllers/ai.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
@@ -32,6 +34,8 @@ router.get('/rules', protect, getAIRules);
 router.put('/rules/:ruleId/review', protect, authorize('super_admin', 'admin'), reviewAIRule);
 router.delete('/rules/:id', protect, authorize('super_admin', 'admin'), deleteAIRule);
 router.patch('/rules/:id/toggle', protect, authorize('super_admin', 'admin'), toggleAIRuleStatus);
+router.post('/netknight/alerts', receiveAlert);
+router.post('/netknight/bandwidth-alert', receiveBandwidthAlert);
 
 // Threats
 router.get('/threats', protect, getAllThreats);

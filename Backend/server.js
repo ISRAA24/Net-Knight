@@ -24,7 +24,7 @@ const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
 const { initDashboardSocket } = require('./src/sockets/dashboard.socket');
-
+const { WebSocketServer } = require('ws');
 connectDB();
 
 const app = express();
@@ -65,6 +65,34 @@ const io = new Server(server, {
         origin: '*', // Flutter بيتوصل من أي مكان
         methods: ['GET', 'POST']
     }
+});
+
+const wss = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+    const pathname = request.url;
+    // لو الطلب جاي من بايثون للـ monitor
+    if (pathname === '/netknight/monitor') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request);
+        });
+    }
+});
+
+wss.on('connection', (ws) => {
+    logger.info('Python Agent connected via Raw WebSocket');
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            // لو Python بيبعت metrics عبر الـ WebSocket بدل الـ HTTP
+            if (data.cpu_usage !== undefined) {
+                // نستخدم نفس المنطق اللي عملناه في الـ Dashboard Controller
+                // وننادي على broadcastMetrics()
+            }
+        } catch(e) {
+            logger.error(`WS Parse error: ${e.message}`);
+        }
+    });
 });
  
 // بدأنا الـ Socket.IO للداشبورد
