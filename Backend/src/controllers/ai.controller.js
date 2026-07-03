@@ -1,11 +1,12 @@
 const AIRule       = require('../models/AIRule');
 const Threat       = require('../models/Threat');
-const SystemSetting = require('../models/SystemSetting');
+const SystemSetting = require('../models/SystemSettings');
 const firewallAgent = require('../config/firewallAgent');
 const logger        = require('../utils/logger');
 const { firewallError } = require('../utils/firewall.helpers');
 const { logActivity }   = require('../utils/activityLogger');
 const { invalidateStatsCache } = require('../sockets/dashboard.socket');
+const { createNotification } = require('../utils/notificationHelper');
 // ─────────────────────────────────────────────────────────────────────────────
 // helper: يجيب الـ IP المخزن في الرول (source أو destination)
 // ─────────────────────────────────────────────────────────────────────────────

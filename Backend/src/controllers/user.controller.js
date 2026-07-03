@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const { logActivity } = require('../utils/activityLogger');
 
 //POST /api/users
 exports.addUser = async (req, res) => {
@@ -32,7 +33,8 @@ exports.addUser = async (req, res) => {
             req.user._id,
             req.user.username,
             "Add User",
-            `Added user ${user.username} (${user.email}) with role: ${user.role}`
+            user.username,
+            `Added user ${user.username} (${user.email}) with role: ${user.role}` // Details
         );
 
         return res.status(201).json({

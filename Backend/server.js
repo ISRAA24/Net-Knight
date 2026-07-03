@@ -7,11 +7,11 @@ if (missing.length) {
     console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
     process.exit(1);
 }
-const https = require('http');
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const {server} = require('socket.io');
+const {Server} = require('socket.io');
 
 const connectDB = require('./src/config/db');
 const authRoutes = require('./src/routes/auth.routes');
@@ -19,6 +19,7 @@ const userRoutes = require('./src/routes/user.routes');
 const firewallRoutes = require('./src/routes/firewall.routes');
 const aiRoutes = require('./src/routes/ai.routes');
 const dashboardRoutes     = require('./src/routes/dashboard.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
 const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
