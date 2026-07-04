@@ -5,9 +5,9 @@ const aiRuleSchema = new mongoose.Schema({
     ruleName: { type: String }, 
     sourceIp:      { type: String, default: null },
     destinationIp: { type: String, default: null },
-
-    action: { type: String, enum: ['drop', 'reject', 'accept'], required: true },
+    action: { type: String, required: true },
     explanation: { type: String },
+    description: { type: String },
     family:    { type: String, default: 'inet' },
     tableName: { type: String },
     chainName: { type: String },

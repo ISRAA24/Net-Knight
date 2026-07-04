@@ -24,7 +24,8 @@ const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 const cookieParser = require('cookie-parser');
 const { initDashboardSocket } = require('./src/sockets/dashboard.socket');
-const { WebSocketServer } = require('ws');
+const { initPythonMetricsSocket } = require('./src/sockets/pythonMetrics.socket');
+
 connectDB();
 
 const app = express();
@@ -66,40 +67,24 @@ const io = new Server(server, {
         methods: ['GET', 'POST']
     }
 });
-
-const wss = new WebSocketServer({ noServer: true });
-
-server.on('upgrade', (request, socket, head) => {
-    const pathname = request.url;
-    // لو الطلب جاي من بايثون للـ monitor
-    if (pathname === '/netknight/monitor') {
-        wss.handleUpgrade(request, socket, head, (ws) => {
-            wss.emit('connection', ws, request);
-        });
-    }
-});
-
-wss.on('connection', (ws) => {
-    logger.info('Python Agent connected via Raw WebSocket');
-    ws.on('message', (message) => {
-        try {
-            const data = JSON.parse(message);
-            // لو Python بيبعت metrics عبر الـ WebSocket بدل الـ HTTP
-            if (data.cpu_usage !== undefined) {
-                // نستخدم نفس المنطق اللي عملناه في الـ Dashboard Controller
-                // وننادي على broadcastMetrics()
-            }
-        } catch(e) {
-            logger.error(`WS Parse error: ${e.message}`);
-        }
-    });
-});
  
 // بدأنا الـ Socket.IO للداشبورد
 initDashboardSocket(io);
 
+// بدأنا الـ WebSocket الخام بتاع Network_Scripts (gateway/ws_monitor.py)
+// على /netknight/monitor — منفصل عن Socket.IO عمدًا (بروتوكولين مختلفين).
+initPythonMetricsSocket(server);
+
 const PORT = process.env.PORT || 3003;
-app.listen(PORT, '0.0.0.0', () => {
+
+// ⚠️ كانت هنا bug حرج: app.listen(...) بيعمل http.createServer() *جديد* من
+// تحتك وبيشغّل هو اللي بيسمع فعليًا على الـ PORT — مش نفس الـ `server` اللي
+// وصّلنا عليه فوق Socket.IO والـ WebSocket الخام. يعني أي طلب upgrade
+// (Socket.IO من الفلاتر، أو WS من ws_monitor.py) كان بيوصل لسيرفر تاني
+// معندوش أي WebSocket handling خالص، فيرجع HTTP 404 عادي — وده بالظبط اللي
+// كان بيوصل لمهندس الشبكات. الحل: نستخدم نفس `server` اللي معاه Socket.IO/WS.
+server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on port ${PORT}`);
-    logger.info(`Socket.IO ready for Flutter clients`)
+    logger.info(`Socket.IO ready for Flutter clients`);
+    logger.info(`Python firewall agent WS listener ready on /netknight/monitor`);
 });
