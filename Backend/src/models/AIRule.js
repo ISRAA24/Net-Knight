@@ -20,7 +20,7 @@ const aiRuleSchema = new mongoose.Schema({
     },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     timeout: { type: Number, default: null },
-
+    deletions: { type: Array, default: [] },
     isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
