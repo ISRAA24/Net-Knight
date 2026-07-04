@@ -6,7 +6,7 @@
  *   ② يعمل Socket.IO broadcast لكل الـ Flutter clients
  *   ③ يبعت email لكل الـ users المسجلين (super_admin, admin, analyst)
  */
-const Notification = require('../models/Notification');
+const Notification = require('../models/notification');
 const User         = require('../models/User');
 const sendEmail    = require('./sendEmail');
 const logger       = require('./logger');
