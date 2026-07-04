@@ -54,7 +54,34 @@ function transformPythonMetrics(msg) {
 }
 
 exports.initPythonMetricsSocket = (httpServer) => {
-    const wss = new WebSocket.Server({ server: httpServer, path: METRICS_WS_PATH });
+    // ⚠️ كان هنا bug حقيقي: عمل `new WebSocket.Server({ server: httpServer, path })`
+    // بيخلي مكتبة `ws` تسجّل listener خاص بيها على event('upgrade') لنفس الـ
+    // httpServer اللي Socket.IO مسجّل عليه هو كمان listener تاني. المشكلة إن
+    // `ws` لما تستقبل upgrade request لمسار مش بتاعها (زي /socket.io/... بتاع
+    // Socket.IO)، هي مش بتتجاهله بأدب — بترد فورًا بـ "HTTP/1.1 400 Bad Request"
+    // *على نفس الـ socket*، حتى لو Socket.IO كان خلاص حوّل نفس الـ socket ده
+    // لـ WebSocket ناجح قبلها بلحظة (كل الـ listeners المسجلة على upgrade
+    // بتتنفذ كلها، مش listener واحد بس). النتيجة: بايتات "400 Bad Request"
+    // بتتحقن فوق اتصال WebSocket شغال بالفعل، فالـ client (المتصفح/Postman)
+    // بيحاول يفهمها كـ WebSocket frame ومبيعرفش → "Invalid WebSocket frame:
+    // RSV1 must be clear".
+    //
+    // الحل الصحيح (موصى بيه في docs بتاع `ws` نفسها لحالة "multiple servers
+    // sharing a single HTTP server"): نعمل الـ WebSocket.Server بـ noServer:true
+    // (يعني من غير ما تسجّل نفسها على أي event تلقائيًا)، وإحنا يدويًا اللي
+    // بنسمع على 'upgrade' ونوجّه بس الطلبات اللي مسارها /netknight/monitor.
+    // أي مسار تاني (زي /socket.io/...) إحنا مبنعملش فيه أي حاجة خالص، فيفضل
+    // سايبينه لـ Socket.IO يتصرف فيه لوحده من غير تدخل.
+    const wss = new WebSocket.Server({ noServer: true });
+
+    httpServer.on('upgrade', (req, socket, head) => {
+        const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+        if (pathname !== METRICS_WS_PATH) return; // مش بتاعنا — سيبيه لـ Socket.IO
+
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit('connection', ws, req);
+        });
+    });
 
     wss.on('connection', (ws, req) => {
         logger.info(`[PythonMetrics] Firewall agent connected over WS (${req.socket.remoteAddress})`);
