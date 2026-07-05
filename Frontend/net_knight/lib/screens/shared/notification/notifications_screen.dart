@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/main.dart';
 import 'package:net_knight/screens/admin/dashboard/widgets/sidebar.dart';
+import 'package:provider/provider.dart';
 
 import 'models/notification_model.dart';
 import 'services/notification_service.dart';
@@ -27,6 +29,11 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
     _loadNotifications();
   }
 
+  void _syncProvider() {
+    if (!mounted) return;
+    context.read<NotificationProvider>().updateUnreadCount(_unreadCount);
+  }
+
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
     try {
@@ -35,6 +42,7 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
       print('Error loading notifications: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      _syncProvider();
     }
   }
 
@@ -45,6 +53,7 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
         final index = _notifications.indexWhere((n) => n.id == id);
         if (index != -1) _notifications[index] = _notifications[index].copyWith(isRead: true);
       });
+      _syncProvider();
     }
   }
 
@@ -54,6 +63,7 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
       setState(() {
         _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
       });
+      _syncProvider();
     }
   }
 
@@ -63,6 +73,7 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
       setState(() {
         _notifications.removeWhere((n) => n.id == id);
       });
+      _syncProvider();
     }
   }
 
@@ -70,6 +81,7 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
     final success = await _service.deleteAllNotifications();
     if (success) {
       setState(() => _notifications = []);
+      _syncProvider();
     }
   }
 

@@ -11,6 +11,10 @@ class BaseService {
   static const _storage = FlutterSecureStorage();
   static const String previewBaseUrl = 'http://100.92.143.50:5000/api';
 
+  // بنخزّن الـ base URL الفعلي (سواء الديفولت أو الجاي من config.json على الويب)
+  // عشان الـ Socket.IO يستخدم نفس الـ host بالظبط بدل ما يبقى مكتوب مرتين.
+  static String _resolvedBaseUrl = 'http://100.97.136.8:3003/api';
+
   // ─── Init ─────────────────────────────────────────────
   static Future<void> init() async {
     String baseUrl = 'http://100.97.136.8:3003/api';
@@ -26,6 +30,8 @@ class BaseService {
         }
       } catch (_) {}
     }
+
+    _resolvedBaseUrl = baseUrl;
 
     _dioInstance = Dio(
       BaseOptions(
@@ -53,6 +59,16 @@ class BaseService {
   static Dio get dio {
     assert(_dioInstance != null, 'BaseService.init() must be called first');
     return _dioInstance!;
+  }
+
+  /// Socket.IO بيشتغل على root السيرفر (server.js) مش تحت /api،
+  /// فبنشيل الـ '/api' من نهاية الـ base URL المستخدم فعليًا.
+  static String get socketUrl {
+    var url = _resolvedBaseUrl;
+    if (url.endsWith('/api')) {
+      url = url.substring(0, url.length - '/api'.length);
+    }
+    return url;
   }
 }
 

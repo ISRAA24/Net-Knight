@@ -3,10 +3,21 @@ import 'package:net_knight/screens/admin/dashboard/models/stat_model.dart';
 import '../../../../core/theme/nk_colors.dart';
 import '../../../../core/theme/nk_text_styles.dart';
 
-
 class SystemStatusCard extends StatelessWidget {
   final List<StatusData> statuses;
-  const SystemStatusCard({super.key, required this.statuses});
+  final double cpuUsage;
+  final double memoryUsage;
+  final String packetsPerSec;
+  final String activeConnections;
+
+  const SystemStatusCard({
+    super.key,
+    required this.statuses,
+    this.cpuUsage = 0,
+    this.memoryUsage = 0,
+    this.packetsPerSec = '0',
+    this.activeConnections = '0',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +41,23 @@ class SystemStatusCard extends StatelessWidget {
             children: statuses.map((s) => _StatusTile(data: s)).toList(),
           ),
           const SizedBox(height: 24),
-          const _UsageBar(label: 'CPU usage', percent: 0.67, value: '67%'),
+          _UsageBar(
+            label: 'CPU usage',
+            percent: cpuUsage.clamp(0.0, 1.0),
+            value: '${(cpuUsage * 100).toStringAsFixed(0)}%',
+          ),
           const SizedBox(height: 20),
-          const _UsageBar(label: 'Memory usage', percent: 0.71, value: '71%'),
+          _UsageBar(
+            label: 'Memory usage',
+            percent: memoryUsage.clamp(0.0, 1.0),
+            value: '${(memoryUsage * 100).toStringAsFixed(0)}%',
+          ),
           const SizedBox(height: 30),
           Row(
-            children: const [
-              Expanded(child: _InfoCard(value: '11,456', label: 'packet/sec')),
-              SizedBox(width: 12),
-              Expanded(child: _InfoCard(value: '1,449', label: 'active connections')),
+            children: [
+              Expanded(child: _InfoCard(value: packetsPerSec, label: 'packet/sec')),
+              const SizedBox(width: 12),
+              Expanded(child: _InfoCard(value: activeConnections, label: 'active connections')),
             ],
           ),
         ],

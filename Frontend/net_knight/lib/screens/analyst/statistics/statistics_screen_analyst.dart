@@ -1,8 +1,8 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:net_knight/core/network/base_services.dart';
+import 'package:net_knight/core/network/dashboard_socket_service.dart';
 
 import '../ai_generated_rules/widgets/sidebar_analyst.dart';
 import 'models/statistics_model_analyst.dart';
@@ -22,58 +22,32 @@ class StatisticsScreenAnalyst extends StatefulWidget {
 
 class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
   final _service = StatisticsServiceAnalyst();
+  final _socket = DashboardSocketService.instance;
 
   StatisticsSummaryAnalyst? _data;
   bool _isLoading = true;
   String? _error;
 
-  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
   String _username = 'User';
   String _role = '';
   String _initials = 'U';
-
-  // Chart series — static لأن الـ chart data مش بييجي من الـ API دلوقتي
-  // TODO: لو الـ API هيرجع chart data استبدلي الـ _chartSeries بالداتا الجاية
-  static final _chartSeries = [
-    ChartSeriesAnalyst(
-      color: const Color(0xFF388BFD),
-      label: 'Outbound',
-      spots: [
-        FlSpot(0, 78),
-        FlSpot(1, 92),
-        FlSpot(2, 35),
-        FlSpot(3, 42),
-        FlSpot(4, 65),
-        FlSpot(5, 48),
-        FlSpot(6, 25),
-        FlSpot(7, 55),
-        FlSpot(8, 20),
-        FlSpot(9, 12),
-      ],
-    ),
-    ChartSeriesAnalyst(
-      color: const Color(0xFF56CFE1),
-      label: 'Inbound',
-      spots: [
-        FlSpot(0, 60),
-        FlSpot(1, 70),
-        FlSpot(2, 28),
-        FlSpot(3, 30),
-        FlSpot(4, 50),
-        FlSpot(5, 40),
-        FlSpot(6, 18),
-        FlSpot(7, 35),
-        FlSpot(8, 15),
-        FlSpot(9, 8),
-      ],
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
     _loadData();
+    _socket.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    _socket.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadUserInfo() async {
@@ -112,20 +86,20 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
   static final _fallbackStats = [
     StatDataAnalyst(
       label: 'Total Threat',
-      value: '16',
-      trend: '↗ +12%',
+      value: '0',
+      trend: '— 0%',
       color: const Color(0xFF3B82F6),
     ),
     StatDataAnalyst(
       label: 'Blocked Attack',
-      value: '10',
-      trend: '↗ +8%',
+      value: '0',
+      trend: '— 0%',
       color: const Color(0xFFF59E0B),
     ),
     StatDataAnalyst(
       label: 'Active Rules',
-      value: '12',
-      trend: '↗ +3%',
+      value: '0',
+      trend: '— 0%',
       color: const Color(0xFF22C55E),
     ),
     StatDataAnalyst(
@@ -156,51 +130,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
       name: 'nftables controller',
       status: 'online',
       color: const Color(0xFF22C55E),
-    ),
-  ];
-
-  static final _fallbackThreats = [
-    ThreatDataAnalyst(
-      ip: '185.220.101.42',
-      type: 'DDoS',
-      level: 'Critical',
-      confidence: '98%',
-      time: '22:08:53',
-    ),
-    ThreatDataAnalyst(
-      ip: '103.21.244.0',
-      type: 'Port Scan',
-      level: 'High',
-      confidence: '94%',
-      time: '22:09:11',
-    ),
-    ThreatDataAnalyst(
-      ip: '45.33.32.156',
-      type: 'SQL Injection',
-      level: 'Critical',
-      confidence: '91%',
-      time: '22:10:02',
-    ),
-    ThreatDataAnalyst(
-      ip: '77.91.68.21',
-      type: 'XSS Attempt',
-      level: 'High',
-      confidence: '88%',
-      time: '22:11:47',
-    ),
-    ThreatDataAnalyst(
-      ip: '198.51.100.23',
-      type: 'Port Scan',
-      level: 'High',
-      confidence: '85%',
-      time: '22:12:30',
-    ),
-    ThreatDataAnalyst(
-      ip: '203.0.113.50',
-      type: 'DDoS',
-      level: 'Critical',
-      confidence: '96%',
-      time: '22:13:15',
     ),
   ];
 
@@ -250,14 +179,43 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
       );
     }
 
-    final stats = _data?.stats ?? _fallbackStats;
-    final statuses = _data?.systemStatuses ?? _fallbackStatuses;
-    final threats = _data?.threats ?? _fallbackThreats;
-    final cpu = _data?.cpuUsage ?? 0.67;
-    final memory = _data?.memoryUsage ?? 0.71;
-    final packets = _data?.packetsPerSec ?? '11,456';
-    final connections = _data?.activeConnections ?? '1,449';
-    final totalThreats = _data?.totalThreats ?? 16;
+    final metrics = _socket.metrics;
+    final rt = _socket.stats;
+
+    // الـ stats cards: لو الـ socket بعت أرقام حقيقية (rt) نستخدمها،
+    // وإلا نرجع لـ _data (HTTP) أو fallback.
+    final stats = <StatDataAnalyst>[
+      StatDataAnalyst(
+        label: 'Total Threat',
+        value: rt.totalThreats.toString(),
+        trend: _data?.stats.isNotEmpty == true ? _data!.stats[0].trend : '— 0%',
+        color: const Color(0xFF3B82F6),
+      ),
+      StatDataAnalyst(
+        label: 'Blocked Attack',
+        value: rt.blockedAttacks.toString(),
+        trend: (_data?.stats.length ?? 0) > 1 ? _data!.stats[1].trend : '— 0%',
+        color: const Color(0xFFF59E0B),
+      ),
+      StatDataAnalyst(
+        label: 'Active Rules',
+        value: rt.activeRules.toString(),
+        trend: (_data?.stats.length ?? 0) > 2 ? _data!.stats[2].trend : '— 0%',
+        color: const Color(0xFF22C55E),
+      ),
+      StatDataAnalyst(
+        label: 'Pending Approvals',
+        value: rt.pendingApprovals.toString(),
+        trend: (_data?.stats.length ?? 0) > 3 ? _data!.stats[3].trend : '— 0%',
+        color: Colors.purpleAccent,
+      ),
+    ];
+
+    final statuses = _data?.systemStatuses.isNotEmpty == true
+        ? _data!.systemStatuses
+        : _fallbackStatuses;
+    final threats = _data?.threats ?? const [];
+    final totalThreats = rt.totalThreats;
 
     return RefreshIndicator(
       onRefresh: _loadData,
@@ -269,7 +227,20 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
           children: [
             StatsGridAnalyst(stats: stats),
             const SizedBox(height: 20),
-            ChartSectionAnalyst(series: _chartSeries),
+            ChartSectionAnalyst(
+              series: [
+                ChartSeriesAnalyst(
+                  color: const Color(0xFF388BFD),
+                  label: 'Outbound',
+                  spots: metrics.outboundSpots,
+                ),
+                ChartSeriesAnalyst(
+                  color: const Color(0xFF56CFE1),
+                  label: 'Inbound',
+                  spots: metrics.inboundSpots,
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,10 +248,10 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
                 Expanded(
                   child: SystemStatusCardAnalyst(
                     statuses: statuses,
-                    cpuUsage: cpu,
-                    memoryUsage: memory,
-                    packetsPerSec: packets,
-                    activeConnections: connections,
+                    cpuUsage: metrics.cpuUsage,
+                    memoryUsage: metrics.memoryUsage,
+                    packetsPerSec: metrics.packetsPerSec,
+                    activeConnections: metrics.activeConnections,
                   ),
                 ),
                 const SizedBox(width: 12),

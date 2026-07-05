@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/core/network/dashboard_socket_service.dart';
 import 'package:net_knight/main.dart';
 import 'package:net_knight/screens/admin/dashboard/widgets/sidebar.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,8 @@ class StatisticsScreenAdmin extends StatefulWidget {
 
 class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
   final _service = StatService();
+  final _socket = DashboardSocketService.instance;
+
   StatData? _stats;
   List<ThreatData> _threats = [];
   List<StatusData> _statuses = [];
@@ -30,6 +33,31 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
   void initState() {
     super.initState();
     _loadStats();
+    _socket.addListener(_onRealtimeUpdate);
+  }
+
+  @override
+  void dispose() {
+    _socket.removeListener(_onRealtimeUpdate);
+    super.dispose();
+  }
+
+  void _onRealtimeUpdate() {
+    if (!mounted) return;
+    setState(() {
+      // بندمج الـ realtime counters (لو وصلت) مع الـ trends اللي أصلاً عندنا
+      final rt = _socket.stats;
+      _stats = StatData(
+        totalThreat: rt.totalThreats.toString(),
+        blockedAttack: rt.blockedAttacks.toString(),
+        activeRules: rt.activeRules.toString(),
+        pendingApprovals: rt.pendingApprovals.toString(),
+        trend: _stats?.trend ?? '↗ 0%',
+        blockedTrend: _stats?.blockedTrend ?? '↗ 0%',
+        activeTrend: _stats?.activeTrend ?? '↗ 0%',
+        pendingTrend: _stats?.pendingTrend ?? '— 0%',
+      );
+    });
   }
 
   Future<void> _loadStats() async {
@@ -47,6 +75,8 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
 
   @override
   Widget build(BuildContext context) {
+    final metrics = _socket.metrics;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Row(
@@ -65,13 +95,22 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
                       children: [
                         StatsGrid(stats: _stats),
                         const SizedBox(height: 20),
-                        ChartSection(),
+                        ChartSection(
+                          outboundSpots: metrics.outboundSpots,
+                          inboundSpots: metrics.inboundSpots,
+                        ),
                         const SizedBox(height: 20),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: SystemStatusCard(statuses: _statuses),
+                              child: SystemStatusCard(
+                                statuses: _statuses,
+                                cpuUsage: metrics.cpuUsage,
+                                memoryUsage: metrics.memoryUsage,
+                                packetsPerSec: metrics.packetsPerSec,
+                                activeConnections: metrics.activeConnections,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

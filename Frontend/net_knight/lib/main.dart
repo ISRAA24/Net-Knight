@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:net_knight/core/network/base_services.dart';
+import 'package:net_knight/core/network/dashboard_socket_service.dart';
+import 'package:net_knight/screens/shared/notification/services/notification_service.dart';
 import 'package:net_knight/screens/admin/ai_generated_rules_admin/ai_generated_rules_screen.dart';
 import 'package:net_knight/screens/admin/interfaces/interfaces_screen.dart';
 import 'package:net_knight/screens/admin/nat/nat_screen.dart';
@@ -27,15 +29,44 @@ void main() async {
   runApp(const NetKnight());
 }
 
-class NetKnight extends StatelessWidget {
+class NetKnight extends StatefulWidget {
   const NetKnight({super.key});
 
   @override
+  State<NetKnight> createState() => _NetKnightState();
+}
+
+class _NetKnightState extends State<NetKnight> {
+  final _notificationProvider = NotificationProvider();
+  final _socket = DashboardSocketService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Socket.IO واحد للتطبيق كله (Dashboard/Statistics realtime + notifications)
+    _socket.connect();
+
+    // لما تجي notification جديدة عن طريق الـ socket، نزوّد العداد فورًا
+    _socket.onNewNotification = () {
+      _notificationProvider.updateUnreadCount(
+        _notificationProvider.unreadCount + 1,
+      );
+    };
+
+    // أول ما التطبيق يفتح، نجيب العداد الحقيقي من الباك (مش لازم ننتظر socket)
+    _loadInitialUnreadCount();
+  }
+
+  Future<void> _loadInitialUnreadCount() async {
+    final count = await NotificationService().getUnreadCount();
+    _notificationProvider.updateUnreadCount(count);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-      ],
+    return ChangeNotifierProvider.value(
+      value: _notificationProvider,
       child: MaterialApp(
         title: 'NetKnight',
         debugShowCheckedModeBanner: false,
@@ -83,7 +114,7 @@ class NotificationProvider extends ChangeNotifier {
   int get unreadCount => _unreadCount;
 
   void updateUnreadCount(int count) {
-    _unreadCount = count;
+    _unreadCount = count < 0 ? 0 : count;
     notifyListeners();
   }
 }
