@@ -145,6 +145,7 @@ class _UserFooter extends StatefulWidget {
 class _UserFooterState extends State<_UserFooter> {
   String _username = 'User';
   String _role = '';
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -168,6 +169,27 @@ class _UserFooterState extends State<_UserFooter> {
     return 'U';
   }
 
+  // ⚠️ FIX: this previously only cleared the local token — it never
+  // called POST /auth/logout, so the httpOnly cookie on the backend was
+  // never cleared and the "System Logout" activity log entry was never
+  // written. We now call the backend first (best-effort — logout should
+  // still proceed locally even if the request fails, e.g. offline).
+  Future<void> _logout() async {
+    if (_isLoggingOut) return;
+    setState(() => _isLoggingOut = true);
+    try {
+      await BaseService.dio.post('/auth/logout');
+    } catch (_) {
+      // Ignore network errors here — we still want to clear the local
+      // session and navigate to login even if the backend call failed.
+    } finally {
+      await TokenStorage.deleteToken();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -177,19 +199,16 @@ class _UserFooterState extends State<_UserFooter> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () {
-              TokenStorage.deleteToken();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            onTap: _isLoggingOut ? null : _logout,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.logout, size: 16, color: Color(0xFFCAD0D9)),
-                  SizedBox(width: 10),
+                  const Icon(Icons.logout, size: 16, color: Color(0xFFCAD0D9)),
+                  const SizedBox(width: 10),
                   Text(
-                    'Log Out',
-                    style: TextStyle(
+                    _isLoggingOut ? 'Logging out...' : 'Log Out',
+                    style: const TextStyle(
                         color: Color(0xFFCBD1D9),
                         fontSize: 14,
                         fontWeight: FontWeight.bold),

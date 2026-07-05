@@ -4,8 +4,8 @@ import '../models/rule_management_model.dart';
 
 class RuleTable extends StatelessWidget {
   final List<RuleModel> rules;
-  final Function(int, bool) onToggle;
-  final Function(int) onDelete;
+  final Function(String id, bool enabled) onToggle;
+  final Function(String id) onDelete;
 
   const RuleTable({super.key, required this.rules, required this.onToggle, required this.onDelete});
 
@@ -25,14 +25,11 @@ class RuleTable extends StatelessWidget {
               child: const Row(
                 children: [
                   _TH('Status', flex: 2),
-                  _TH('Priority', flex: 2),
+                  _TH('Rule Name', flex: 3),
                   _TH('Source IP', flex: 3),
-                  _TH('Destination', flex: 3),
-                  _TH('Port', flex: 2),
-                  _TH('Protocol', flex: 2),
                   _TH('Action', flex: 2),
-                  _TH('Created', flex: 2),
                   _TH('Origin', flex: 2),
+                  _TH('Created', flex: 2),
                   _TH('Actions', flex: 2),
                 ],
               ),
@@ -59,8 +56,8 @@ class RuleTable extends StatelessWidget {
 
 class _RuleRow extends StatelessWidget {
   final RuleModel rule;
-  final Function(int, bool) onToggle;
-  final Function(int) onDelete;
+  final Function(String id, bool enabled) onToggle;
+  final Function(String id) onDelete;
 
   const _RuleRow({required this.rule, required this.onToggle, required this.onDelete});
 
@@ -72,33 +69,39 @@ class _RuleRow extends StatelessWidget {
         children: [
           _TDWidget(
             flex: 2,
-            child: Center(child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(rule.priority, v))),
+            child: Center(
+              // AI-generated rules live in a different collection and
+              // can't be toggled through this static-rule endpoint, so
+              // the switch is read-only for them.
+              child: _SmallToggle(
+                value: rule.enabled,
+                onChanged: rule.isAi ? null : (v) => onToggle(rule.id, v),
+              ),
+            ),
           ),
           _VD(),
-          _TD(rule.priority.toString(), flex: 2),
+          _TD(rule.ruleName, flex: 3),
           _VD(),
           _TD(rule.sourceIp, flex: 3),
-          _VD(),
-          _TD(rule.destination, flex: 3),
-          _VD(),
-          _TD(rule.port, flex: 2),
-          _VD(),
-          _TD(rule.protocol, flex: 2),
           _VD(),
           _TDWidget(
             flex: 2,
             child: Text(rule.action, style: TextStyle(color: _actionColor(rule.action), fontWeight: FontWeight.bold)),
           ),
           _VD(),
-          _TD(rule.created, flex: 2),
-          _VD(),
           _TD(rule.origin, flex: 2),
+          _VD(),
+          _TD(rule.created, flex: 2),
           _VD(),
           _TDWidget(
             flex: 2,
             child: IconButton(
               icon: const Icon(LucideIcons.trash2, size: 16),
-              onPressed: () => onDelete(rule.priority),
+              // Deleting an AI rule also requires the backend to unwind
+              // its firewall handles (handled by /ai/rules/:id), which is
+              // a different endpoint than static rules — not wired up
+              // here, so we disable delete for AI rules on this screen.
+              onPressed: rule.isAi ? null : () => onDelete(rule.id),
             ),
           ),
         ],
@@ -107,8 +110,9 @@ class _RuleRow extends StatelessWidget {
   }
 
   Color _actionColor(String action) {
-    if (action == 'Drop') return Colors.red;
-    if (action == 'Accept') return Colors.green;
+    final a = action.toLowerCase();
+    if (a == 'drop' || a == 'reject') return Colors.red;
+    if (a == 'accept') return Colors.green;
     return Colors.blue;
   }
 }
@@ -166,32 +170,36 @@ class _VD extends StatelessWidget {
 
 class _SmallToggle extends StatelessWidget {
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   const _SmallToggle({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 36,
-        height: 20,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: value ? Colors.blue : Colors.grey,
-        ),
-        padding: const EdgeInsets.all(2),
-        child: AnimatedAlign(
+    final disabled = onChanged == null;
+    return Opacity(
+      opacity: disabled ? 0.4 : 1,
+      child: GestureDetector(
+        onTap: disabled ? null : () => onChanged!(!value),
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 16,
-            height: 16,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
+          width: 36,
+          height: 20,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: value ? Colors.blue : Colors.grey,
+          ),
+          padding: const EdgeInsets.all(2),
+          child: AnimatedAlign(
+            duration: const Duration(milliseconds: 200),
+            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
             ),
           ),
         ),

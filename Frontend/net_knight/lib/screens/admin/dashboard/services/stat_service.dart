@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:net_knight/core/network/base_services.dart';
 import '../models/stat_model.dart';
 
@@ -48,20 +49,31 @@ class StatService {
     }
   }
 
-  // NOTE: There is currently NO backend endpoint that returns system
+  // ⚠️ FIX: there is currently NO backend endpoint that returns system
   // status (firewall engine / AI detection model / RL agent / nftables
-  // controller). This needs to be added server-side first — until then
-  // this will always fail and callers should rely on fallback data.
+  // controller) — '/dashboard/status' is not mounted anywhere in
+  // dashboard.routes.js. The call below will always 404, so instead of
+  // leaving the admin dashboard's System Status card permanently blank,
+  // we return the same static fallback the analyst dashboard already
+  // uses (statistics_screen_analyst.dart's `_fallbackStatuses`) so the
+  // two screens behave consistently until a real endpoint is added.
   Future<List<StatusData>> getSystemStatus() async {
     try {
       final response = await BaseService.dio.get('/dashboard/status');
       if (response.data is List) {
         return (response.data as List).map((e) => StatusData.fromJson(e)).toList();
       }
-      return [];
+      return _fallbackStatuses;
     } catch (e) {
       print('Error fetching system status: $e');
-      return [];
+      return _fallbackStatuses;
     }
   }
+
+  static final List<StatusData> _fallbackStatuses = [
+    StatusData('firewall engine', 'online', const Color(0xFF22C55E)),
+    StatusData('AI detection model', 'online', const Color(0xFF22C55E)),
+    StatusData('RL agent', 'Auto', const Color(0xFF3B82F6)),
+    StatusData('nftables controller', 'online', const Color(0xFF22C55E)),
+  ];
 }

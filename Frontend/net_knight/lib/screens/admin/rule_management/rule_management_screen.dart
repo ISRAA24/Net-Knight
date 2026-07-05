@@ -23,6 +23,7 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
 
   List<RuleModel> _rules = [];
   List<NatRuleModel> _natRules = [];
+  bool _isLoading = true;
 
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -36,12 +37,22 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _natSearchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
+    setState(() => _isLoading = true);
     try {
       _rules = await _service.getAllRules();
       _natRules = await _service.getNatRules();
     } catch (e) {
       print('Error loading rules: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -52,8 +63,9 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
         .where(
           (r) =>
               r.sourceIp.toLowerCase().contains(q) ||
-              r.destination.toLowerCase().contains(q) ||
-              r.action.toLowerCase().contains(q),
+              r.ruleName.toLowerCase().contains(q) ||
+              r.action.toLowerCase().contains(q) ||
+              r.origin.toLowerCase().contains(q),
         )
         .toList();
   }
@@ -71,22 +83,49 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
         .toList();
   }
 
-  Future<void> _toggleRule(int priority, bool enabled) async {
-    final success = await _service.toggleRule(priority, enabled);
-    if (success) _loadData();
+  Future<void> _toggleRule(String id, bool enabled) async {
+    final success = await _service.toggleRule(id);
+    if (success) {
+      _loadData();
+    } else if (mounted) {
+      _showError('Failed to update rule');
+    }
   }
 
-  Future<void> _deleteRule(int priority) async {
-    final success = await _service.deleteRule(priority);
-    if (success) _loadData();
+  Future<void> _deleteRule(String id) async {
+    final success = await _service.deleteRule(id);
+    if (success) {
+      _loadData();
+    } else if (mounted) {
+      _showError('Failed to delete rule');
+    }
   }
 
-  Future<void> _toggleNatRule(int id, bool enabled) async {
-    _loadData();
+  // ⚠️ FIX: previously this just called _loadData() without hitting the
+  // backend at all, so the NAT toggle switch silently did nothing.
+  Future<void> _toggleNatRule(String id, bool enabled) async {
+    final success = await _service.toggleNatRule(id);
+    if (success) {
+      _loadData();
+    } else if (mounted) {
+      _showError('Failed to update NAT rule');
+    }
   }
 
-  Future<void> _deleteNatRule(int id) async {
-    _loadData();
+  // ⚠️ FIX: same issue as _toggleNatRule.
+  Future<void> _deleteNatRule(String id) async {
+    final success = await _service.deleteNatRule(id);
+    if (success) {
+      _loadData();
+    } else if (mounted) {
+      _showError('Failed to delete NAT rule');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -115,17 +154,19 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
                         _buildSearchBar(),
                         const SizedBox(height: 20),
                         Expanded(
-                          child: _activeView == RuleView.firewall
-                              ? RuleTable(
-                                  rules: _filteredRules,
-                                  onToggle: _toggleRule,
-                                  onDelete: _deleteRule,
-                                )
-                              : NatTable(
-                                  natRules: _natFilteredRules,
-                                  onToggle: _toggleNatRule,
-                                  onDelete: _deleteNatRule,
-                                ),
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _activeView == RuleView.firewall
+                                  ? RuleTable(
+                                      rules: _filteredRules,
+                                      onToggle: _toggleRule,
+                                      onDelete: _deleteRule,
+                                    )
+                                  : NatTable(
+                                      natRules: _natFilteredRules,
+                                      onToggle: _toggleNatRule,
+                                      onDelete: _deleteNatRule,
+                                    ),
                         ),
                       ],
                     ),
@@ -149,10 +190,11 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
             child: TextField(
               controller: isFirewall ? _searchController : _natSearchController,
               onChanged: (v) => setState(() {
-                if (isFirewall)
+                if (isFirewall) {
                   _searchQuery = v;
-                else
+                } else {
                   _natSearchQuery = v;
+                }
               }),
               decoration: InputDecoration(
                 hintText: isFirewall

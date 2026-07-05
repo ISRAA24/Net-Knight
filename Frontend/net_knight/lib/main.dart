@@ -44,17 +44,14 @@ class _NetKnightState extends State<NetKnight> {
   void initState() {
     super.initState();
 
-    // Socket.IO واحد للتطبيق كله (Dashboard/Statistics realtime + notifications)
     _socket.connect();
 
-    // لما تجي notification جديدة عن طريق الـ socket، نزوّد العداد فورًا
     _socket.onNewNotification = () {
       _notificationProvider.updateUnreadCount(
         _notificationProvider.unreadCount + 1,
       );
     };
 
-    // أول ما التطبيق يفتح، نجيب العداد الحقيقي من الباك (مش لازم ننتظر socket)
     _loadInitialUnreadCount();
   }
 
@@ -70,7 +67,7 @@ class _NetKnightState extends State<NetKnight> {
       child: MaterialApp(
         title: 'NetKnight',
         debugShowCheckedModeBanner: false,
-        home: const StatisticsScreenAdmin(),
+        home: const SplashScreen(),
         routes: {
           '/login': (context) => const LogInScreen(),
           '/signup': (context) => const SignUpScreen(),

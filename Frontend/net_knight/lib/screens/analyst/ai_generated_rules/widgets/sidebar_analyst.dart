@@ -147,7 +147,7 @@ class _NavItemAnalyst extends StatelessWidget {
 }
 
 // ─── Sidebar Footer ──────────────────────────────────────────
-class _SidebarFooterAnalyst extends StatelessWidget {
+class _SidebarFooterAnalyst extends StatefulWidget {
   const _SidebarFooterAnalyst({
     required this.username,
     required this.role,
@@ -159,6 +159,31 @@ class _SidebarFooterAnalyst extends StatelessWidget {
   final String initials;
 
   @override
+  State<_SidebarFooterAnalyst> createState() => _SidebarFooterAnalystState();
+}
+
+class _SidebarFooterAnalystState extends State<_SidebarFooterAnalyst> {
+  bool _isLoggingOut = false;
+
+  // ⚠️ FIX: previously logout only deleted the local token and never
+  // called POST /auth/logout, so the backend's httpOnly cookie was never
+  // cleared and no "System Logout" activity log entry was ever written.
+  Future<void> _logout() async {
+    if (_isLoggingOut) return;
+    setState(() => _isLoggingOut = true);
+    try {
+      await BaseService.dio.post('/auth/logout');
+    } catch (_) {
+      // Best-effort: still log out locally even if the request fails.
+    } finally {
+      await TokenStorage.deleteToken();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -167,21 +192,16 @@ class _SidebarFooterAnalyst extends StatelessWidget {
         children: [
           // Logout
           InkWell(
-            onTap: () async {
-              await TokenStorage.deleteToken();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            onTap: _isLoggingOut ? null : _logout,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.logout, size: 16, color: Color(0xFFCBD1D9)),
-                  SizedBox(width: 10),
+                  const Icon(Icons.logout, size: 16, color: Color(0xFFCBD1D9)),
+                  const SizedBox(width: 10),
                   Text(
-                    'Log Out',
-                    style: TextStyle(
+                    _isLoggingOut ? 'Logging out...' : 'Log Out',
+                    style: const TextStyle(
                       color: Color(0xFFCBD1D9),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -201,7 +221,7 @@ class _SidebarFooterAnalyst extends StatelessWidget {
                 radius: 17,
                 backgroundColor: const Color(0xFFF2F5F8),
                 child: Text(
-                  initials,
+                  widget.initials,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -214,7 +234,7 @@ class _SidebarFooterAnalyst extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    username,
+                    widget.username,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -222,7 +242,7 @@ class _SidebarFooterAnalyst extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    role,
+                    widget.role,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFFB1B9C4),

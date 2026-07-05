@@ -4,8 +4,8 @@ import 'package:net_knight/screens/admin/rule_management/models/rule_management_
 
 class NatTable extends StatelessWidget {
   final List<NatRuleModel> natRules;
-  final Function(int, bool) onToggle;
-  final Function(int) onDelete;
+  final Function(String id, bool enabled) onToggle;
+  final Function(String id) onDelete;
 
   const NatTable({super.key, required this.natRules, required this.onToggle, required this.onDelete});
 
@@ -58,8 +58,8 @@ class NatTable extends StatelessWidget {
 
 class _NatRow extends StatelessWidget {
   final NatRuleModel rule;
-  final Function(int, bool) onToggle;
-  final Function(int) onDelete;
+  final Function(String id, bool enabled) onToggle;
+  final Function(String id) onDelete;
 
   const _NatRow({required this.rule, required this.onToggle, required this.onDelete});
 
@@ -71,7 +71,9 @@ class _NatRow extends StatelessWidget {
         children: [
           _TDWidget(
             flex: 2,
-            child: Center(child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(0, v))),
+            child: Center(
+              child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(rule.id, v)),
+            ),
           ),
           _VD(),
           _TD(rule.sourceIp, flex: 3),
@@ -95,7 +97,7 @@ class _NatRow extends StatelessWidget {
             flex: 2,
             child: IconButton(
               icon: const Icon(LucideIcons.trash2, size: 16),
-              onPressed: () => onDelete(0),
+              onPressed: () => onDelete(rule.id),
             ),
           ),
         ],
@@ -104,8 +106,9 @@ class _NatRow extends StatelessWidget {
   }
 
   Color _natTypeColor(String type) {
-    if (type == 'Masquerade') return Colors.green;
-    if (type == 'Source NAT') return Colors.blue;
+    final t = type.toLowerCase();
+    if (t == 'masquerade') return Colors.green;
+    if (t == 'source') return Colors.blue;
     return Colors.orange;
   }
 }

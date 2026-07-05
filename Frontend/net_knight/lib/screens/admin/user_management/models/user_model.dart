@@ -49,9 +49,16 @@ class UserModel {
         password: json['password'] ?? '',
       );
 
+  // ⚠️ FIX: this previously never sent `password` at all, so editing a
+  // user in UserDialog and typing a new password had no effect — the
+  // backend's PUT /users/:id (updateUser) only updates the password when
+  // req.body.password is present. We only include it when non-empty, so
+  // leaving the field blank on edit still preserves the existing password
+  // and we never accidentally send an empty-string password.
   Map<String, dynamic> toJson() => {
         'username': name,
         'email': email,
         'role': role,
+        if (password.isNotEmpty) 'password': password,
       };
 }
