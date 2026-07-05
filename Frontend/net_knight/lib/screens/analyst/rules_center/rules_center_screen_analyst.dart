@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/core/network/base_services.dart';
 
 import '../ai_generated_rules/widgets/sidebar_analyst.dart';
 import 'models/rules_center_model_analyst.dart';
@@ -30,9 +31,10 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
   String _searchQuery = '';
   String _natSearchQuery = '';
 
-  String _username = '';
+  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
+  String _username = 'User';
   String _role = '';
-  String _initials = '';
+  String _initials = 'U';
 
   @override
   void initState() {
@@ -49,11 +51,21 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
   }
 
   Future<void> _loadUserInfo() async {
-    setState(() {
-      _username = 'Analyst';
-      _role = 'Analyst';
-      _initials = 'AN';
-    });
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _role = role;
+        _initials = _computeInitials(username);
+      });
+    }
+  }
+
+  String _computeInitials(String name) {
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return 'U';
   }
 
   Future<void> _loadData() async {

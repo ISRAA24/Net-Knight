@@ -31,10 +31,34 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
   bool _isLoading = true;
   String? _error;
 
+  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
+  String _username = 'User';
+  String _role = '';
+  String _initials = 'U';
+
   @override
   void initState() {
     super.initState();
+    _loadUserInfo();
     _loadData();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _role = role;
+        _initials = _computeInitials(username);
+      });
+    }
+  }
+
+  String _computeInitials(String name) {
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return 'U';
   }
 
   Future<void> _loadData() async {
@@ -103,9 +127,9 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
         children: [
           SidebarAnalyst(
             activeRoute: '/reports',
-            username: 'Analyst',
-            role: 'Analyst',
-            initials: 'AN',
+            username: _username,
+            role: _role,
+            initials: _initials,
           ),
           Expanded(
             child: Column(

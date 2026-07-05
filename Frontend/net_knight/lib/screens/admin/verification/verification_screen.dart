@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'widgets/otp_fields.dart';
 import 'services/verification_service.dart';
 import 'package:dio/dio.dart';
+import 'package:net_knight/core/network/base_services.dart';
 
 const _kPrimary = Color(0xff0077c0);
 const _kDark = Color(0xff1d242b);
@@ -40,24 +41,31 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return '$masked@${parts[1]}';
   }
 
-  void _navigateToDashboard() {
+  // ─── Navigate based on the logged-in user's role ──────────────────
+  Future<void> _navigateToRoleHome() async {
+    final role = (await TokenStorage.getRole()).toLowerCase();
+
+    // super_admin / admin -> Admin dashboard
+    // analyst            -> Analyst statistics screen
+    final route = role == 'analyst' ? '/statistics' : '/dashboard';
+
     if (kIsWeb) {
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/dashboard',
+        route,
         (route) => false,
       );
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil(
-            '/dashboard',
-            (route) => false,
+            route,
+            (r) => false,
           );
         }
       });
     } else {
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/dashboard',
-        (route) => false,
+        route,
+        (r) => false,
       );
     }
   }
@@ -86,7 +94,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (!mounted) return;
 
       if (saved) {
-        _navigateToDashboard();
+        await _navigateToRoleHome();
       } else {
         _verifyCalledOnce = false;
         _showError('Verification failed. Please try again.');

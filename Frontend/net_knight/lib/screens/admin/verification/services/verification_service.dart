@@ -11,8 +11,16 @@ class VerificationService {
       data: {'email': email, 'code': code},
     );
     final token = response.data['token'];
-    final username = response.data['username'] ?? response.data['name'] ?? '';
-    final role = response.data['role'] ?? '';
+
+    // Backend returns { message, token, user: { id, username, role } }
+    final userObj = response.data['user'] as Map<String, dynamic>?;
+    final username = (userObj?['username'] ??
+            response.data['username'] ??
+            response.data['name'] ??
+            '')
+        .toString();
+    final role = (userObj?['role'] ?? response.data['role'] ?? '').toString();
+
     if (token != null) {
       await TokenStorage.saveToken(token.toString());
       await TokenStorage.saveUserData(username: username, role: role);
@@ -28,8 +36,16 @@ class VerificationService {
       data: {'email': email, 'code': code},
     );
     final token = response.data['token'];
-    final username = response.data['username'] ?? response.data['name'] ?? '';
-    final role = response.data['role'] ?? '';
+
+    // Backend returns top-level fields here: { _id, username, email, role, token, ... }
+    final userObj = response.data['user'] as Map<String, dynamic>?;
+    final username = (userObj?['username'] ??
+            response.data['username'] ??
+            response.data['name'] ??
+            '')
+        .toString();
+    final role = (userObj?['role'] ?? response.data['role'] ?? '').toString();
+
     if (token != null) {
       await TokenStorage.saveToken(token.toString());
       await TokenStorage.saveUserData(username: username, role: role);

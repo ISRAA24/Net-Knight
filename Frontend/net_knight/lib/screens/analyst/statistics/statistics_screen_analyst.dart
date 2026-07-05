@@ -27,10 +27,10 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
   bool _isLoading = true;
   String? _error;
 
-  // بيانات اليوزر
-  String _username = '';
+  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
+  String _username = 'User';
   String _role = '';
-  String _initials = '';
+  String _initials = 'U';
 
   // Chart series — static لأن الـ chart data مش بييجي من الـ API دلوقتي
   // TODO: لو الـ API هيرجع chart data استبدلي الـ _chartSeries بالداتا الجاية
@@ -77,12 +77,21 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
   }
 
   Future<void> _loadUserInfo() async {
-    // final user = await UserService().getCurrentUser();
-    setState(() {
-      _username = 'Analyst';
-      _role = 'Analyst';
-      _initials = 'AN';
-    });
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _role = role;
+        _initials = _computeInitials(username);
+      });
+    }
+  }
+
+  String _computeInitials(String name) {
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return 'U';
   }
 
   Future<void> _loadData() async {

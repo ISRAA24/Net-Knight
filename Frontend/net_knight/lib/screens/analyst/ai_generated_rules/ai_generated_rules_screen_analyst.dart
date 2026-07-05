@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/core/network/base_services.dart';
 
 import 'models/ai_rule_model_analyst.dart';
 import 'services/ai_rules_service_analyst.dart';
@@ -24,10 +25,10 @@ class _AiGeneratedRulesScreenAnalystState
   bool _isLoading = true;
   String? _error;
 
-  // بيانات اليوزر — هتيجي من الـ token/storage
-  String _username = '';
+  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
+  String _username = 'User';
   String _role = '';
-  String _initials = '';
+  String _initials = 'U';
 
   @override
   void initState() {
@@ -36,21 +37,23 @@ class _AiGeneratedRulesScreenAnalystState
     _loadRules();
   }
 
-  // ─── جيب بيانات اليوزر الحالي ────────────────────────────
+  // ─── جيب بيانات اليوزر الحالي من التخزين ─────────────────
   Future<void> _loadUserInfo() async {
-    // TODO: استبدلي الـ placeholders دول ببيانات اليوزر الفعلية
-    // مثال:
-    // final user = await UserService().getCurrentUser();
-    // setState(() {
-    //   _username = user.name;
-    //   _role = user.role;
-    //   _initials = user.initials;
-    // });
-    setState(() {
-      _username = 'Analyst';
-      _role = 'Analyst';
-      _initials = 'AN';
-    });
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _role = role;
+        _initials = _computeInitials(username);
+      });
+    }
+  }
+
+  String _computeInitials(String name) {
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return 'U';
   }
 
   // ─── جيب الـ rules من الـ API ─────────────────────────────
