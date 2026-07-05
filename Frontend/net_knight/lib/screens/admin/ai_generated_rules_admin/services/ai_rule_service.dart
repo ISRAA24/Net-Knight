@@ -56,8 +56,6 @@ class AiRuleService {
     }
   }
 
-  // ⚠️ FIX: مكنش فيه أي method بينادي على /ai/settings/auto-approve خالص.
-  // الزرار في الشاشة كان بيغيّر متغير محلي بس من غير ما يوصل للباك أبدًا.
   Future<bool> getAutoApprove() async {
     try {
       final response = await BaseService.dio.get('/ai/settings/auto-approve');

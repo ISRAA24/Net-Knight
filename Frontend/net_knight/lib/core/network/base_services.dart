@@ -9,7 +9,7 @@ class BaseService {
   static Dio? _dioInstance;
   // ignore: unused_field
   static const _storage = FlutterSecureStorage();
-  static const String previewBaseUrl = 'http://100.92.143.50:5000/api';
+  static const String previewBaseUrl = 'http://100.92.143.50:9090/api';
 
   static String _resolvedBaseUrl = 'http://100.97.136.8:3003/api';
 

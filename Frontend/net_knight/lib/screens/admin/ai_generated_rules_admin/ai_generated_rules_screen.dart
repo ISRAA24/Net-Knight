@@ -44,8 +44,6 @@ class _AiGeneratedRulesScreenAdminState
     }
   }
 
-  // ⚠️ FIX: القيمة الحقيقية بتاعة auto-approve كانت مش بتتحمل من الباك
-  // خالص، فكانت دايمًا بتفضل false مهما كانت القيمة الفعلية في الداتابيز.
   Future<void> _loadAutoApprove() async {
     final value = await _service.getAutoApprove();
     if (mounted) setState(() => _autoApprove = value);
@@ -66,9 +64,6 @@ class _AiGeneratedRulesScreenAdminState
     if (success) _loadRules();
   }
 
-  // ⚠️ FIX: كانت الدالة دي بس بتعمل setState محلي من غير أي نداء للباك.
-  // دلوقتي بتنادي PUT /ai/settings/auto-approve فعليًا، ولو فشلت بترجع
-  // القيمة القديمة تاني.
   Future<void> _toggleAutoApprove() async {
     if (_autoApproveLoading) return;
     final newValue = !_autoApprove;
@@ -81,7 +76,7 @@ class _AiGeneratedRulesScreenAdminState
       if (mounted) setState(() => _autoApprove = saved);
     } catch (e) {
       if (mounted) {
-        setState(() => _autoApprove = !newValue); // rollback
+        setState(() => _autoApprove = !newValue);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to update auto-approve setting'),
@@ -188,7 +183,6 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// Rules Section
 class _RulesSection extends StatelessWidget {
   final List<AiRuleModel> rules;
   final bool isLoading;
@@ -215,26 +209,21 @@ class _RulesSection extends StatelessWidget {
     if (rules.isEmpty) {
       return const Padding(
         padding: EdgeInsets.only(top: 40),
-        child: Center(
-          child: Text('No AI rules found.', style: TextStyle(color: Colors.black45, fontSize: 16)),
-        ),
+        child: Center(child: Text('No AI rules found.', style: TextStyle(color: Colors.black45, fontSize: 16))),
       );
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: rules
-          .map(
-            (rule) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: RuleCard(
-                rule: rule,
-                onApprove: () => onApprove(rule.id),
-                onReject: () => onReject(rule.id),
-                onToggle: () => onToggle(rule.id),
-              ),
-            ),
-          )
+          .map((rule) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: RuleCard(
+                  rule: rule,
+                  onApprove: () => onApprove(rule.id),
+                  onReject: () => onReject(rule.id),
+                  onToggle: () => onToggle(rule.id),
+                ),
+              ))
           .toList(),
     );
   }
