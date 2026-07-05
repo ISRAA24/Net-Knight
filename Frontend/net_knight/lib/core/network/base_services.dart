@@ -11,8 +11,6 @@ class BaseService {
   static const _storage = FlutterSecureStorage();
   static const String previewBaseUrl = 'http://100.92.143.50:5000/api';
 
-  // بنخزّن الـ base URL الفعلي (سواء الديفولت أو الجاي من config.json على الويب)
-  // عشان الـ Socket.IO يستخدم نفس الـ host بالظبط بدل ما يبقى مكتوب مرتين.
   static String _resolvedBaseUrl = 'http://100.97.136.8:3003/api';
 
   // ─── Init ─────────────────────────────────────────────
@@ -61,8 +59,6 @@ class BaseService {
     return _dioInstance!;
   }
 
-  /// Socket.IO بيشتغل على root السيرفر (server.js) مش تحت /api،
-  /// فبنشيل الـ '/api' من نهاية الـ base URL المستخدم فعليًا.
   static String get socketUrl {
     var url = _resolvedBaseUrl;
     if (url.endsWith('/api')) {
