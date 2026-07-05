@@ -55,4 +55,29 @@ class AiRuleService {
       return false;
     }
   }
+
+  // ⚠️ FIX: مكنش فيه أي method بينادي على /ai/settings/auto-approve خالص.
+  // الزرار في الشاشة كان بيغيّر متغير محلي بس من غير ما يوصل للباك أبدًا.
+  Future<bool> getAutoApprove() async {
+    try {
+      final response = await BaseService.dio.get('/ai/settings/auto-approve');
+      return response.data['autoApprove'] ?? false;
+    } catch (e) {
+      print('Error fetching auto-approve status: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setAutoApprove(bool value) async {
+    try {
+      final response = await BaseService.dio.put(
+        '/ai/settings/auto-approve',
+        data: {'autoApprove': value},
+      );
+      return response.data['autoApprove'] ?? value;
+    } catch (e) {
+      print('Error setting auto-approve: $e');
+      rethrow;
+    }
+  }
 }

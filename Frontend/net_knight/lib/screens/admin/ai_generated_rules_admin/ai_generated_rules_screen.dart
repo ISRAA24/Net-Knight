@@ -24,11 +24,13 @@ class _AiGeneratedRulesScreenAdminState
   List<AiRuleModel> _rules = [];
   bool _isLoading = true;
   bool _autoApprove = false;
+  bool _autoApproveLoading = false;
 
   @override
   void initState() {
     super.initState();
     _loadRules();
+    _loadAutoApprove();
   }
 
   Future<void> _loadRules() async {
@@ -40,6 +42,13 @@ class _AiGeneratedRulesScreenAdminState
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // ⚠️ FIX: القيمة الحقيقية بتاعة auto-approve كانت مش بتتحمل من الباك
+  // خالص، فكانت دايمًا بتفضل false مهما كانت القيمة الفعلية في الداتابيز.
+  Future<void> _loadAutoApprove() async {
+    final value = await _service.getAutoApprove();
+    if (mounted) setState(() => _autoApprove = value);
   }
 
   Future<void> _approveRule(String id) async {
@@ -57,8 +66,32 @@ class _AiGeneratedRulesScreenAdminState
     if (success) _loadRules();
   }
 
-  void _toggleAutoApprove() {
-    setState(() => _autoApprove = !_autoApprove);
+  // ⚠️ FIX: كانت الدالة دي بس بتعمل setState محلي من غير أي نداء للباك.
+  // دلوقتي بتنادي PUT /ai/settings/auto-approve فعليًا، ولو فشلت بترجع
+  // القيمة القديمة تاني.
+  Future<void> _toggleAutoApprove() async {
+    if (_autoApproveLoading) return;
+    final newValue = !_autoApprove;
+    setState(() {
+      _autoApprove = newValue;
+      _autoApproveLoading = true;
+    });
+    try {
+      final saved = await _service.setAutoApprove(newValue);
+      if (mounted) setState(() => _autoApprove = saved);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _autoApprove = !newValue); // rollback
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update auto-approve setting'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _autoApproveLoading = false);
+    }
   }
 
   @override
@@ -177,6 +210,15 @@ class _RulesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (rules.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 40),
+        child: Center(
+          child: Text('No AI rules found.', style: TextStyle(color: Colors.black45, fontSize: 16)),
+        ),
+      );
     }
 
     return Column(
