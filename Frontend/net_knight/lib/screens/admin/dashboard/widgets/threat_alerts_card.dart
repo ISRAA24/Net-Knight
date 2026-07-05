@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:net_knight/screens/admin/dashboard/models/stat_model.dart';
 import '../../../../core/theme/nk_colors.dart';
 import '../../../../core/theme/nk_text_styles.dart';
-import '../models/threat_data.dart';
 
 class ThreatAlertsCard extends StatelessWidget {
-  const ThreatAlertsCard({super.key});
-
-  static const _threats = [
-    ThreatData(
-        ip: '185.220.101.42',
-        type: 'DDoS',
-        level: 'Critical',
-        confidence: '98%',
-        time: '22:08:53'),
-    ThreatData(
-        ip: '103.21.244.0',
-        type: 'Port Scan',
-        level: 'High',
-        confidence: '94%',
-        time: '22:09:11'),
-  ];
+  final List<ThreatData> threats;
+  const ThreatAlertsCard({super.key, required this.threats, required Future<Object?> Function() onViewAll});
 
   @override
   Widget build(BuildContext context) {
@@ -38,26 +24,18 @@ class ThreatAlertsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Threat Alerts', style: NKTextStyles.heading),
-              const Text('view all',
-                  style: TextStyle(
-                      color: NKColors.blue,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
+              const Text('view all', style: TextStyle(color: NKColors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 4),
-          const Text('16 active threats',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold)),
+          Text('${threats.length} active threats', style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           SizedBox(
             height: 300,
             child: ListView.separated(
-              itemCount: _threats.length,
+              itemCount: threats.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _ThreatItem(data: _threats[i]),
+              itemBuilder: (_, i) => _ThreatItem(data: threats[i]),
             ),
           ),
         ],
@@ -70,8 +48,7 @@ class _ThreatItem extends StatelessWidget {
   final ThreatData data;
   const _ThreatItem({required this.data});
 
-  Color get _levelColor =>
-      data.level == 'Critical' ? NKColors.amber : NKColors.red;
+  Color get _levelColor => data.level == 'Critical' ? NKColors.amber : NKColors.red;
 
   @override
   Widget build(BuildContext context) {
@@ -89,14 +66,8 @@ class _ThreatItem extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(data.level,
-                    style: TextStyle(
-                        color: _levelColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
-                Text(data.time,
-                    style: GoogleFonts.jetBrainsMono(
-                        color: const Color(0xFFF2F5F8), fontSize: 11)),
+                Text(data.level, style: TextStyle(color: _levelColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(data.time, style: GoogleFonts.jetBrainsMono(color: const Color(0xFFF2F5F8), fontSize: 11)),
               ],
             ),
           ),
@@ -105,12 +76,8 @@ class _ThreatItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(data.ip,
-                    style: GoogleFonts.jetBrainsMono(
-                        fontSize: 14, color: Colors.white)),
-                Text(data.type,
-                    style: const TextStyle(
-                        color: Color(0xFFF2F5F8), fontSize: 12)),
+                Text(data.ip, style: GoogleFonts.jetBrainsMono(fontSize: 14, color: Colors.white)),
+                Text(data.type, style: const TextStyle(color: Color(0xFFF2F5F8), fontSize: 12)),
               ],
             ),
           ),
@@ -121,13 +88,10 @@ class _ThreatItem extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('confidence: ${data.confidence}',
-                    style: GoogleFonts.jetBrainsMono(
-                        color: const Color(0xFFCFD6E0), fontSize: 11)),
+                Text('confidence: ${data.confidence}', style: GoogleFonts.jetBrainsMono(color: const Color(0xFFCFD6E0), fontSize: 11)),
                 GestureDetector(
                   onTap: () {},
-                  child: const Text('Block',
-                      style: TextStyle(color: Color(0xFFD5DADF), fontSize: 13)),
+                  child: const Text('Block', style: TextStyle(color: Color(0xFFD5DADF), fontSize: 13)),
                 ),
               ],
             ),

@@ -17,11 +17,10 @@ class TopBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Statistics',
-              style: NKTextStyles.heading.copyWith(fontSize: 22)),
+          Text('Statistics', style: NKTextStyles.heading.copyWith(fontSize: 22)),
           IconButton(
-            onPressed: () {},
-            icon: const Icon(LucideIcons.bell, size: 20, color: Colors.black),
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+            icon: const Icon(LucideIcons.bell, size: 22),
           ),
         ],
       ),

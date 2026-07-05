@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/main.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/nk_colors.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/user_model.dart';
@@ -79,11 +81,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         initialName: user.name,
         initialEmail: user.email,
         initialRole: user.role,
-        initialPassword: user.password, 
+        initialPassword: user.password,
         onSave: (name, email, password, role) async {
           await _service.editUser(
             user.id,
-            user.copyWith(name: name, email: email, role: role, password: password),
+            user.copyWith(
+              name: name,
+              email: email,
+              role: role,
+              password: password,
+            ),
           );
           await _loadUsers();
           if (mounted) {
@@ -137,7 +144,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  bool _canEdit(UserModel user) => true; 
+  bool _canEdit(UserModel user) => true;
   bool _canDelete(UserModel user) =>
       user.role != 'super_admin' && user.role != 'Super Admin';
 
@@ -164,14 +171,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     child: _isLoading
                         ? const Center(
                             child: CircularProgressIndicator(
-                                color: Color(0xFF0077C0)),
+                              color: Color(0xFF0077C0),
+                            ),
                           )
                         : Stack(
                             children: [
                               _users.isEmpty
-                                  ? const Center(
-                                      child: Text('No users found'),
-                                    )
+                                  ? const Center(child: Text('No users found'))
                                   : ListView.builder(
                                       itemCount: _users.length,
                                       itemBuilder: (_, i) => UserCard(
@@ -180,7 +186,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                         onEdit: _canEdit(_users[i])
                                             ? () => _openEditDialog(_users[i])
                                             : null,
-                                        
+
                                         onDelete: _canDelete(_users[i])
                                             ? () => _deleteUser(_users[i])
                                             : null,
@@ -192,8 +198,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                 child: FloatingActionButton(
                                   onPressed: _openAddDialog,
                                   backgroundColor: const Color(0xFF3B82F6),
-                                  child: const Icon(Icons.add,
-                                      color: Colors.white, size: 30),
+                                  child: const Icon(
+                                    Icons.add,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
                                 ),
                               ),
                             ],
@@ -217,24 +226,43 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1D242B),
-                  )),
-              const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
+              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell, size: 22),
+                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Colors.black12, height: 1),
+          const Divider(height: 1),
         ],
       ),
     );

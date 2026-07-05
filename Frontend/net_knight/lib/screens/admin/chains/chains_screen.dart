@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/main.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/nk_colors.dart';
 import '../../../../core/models/table_entry.dart';
 import '../../../../core/widgets/command_preview.dart';
@@ -187,9 +189,11 @@ class _ChainsScreenState extends State<ChainsScreen> {
                             onTableChanged: (val) => setState(() {
                               _selectedTableName = val;
                               _selectedTableFamily = _tables
-                                  .firstWhere((e) => e.name == val,
-                                      orElse: () =>
-                                          TableEntry(name: val, family: 'ip'))
+                                  .firstWhere(
+                                    (e) => e.name == val,
+                                    orElse: () =>
+                                        TableEntry(name: val, family: 'ip'),
+                                  )
                                   .family;
                               _onChanged();
                             }),
@@ -207,14 +211,14 @@ class _ChainsScreenState extends State<ChainsScreen> {
                             }),
                             onPriorityUp: () => setState(() {
                               _priorityValue++;
-                              _priorityController.text =
-                                  _priorityValue.toString();
+                              _priorityController.text = _priorityValue
+                                  .toString();
                               _onChanged();
                             }),
                             onPriorityDown: () => setState(() {
                               if (_priorityValue > 0) _priorityValue--;
-                              _priorityController.text =
-                                  _priorityValue.toString();
+                              _priorityController.text = _priorityValue
+                                  .toString();
                               _onChanged();
                             }),
                             onChanged: _onChanged,
@@ -257,24 +261,43 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1D242B),
-                  )),
-              const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
+              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell, size: 22),
+                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xff1d242b), height: 1),
+          const Divider(height: 1),
         ],
       ),
     );
@@ -308,7 +331,9 @@ class _AddButton extends StatelessWidget {
             ? const Padding(
                 padding: EdgeInsets.all(16),
                 child: CircularProgressIndicator(
-                    color: Color(0xfffafafa), strokeWidth: 2),
+                  color: Color(0xfffafafa),
+                  strokeWidth: 2,
+                ),
               )
             : const Icon(Icons.add, color: Color(0xfffafafa), size: 28),
       ),

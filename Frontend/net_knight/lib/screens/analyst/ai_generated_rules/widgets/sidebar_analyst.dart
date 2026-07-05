@@ -48,7 +48,6 @@ class SidebarAnalyst extends StatelessWidget {
           ),
           const Divider(color: Colors.white12),
 
-          // Nav items — خاصة بالـ Analyst بس
           Expanded(
             child: ListView(
               children: [
@@ -67,8 +66,8 @@ class SidebarAnalyst extends StatelessWidget {
                 ),
                 _NavItemAnalyst(
                   icon: LucideIcons.list,
-                  label: 'Rules Management',
-                  route: '/rules-management',
+                  label: 'Rules Center',
+                  route: '/rules-center',
                   activeRoute: activeRoute,
                 ),
                 _NavSectionAnalyst('ADMINISTRATION'),
@@ -132,18 +131,8 @@ class _NavItemAnalyst extends StatelessWidget {
     final isActive = activeRoute == route;
     final color = isActive ? Colors.white : const Color(0xFFB7A7A7);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: isActive ? NKColors.primary : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        color:
-            isActive ? NKColors.primary.withOpacity(0.1) : Colors.transparent,
-      ),
+    return Material(  
+      color: isActive ? NKColors.primary.withOpacity(0.1) : Colors.transparent,
       child: ListTile(
         leading: Icon(icon, size: 18, color: color),
         title: Text(

@@ -1,13 +1,14 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/nk_colors.dart';
-import '../dashboard/widgets/sidebar.dart';
-import 'models/rule_model.dart';
+import 'package:net_knight/main.dart';
+import 'package:net_knight/screens/admin/dashboard/widgets/sidebar.dart';
+import 'package:provider/provider.dart';
+
+import 'models/rule_management_model.dart';
 import 'services/rule_management_service.dart';
 import 'widgets/rule_table.dart';
-import 'widgets/search_bar.dart';
+import 'widgets/nat_table.dart';
 
 class RuleManagementScreen extends StatefulWidget {
   const RuleManagementScreen({super.key});
@@ -17,44 +18,75 @@ class RuleManagementScreen extends StatefulWidget {
 }
 
 class _RuleManagementScreenState extends State<RuleManagementScreen> {
-  final _searchController = TextEditingController();
-  final _service = RuleManagementService();
+  final _service = RuleService();
+  RuleView _activeView = RuleView.firewall;
 
+  List<RuleModel> _rules = [];
+  List<NatRuleModel> _natRules = [];
+
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  List<RuleModel> _staticRules = [];
-  bool _isLoading = true;
+
+  final TextEditingController _natSearchController = TextEditingController();
+  String _natSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadRules();
+    _loadData();
   }
 
-  Future<void> _loadRules() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData() async {
     try {
-      final data = await _service.getAllRules();
-      if (mounted) {
-        setState(() {
-          _staticRules = data['staticRules'];
-          _isLoading = false;
-        });
-      }
-    } on DioException catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      _rules = await _service.getAllRules();
+      _natRules = await _service.getNatRules();
+    } catch (e) {
+      print('Error loading rules: $e');
     }
   }
 
-  List<RuleModel> get _filtered {
-    if (_searchQuery.isEmpty) return _staticRules;
+  List<RuleModel> get _filteredRules {
+    if (_searchQuery.isEmpty) return _rules;
     final q = _searchQuery.toLowerCase();
-    return _staticRules
-        .where((r) =>
-            r.sourceIp.toLowerCase().contains(q) ||
-            r.destIp.toLowerCase().contains(q) ||
-            r.action.toLowerCase().contains(q) ||
-            r.protocol.toLowerCase().contains(q))
+    return _rules
+        .where(
+          (r) =>
+              r.sourceIp.toLowerCase().contains(q) ||
+              r.destination.toLowerCase().contains(q) ||
+              r.action.toLowerCase().contains(q),
+        )
         .toList();
+  }
+
+  List<NatRuleModel> get _natFilteredRules {
+    if (_natSearchQuery.isEmpty) return _natRules;
+    final q = _natSearchQuery.toLowerCase();
+    return _natRules
+        .where(
+          (r) =>
+              r.sourceIp.toLowerCase().contains(q) ||
+              r.destIp.toLowerCase().contains(q) ||
+              r.natType.toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  Future<void> _toggleRule(int priority, bool enabled) async {
+    final success = await _service.toggleRule(priority, enabled);
+    if (success) _loadData();
+  }
+
+  Future<void> _deleteRule(int priority) async {
+    final success = await _service.deleteRule(priority);
+    if (success) _loadData();
+  }
+
+  Future<void> _toggleNatRule(int id, bool enabled) async {
+    _loadData();
+  }
+
+  Future<void> _deleteNatRule(int id) async {
+    _loadData();
   }
 
   @override
@@ -68,36 +100,36 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _TopBar(title: 'Rule Management'),
+                const _TopBar(title: 'Rules Center'),
                 Expanded(
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                              color: NKColors.blue),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RuleSearchBar(
-                                controller: _searchController,
-                                onChanged: (q) =>
-                                    setState(() => _searchQuery = q),
-                                totalRules: _staticRules.length,
-                              ),
-                              const SizedBox(height: 20),
-                              RuleTable(
-                                rules: _filtered,
-                                onToggle: (id) => _service.toggleRule(id),
-                                onDelete: (id) async {
-                                  await _service.deleteRule(id);
-                                  _loadRules();
-                                },
-                              ),
-                            ],
-                          ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ViewSelector(
+                          active: _activeView,
+                          onChanged: (v) => setState(() => _activeView = v),
                         ),
+                        const SizedBox(height: 16),
+                        _buildSearchBar(),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: _activeView == RuleView.firewall
+                              ? RuleTable(
+                                  rules: _filteredRules,
+                                  onToggle: _toggleRule,
+                                  onDelete: _deleteRule,
+                                )
+                              : NatTable(
+                                  natRules: _natFilteredRules,
+                                  onToggle: _toggleNatRule,
+                                  onDelete: _deleteNatRule,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -106,9 +138,120 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
       ),
     );
   }
+
+  Widget _buildSearchBar() {
+    final isFirewall = _activeView == RuleView.firewall;
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 36,
+            child: TextField(
+              controller: isFirewall ? _searchController : _natSearchController,
+              onChanged: (v) => setState(() {
+                if (isFirewall)
+                  _searchQuery = v;
+                else
+                  _natSearchQuery = v;
+              }),
+              decoration: InputDecoration(
+                hintText: isFirewall
+                    ? 'Search rules...'
+                    : 'Search NAT rules...',
+                prefixIcon: const Icon(LucideIcons.search, size: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-// ─── Top Bar ──────────────────────────────────────────────
+// View Selector
+class _ViewSelector extends StatelessWidget {
+  final RuleView active;
+  final ValueChanged<RuleView> onChanged;
+
+  const _ViewSelector({required this.active, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _RadioOption(
+          label: 'Firewall Rules',
+          selected: active == RuleView.firewall,
+          onTap: () => onChanged(RuleView.firewall),
+        ),
+        const SizedBox(width: 28),
+        _RadioOption(
+          label: 'NAT Rules',
+          selected: active == RuleView.nat,
+          onTap: () => onChanged(RuleView.nat),
+        ),
+      ],
+    );
+  }
+}
+
+class _RadioOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RadioOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? Colors.blue : Colors.black45,
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? const Center(
+                      child: CircleAvatar(
+                        radius: 4,
+                        backgroundColor: Colors.blue,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.black : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _TopBar extends StatelessWidget {
   final String title;
@@ -116,6 +259,8 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Column(
@@ -123,20 +268,34 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.rajdhani(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w500,
-                  color: NKColors.onSurface,
-                ),
+              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell, size: 22),
+                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const Icon(LucideIcons.bell,
-                  size: 22, color: NKColors.onSurface),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Colors.black12, height: 1),
+          const Divider(height: 1),
         ],
       ),
     );

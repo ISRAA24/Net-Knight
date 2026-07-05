@@ -77,7 +77,6 @@ class _AiGeneratedRulesScreenAnalystState
       backgroundColor: Colors.white,
       body: Row(
         children: [
-          // Sidebar خاص بالـ Analyst
           SidebarAnalyst(
             activeRoute: '/ai-rules',
             username: _username,
@@ -109,13 +108,12 @@ class _AiGeneratedRulesScreenAnalystState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!,
-                style: const TextStyle(color: Colors.red, fontSize: 16)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadRules,
-              child: const Text('Retry'),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadRules, child: const Text('Retry')),
           ],
         ),
       );
@@ -187,8 +185,8 @@ class _AiGeneratedRulesScreenAnalystState
 
 // ─── Top Bar ──────────────────────────────────────────────────
 class _TopBarAnalyst extends StatelessWidget {
-  const _TopBarAnalyst({required this.title});
   final String title;
+  const _TopBarAnalyst({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -207,8 +205,10 @@ class _TopBarAnalyst extends StatelessWidget {
                   color: const Color(0xFF1D242B),
                 ),
               ),
-              const Icon(LucideIcons.bell,
-                  size: 22, color: Color(0xFF1D242B)),
+              IconButton(
+                icon: const Icon(LucideIcons.bell, size: 22),
+                onPressed: () => Navigator.pushNamed(context, '/notifications'),
+              ),
             ],
           ),
           const SizedBox(height: 12),

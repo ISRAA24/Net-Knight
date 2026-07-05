@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:net_knight/main.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/nk_colors.dart';
 import '../../../../core/widgets/command_preview.dart';
 import '../dashboard/widgets/sidebar.dart';
@@ -107,7 +109,9 @@ class _TablesScreenState extends State<TablesScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text(message), backgroundColor: const Color(0xffef4444)),
+        content: Text(message),
+        backgroundColor: const Color(0xffef4444),
+      ),
     );
   }
 
@@ -173,24 +177,43 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1D242B),
-                  )),
-              const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
+              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell, size: 22),
+                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Color(0xff1d242b), height: 1),
+          const Divider(height: 1),
         ],
       ),
     );
@@ -224,7 +247,9 @@ class _AddButton extends StatelessWidget {
             ? const Padding(
                 padding: EdgeInsets.all(16),
                 child: CircularProgressIndicator(
-                    color: Color(0xfffafafa), strokeWidth: 2),
+                  color: Color(0xfffafafa),
+                  strokeWidth: 2,
+                ),
               )
             : const Icon(Icons.add, color: Color(0xfffafafa), size: 28),
       ),

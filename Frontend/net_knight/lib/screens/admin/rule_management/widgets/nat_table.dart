@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../models/rule_management_model.dart';
+import 'package:net_knight/screens/admin/rule_management/models/rule_management_model.dart';
 
-class RuleTable extends StatelessWidget {
-  final List<RuleModel> rules;
+class NatTable extends StatelessWidget {
+  final List<NatRuleModel> natRules;
   final Function(int, bool) onToggle;
   final Function(int) onDelete;
 
-  const RuleTable({super.key, required this.rules, required this.onToggle, required this.onDelete});
+  const NatTable({super.key, required this.natRules, required this.onToggle, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -25,28 +25,27 @@ class RuleTable extends StatelessWidget {
               child: const Row(
                 children: [
                   _TH('Status', flex: 2),
-                  _TH('Priority', flex: 2),
                   _TH('Source IP', flex: 3),
-                  _TH('Destination', flex: 3),
-                  _TH('Port', flex: 2),
-                  _TH('Protocol', flex: 2),
-                  _TH('Action', flex: 2),
+                  _TH('Interface', flex: 2),
+                  _TH('Dest IP', flex: 3),
+                  _TH('Ext Port', flex: 2),
+                  _TH('Int Port', flex: 2),
+                  _TH('NAT Type', flex: 2),
                   _TH('Created', flex: 2),
-                  _TH('Origin', flex: 2),
                   _TH('Actions', flex: 2),
                 ],
               ),
             ),
             const Divider(height: 1, color: Colors.black),
             Expanded(
-              child: rules.isEmpty
-                  ? const Center(child: Text('No rules found'))
+              child: natRules.isEmpty
+                  ? const Center(child: Text('No NAT rules found'))
                   : ListView.separated(
-                      itemCount: rules.length,
+                      itemCount: natRules.length,
                       separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
                       itemBuilder: (_, i) {
-                        final rule = rules[i];
-                        return _RuleRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
+                        final rule = natRules[i];
+                        return _NatRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
                       },
                     ),
             ),
@@ -57,12 +56,12 @@ class RuleTable extends StatelessWidget {
   }
 }
 
-class _RuleRow extends StatelessWidget {
-  final RuleModel rule;
+class _NatRow extends StatelessWidget {
+  final NatRuleModel rule;
   final Function(int, bool) onToggle;
   final Function(int) onDelete;
 
-  const _RuleRow({required this.rule, required this.onToggle, required this.onDelete});
+  const _NatRow({required this.rule, required this.onToggle, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -72,33 +71,31 @@ class _RuleRow extends StatelessWidget {
         children: [
           _TDWidget(
             flex: 2,
-            child: Center(child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(rule.priority, v))),
+            child: Center(child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(0, v))),
           ),
-          _VD(),
-          _TD(rule.priority.toString(), flex: 2),
           _VD(),
           _TD(rule.sourceIp, flex: 3),
           _VD(),
-          _TD(rule.destination, flex: 3),
+          _TD(rule.interfaceName, flex: 2),
           _VD(),
-          _TD(rule.port, flex: 2),
+          _TD(rule.destIp, flex: 3),
           _VD(),
-          _TD(rule.protocol, flex: 2),
+          _TD(rule.extPort, flex: 2),
+          _VD(),
+          _TD(rule.intPort, flex: 2),
           _VD(),
           _TDWidget(
             flex: 2,
-            child: Text(rule.action, style: TextStyle(color: _actionColor(rule.action), fontWeight: FontWeight.bold)),
+            child: Text(rule.natType, style: TextStyle(color: _natTypeColor(rule.natType), fontWeight: FontWeight.bold)),
           ),
           _VD(),
           _TD(rule.created, flex: 2),
-          _VD(),
-          _TD(rule.origin, flex: 2),
           _VD(),
           _TDWidget(
             flex: 2,
             child: IconButton(
               icon: const Icon(LucideIcons.trash2, size: 16),
-              onPressed: () => onDelete(rule.priority),
+              onPressed: () => onDelete(0),
             ),
           ),
         ],
@@ -106,10 +103,10 @@ class _RuleRow extends StatelessWidget {
     );
   }
 
-  Color _actionColor(String action) {
-    if (action == 'Drop') return Colors.red;
-    if (action == 'Accept') return Colors.green;
-    return Colors.blue;
+  Color _natTypeColor(String type) {
+    if (type == 'Masquerade') return Colors.green;
+    if (type == 'Source NAT') return Colors.blue;
+    return Colors.orange;
   }
 }
 

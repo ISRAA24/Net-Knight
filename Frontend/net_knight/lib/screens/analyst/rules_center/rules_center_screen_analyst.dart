@@ -67,10 +67,12 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
         _service.getNatRules(),
       ]);
       if (mounted) {
-        setState(() => _data = RulesCenterDataAnalyst(
-              firewallRules: results[0] as List<FirewallRuleModelAnalyst>,
-              natRules: results[1] as List<NatRuleModelAnalyst>,
-            ));
+        setState(
+          () => _data = RulesCenterDataAnalyst(
+            firewallRules: results[0] as List<FirewallRuleModelAnalyst>,
+            natRules: results[1] as List<NatRuleModelAnalyst>,
+          ),
+        );
       }
     } catch (_) {
       if (mounted) setState(() => _error = 'Failed to load rules');
@@ -85,12 +87,14 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
     if (_searchQuery.isEmpty) return rules;
     final q = _searchQuery.toLowerCase();
     return rules
-        .where((r) =>
-            r.sourceIp.toLowerCase().contains(q) ||
-            r.destination.toLowerCase().contains(q) ||
-            r.action.toLowerCase().contains(q) ||
-            r.protocol.toLowerCase().contains(q) ||
-            r.origin.toLowerCase().contains(q))
+        .where(
+          (r) =>
+              r.sourceIp.toLowerCase().contains(q) ||
+              r.destination.toLowerCase().contains(q) ||
+              r.action.toLowerCase().contains(q) ||
+              r.protocol.toLowerCase().contains(q) ||
+              r.origin.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -99,11 +103,13 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
     if (_natSearchQuery.isEmpty) return rules;
     final q = _natSearchQuery.toLowerCase();
     return rules
-        .where((r) =>
-            r.sourceIp.toLowerCase().contains(q) ||
-            r.destIp.toLowerCase().contains(q) ||
-            r.interfaceName.toLowerCase().contains(q) ||
-            r.natType.toLowerCase().contains(q))
+        .where(
+          (r) =>
+              r.sourceIp.toLowerCase().contains(q) ||
+              r.destIp.toLowerCase().contains(q) ||
+              r.interfaceName.toLowerCase().contains(q) ||
+              r.natType.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -116,7 +122,7 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
       body: Row(
         children: [
           SidebarAnalyst(
-            activeRoute: '/rules-management',
+            activeRoute: '/rules-center',
             username: _username,
             role: _role,
             initials: _initials,
@@ -132,121 +138,128 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : _error != null
-                            ? _ErrorView(
-                                message: _error!, onRetry: _loadData)
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // View selector
-                                  ViewSelectorAnalyst(
-                                    active: _activeView,
-                                    onChanged: (v) =>
-                                        setState(() => _activeView = v),
-                                  ),
-                                  const SizedBox(height: 16),
+                        ? _ErrorView(message: _error!, onRetry: _loadData)
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // View selector
+                              ViewSelectorAnalyst(
+                                active: _activeView,
+                                onChanged: (v) =>
+                                    setState(() => _activeView = v),
+                              ),
+                              const SizedBox(height: 16),
 
-                                  // Search bar + count badge
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: SizedBox(
-                                          height: 36,
-                                          child: TextField(
-                                            controller: isFirewall
-                                                ? _searchController
-                                                : _natSearchController,
-                                            onChanged: (v) => setState(() {
-                                              if (isFirewall) {
-                                                _searchQuery = v;
-                                              } else {
-                                                _natSearchQuery = v;
-                                              }
-                                            }),
-                                            style: const TextStyle(fontSize: 13),
-                                            decoration: InputDecoration(
-                                              hintText: isFirewall
-                                                  ? 'Search rules by name, IP, or action...'
-                                                  : 'Search by IP, protocol, action...',
-                                              hintStyle: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12,
-                                              ),
-                                              prefixIcon: const Icon(
-                                                LucideIcons.search,
-                                                size: 15,
-                                                color: Colors.black54,
-                                              ),
-                                              contentPadding: EdgeInsets.zero,
-                                              border: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(18),
-                                                borderSide: const BorderSide(
-                                                    color: Colors.black),
-                                              ),
-                                              enabledBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(18),
-                                                borderSide: const BorderSide(
-                                                    color: Colors.black),
-                                              ),
-                                              focusedBorder: OutlineInputBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(18),
-                                                borderSide: const BorderSide(
-                                                  color: Color(0xFF3B82F6),
-                                                  width: 1.5,
-                                                ),
-                                              ),
+                              // Search bar + count badge
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 36,
+                                      child: TextField(
+                                        controller: isFirewall
+                                            ? _searchController
+                                            : _natSearchController,
+                                        onChanged: (v) => setState(() {
+                                          if (isFirewall) {
+                                            _searchQuery = v;
+                                          } else {
+                                            _natSearchQuery = v;
+                                          }
+                                        }),
+                                        style: const TextStyle(fontSize: 13),
+                                        decoration: InputDecoration(
+                                          hintText: isFirewall
+                                              ? 'Search rules by name, IP, or action...'
+                                              : 'Search by IP, protocol, action...',
+                                          hintStyle: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
+                                          ),
+                                          prefixIcon: const Icon(
+                                            LucideIcons.search,
+                                            size: 15,
+                                            color: Colors.black54,
+                                          ),
+                                          contentPadding: EdgeInsets.zero,
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            borderSide: const BorderSide(
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            borderSide: const BorderSide(
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFF3B82F6),
+                                              width: 1.5,
                                             ),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Container(
-                                        height: 36,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 14),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF2965C5),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.filter_alt,
-                                                size: 15, color: Colors.white),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              isFirewall
-                                                  ? '${_data?.firewallRules.length ?? 0} Rules'
-                                                  : '${_data?.natRules.length ?? 0} NAT Rules',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 20),
-
-                                  // Table
-                                  if (isFirewall)
-                                    Expanded(
-                                      child: FirewallTableAnalyst(
-                                          rows: _filteredFirewall),
-                                    )
-                                  else
-                                    SingleChildScrollView(
-                                      child: NatTableAnalyst(
-                                          rows: _filteredNat),
                                     ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    height: 36,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2965C5),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.filter_alt,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          isFirewall
+                                              ? '${_data?.firewallRules.length ?? 0} Rules'
+                                              : '${_data?.natRules.length ?? 0} NAT Rules',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
+                              const SizedBox(height: 20),
+
+                              // Table
+                              if (isFirewall)
+                                Expanded(
+                                  child: FirewallTableAnalyst(
+                                    rows: _filteredFirewall,
+                                  ),
+                                )
+                              else
+                                SingleChildScrollView(
+                                  child: NatTableAnalyst(rows: _filteredNat),
+                                ),
+                            ],
+                          ),
                   ),
                 ),
               ],
@@ -260,8 +273,8 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
 
 // ─── Top Bar ──────────────────────────────────────────────────
 class _TopBarAnalyst extends StatelessWidget {
-  const _TopBarAnalyst({required this.title});
   final String title;
+  const _TopBarAnalyst({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -280,8 +293,10 @@ class _TopBarAnalyst extends StatelessWidget {
                   color: const Color(0xFF1D242B),
                 ),
               ),
-              const Icon(LucideIcons.bell,
-                  size: 22, color: Color(0xFF1D242B)),
+              IconButton(
+                icon: const Icon(LucideIcons.bell, size: 22),
+                onPressed: () => Navigator.pushNamed(context, '/notifications'),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -304,8 +319,10 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(message,
-              style: const TextStyle(color: Colors.red, fontSize: 16)),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+          ),
           const SizedBox(height: 16),
           ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
         ],

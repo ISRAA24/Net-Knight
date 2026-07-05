@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:net_knight/main.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/nk_colors.dart';
 import '../dashboard/widgets/sidebar.dart';
 import 'models/interface_model.dart';
@@ -56,12 +58,14 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
     _filtered = q.isEmpty
         ? List.of(_all)
         : _all
-            .where((i) =>
-                i.logicalName.toLowerCase().contains(q) ||
-                i.realName.toLowerCase().contains(q) ||
-                i.ip.toLowerCase().contains(q) ||
-                i.status.toLowerCase().contains(q))
-            .toList();
+              .where(
+                (i) =>
+                    i.logicalName.toLowerCase().contains(q) ||
+                    i.realName.toLowerCase().contains(q) ||
+                    i.ip.toLowerCase().contains(q) ||
+                    i.status.toLowerCase().contains(q),
+              )
+              .toList();
   }
 
   // ─── Edit ─────────────────────────────────────────
@@ -76,7 +80,9 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
   }
 
   Future<void> _editInterface(
-      InterfaceModel old, InterfaceModel updated) async {
+    InterfaceModel old,
+    InterfaceModel updated,
+  ) async {
     try {
       await _service.editInterface(old.realName, updated);
       await _loadInterfaces();
@@ -119,7 +125,8 @@ class _InterfacesScreenState extends State<InterfacesScreen> {
                         _isLoading
                             ? const Center(
                                 child: CircularProgressIndicator(
-                                    color: Color(0xFF0077C0)),
+                                  color: Color(0xFF0077C0),
+                                ),
                               )
                             : InterfacesTable(
                                 interfaces: _filtered,
@@ -146,24 +153,43 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1D242B),
-                  )),
-              const Icon(LucideIcons.bell, size: 22, color: Color(0xFF1D242B)),
+              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.bell, size: 22),
+                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                  ),
+                  if (unread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(color: Colors.black12, height: 1),
+          const Divider(height: 1),
         ],
       ),
     );

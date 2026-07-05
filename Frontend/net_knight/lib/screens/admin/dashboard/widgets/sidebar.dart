@@ -27,7 +27,7 @@ class Sidebar extends StatelessWidget {
                     route: '/dashboard',
                     isActive: currentRoute == '/dashboard'),
                 _NavItem(LucideIcons.cpu, 'AI Generated Rules',
-                    route: '/ai-rules', isActive: currentRoute == '/ai-rules'),
+                    route: '/ai-rules-admin', isActive: currentRoute == '/ai-rules-admin'),
                 _NavItem(LucideIcons.list, 'Rules Management',
                     route: '/rules-management',
                     isActive: currentRoute == '/rules-management'),
@@ -47,7 +47,7 @@ class Sidebar extends StatelessWidget {
                 _NavItem(LucideIcons.users, 'User Management',
                     route: '/users', isActive: currentRoute == '/users'),
                 _NavItem(LucideIcons.file, 'Reports',
-                    route: '/reports', isActive: currentRoute == '/reports'),
+                    route: '/reports-admin', isActive: currentRoute == '/reports-admin'),
               ],
             ),
           ),
@@ -103,8 +103,7 @@ class _NavSection extends StatelessWidget {
 // ── Nav item ─────────────────────────────────────────────────────────────────
 
 class _NavItem extends StatelessWidget {
-  const _NavItem(this.icon, this.label,
-      {required this.route, this.isActive = false});
+  const _NavItem(this.icon, this.label, {required this.route, this.isActive = false});
 
   final IconData icon;
   final String label;
@@ -114,17 +113,9 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isActive ? const Color(0xFFDBDFE6) : const Color(0xFFB7A7A7);
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: isActive ? NKColors.blue : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        color: isActive ? NKColors.blue.withOpacity(0.1) : Colors.transparent,
-      ),
+
+    return Material( 
+      color: isActive ? NKColors.blue.withOpacity(0.1) : Colors.transparent,
       child: ListTile(
         leading: Icon(icon, size: 18, color: color),
         title: Text(

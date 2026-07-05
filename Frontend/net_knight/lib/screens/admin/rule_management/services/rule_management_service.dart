@@ -1,28 +1,53 @@
-import 'package:dio/dio.dart';
 import 'package:net_knight/core/network/base_services.dart';
-import '../models/rule_model.dart';
+import '../models/rule_management_model.dart';
 
-class RuleManagementService {
-  final Dio _dio = BaseService.dio;
-
-  Future<Map<String, dynamic>> getAllRules() async {
-    final response = await _dio.get('/staticfirewall/allRules');
-    final data = response.data['data'];
-    return {
-      'staticRules': (data['staticRules'] as List)
-          .map((e) => RuleModel.fromJson(e))
-          .toList(),
-      'natRules': (data['natRules'] as List)
-          .map((e) => NatRuleModel.fromJson(e))
-          .toList(),
-    };
+class RuleService {
+  Future<List<RuleModel>> getAllRules() async {
+    try {
+      final response = await BaseService.dio.get('/staticfirewall/allRules');
+      if (response.data is List) {
+        return (response.data as List).map((e) => RuleModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching rules: $e');
+      return [];
+    }
   }
 
-  Future<void> toggleRule(String id) async {
-    await _dio.patch('/staticfirewall/rules/$id/toggle');
+  Future<List<NatRuleModel>> getNatRules() async {
+    try {
+      final response = await BaseService.dio.get('/staticfirewall/nat');
+      if (response.data is List) {
+        return (response.data as List).map((e) => NatRuleModel.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching NAT rules: $e');
+      return [];
+    }
   }
 
-  Future<void> deleteRule(String id) async {
-    await _dio.delete('/staticfirewall/rules/$id');
+  Future<bool> toggleRule(int priority, bool enabled) async {
+    try {
+      await BaseService.dio.post('/staticfirewall/toggleRule', data: {
+        'priority': priority,
+        'enabled': enabled,
+      });
+      return true;
+    } catch (e) {
+      print('Error toggling rule: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteRule(int priority) async {
+    try {
+      await BaseService.dio.delete('/staticfirewall/rule/$priority');
+      return true;
+    } catch (e) {
+      print('Error deleting rule: $e');
+      return false;
+    }
   }
 }

@@ -39,18 +39,32 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
       color: const Color(0xFF388BFD),
       label: 'Outbound',
       spots: [
-        FlSpot(0, 78), FlSpot(1, 92), FlSpot(2, 35), FlSpot(3, 42),
-        FlSpot(4, 65), FlSpot(5, 48), FlSpot(6, 25), FlSpot(7, 55),
-        FlSpot(8, 20), FlSpot(9, 12),
+        FlSpot(0, 78),
+        FlSpot(1, 92),
+        FlSpot(2, 35),
+        FlSpot(3, 42),
+        FlSpot(4, 65),
+        FlSpot(5, 48),
+        FlSpot(6, 25),
+        FlSpot(7, 55),
+        FlSpot(8, 20),
+        FlSpot(9, 12),
       ],
     ),
     ChartSeriesAnalyst(
       color: const Color(0xFF56CFE1),
       label: 'Inbound',
       spots: [
-        FlSpot(0, 60), FlSpot(1, 70), FlSpot(2, 28), FlSpot(3, 30),
-        FlSpot(4, 50), FlSpot(5, 40), FlSpot(6, 18), FlSpot(7, 35),
-        FlSpot(8, 15), FlSpot(9, 8),
+        FlSpot(0, 60),
+        FlSpot(1, 70),
+        FlSpot(2, 28),
+        FlSpot(3, 30),
+        FlSpot(4, 50),
+        FlSpot(5, 40),
+        FlSpot(6, 18),
+        FlSpot(7, 35),
+        FlSpot(8, 15),
+        FlSpot(9, 8),
       ],
     ),
   ];
@@ -88,81 +102,97 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
 
   static final _fallbackStats = [
     StatDataAnalyst(
-        label: 'Total Threat',
-        value: '16',
-        trend: '↗ +12%',
-        color: const Color(0xFF3B82F6)),
+      label: 'Total Threat',
+      value: '16',
+      trend: '↗ +12%',
+      color: const Color(0xFF3B82F6),
+    ),
     StatDataAnalyst(
-        label: 'Blocked Attack',
-        value: '10',
-        trend: '↗ +8%',
-        color: const Color(0xFFF59E0B)),
+      label: 'Blocked Attack',
+      value: '10',
+      trend: '↗ +8%',
+      color: const Color(0xFFF59E0B),
+    ),
     StatDataAnalyst(
-        label: 'Active Rules',
-        value: '12',
-        trend: '↗ +3%',
-        color: const Color(0xFF22C55E)),
+      label: 'Active Rules',
+      value: '12',
+      trend: '↗ +3%',
+      color: const Color(0xFF22C55E),
+    ),
     StatDataAnalyst(
-        label: 'Pending Approvals',
-        value: '0',
-        trend: '— 0%',
-        color: Colors.purpleAccent),
+      label: 'Pending Approvals',
+      value: '0',
+      trend: '— 0%',
+      color: Colors.purpleAccent,
+    ),
   ];
 
   static final _fallbackStatuses = [
     StatusDataAnalyst(
-        name: 'firewall engine',
-        status: 'online',
-        color: const Color(0xFF22C55E)),
+      name: 'firewall engine',
+      status: 'online',
+      color: const Color(0xFF22C55E),
+    ),
     StatusDataAnalyst(
-        name: 'AI detection model',
-        status: 'online',
-        color: const Color(0xFF22C55E)),
+      name: 'AI detection model',
+      status: 'online',
+      color: const Color(0xFF22C55E),
+    ),
     StatusDataAnalyst(
-        name: 'RL agent', status: 'Auto', color: const Color(0xFF3B82F6)),
+      name: 'RL agent',
+      status: 'Auto',
+      color: const Color(0xFF3B82F6),
+    ),
     StatusDataAnalyst(
-        name: 'nftables controller',
-        status: 'online',
-        color: const Color(0xFF22C55E)),
+      name: 'nftables controller',
+      status: 'online',
+      color: const Color(0xFF22C55E),
+    ),
   ];
 
   static final _fallbackThreats = [
     ThreatDataAnalyst(
-        ip: '185.220.101.42',
-        type: 'DDoS',
-        level: 'Critical',
-        confidence: '98%',
-        time: '22:08:53'),
+      ip: '185.220.101.42',
+      type: 'DDoS',
+      level: 'Critical',
+      confidence: '98%',
+      time: '22:08:53',
+    ),
     ThreatDataAnalyst(
-        ip: '103.21.244.0',
-        type: 'Port Scan',
-        level: 'High',
-        confidence: '94%',
-        time: '22:09:11'),
+      ip: '103.21.244.0',
+      type: 'Port Scan',
+      level: 'High',
+      confidence: '94%',
+      time: '22:09:11',
+    ),
     ThreatDataAnalyst(
-        ip: '45.33.32.156',
-        type: 'SQL Injection',
-        level: 'Critical',
-        confidence: '91%',
-        time: '22:10:02'),
+      ip: '45.33.32.156',
+      type: 'SQL Injection',
+      level: 'Critical',
+      confidence: '91%',
+      time: '22:10:02',
+    ),
     ThreatDataAnalyst(
-        ip: '77.91.68.21',
-        type: 'XSS Attempt',
-        level: 'High',
-        confidence: '88%',
-        time: '22:11:47'),
+      ip: '77.91.68.21',
+      type: 'XSS Attempt',
+      level: 'High',
+      confidence: '88%',
+      time: '22:11:47',
+    ),
     ThreatDataAnalyst(
-        ip: '198.51.100.23',
-        type: 'Port Scan',
-        level: 'High',
-        confidence: '85%',
-        time: '22:12:30'),
+      ip: '198.51.100.23',
+      type: 'Port Scan',
+      level: 'High',
+      confidence: '85%',
+      time: '22:12:30',
+    ),
     ThreatDataAnalyst(
-        ip: '203.0.113.50',
-        type: 'DDoS',
-        level: 'Critical',
-        confidence: '96%',
-        time: '22:13:15'),
+      ip: '203.0.113.50',
+      type: 'DDoS',
+      level: 'Critical',
+      confidence: '96%',
+      time: '22:13:15',
+    ),
   ];
 
   @override
@@ -200,8 +230,10 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!,
-                style: const TextStyle(color: Colors.red, fontSize: 16)),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
           ],
@@ -260,8 +292,8 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
 
 // ─── Top Bar ──────────────────────────────────────────────────
 class _TopBarAnalyst extends StatelessWidget {
-  const _TopBarAnalyst({required this.title});
   final String title;
+  const _TopBarAnalyst({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -280,17 +312,9 @@ class _TopBarAnalyst extends StatelessWidget {
                   color: const Color(0xFF1D242B),
                 ),
               ),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  // Navigator.push(context, MaterialPageRoute(
-                  //   builder: (_) => const NotificationsScreenAnalyst()));
-                },
-                child: const Icon(
-                  LucideIcons.bell,
-                  size: 22,
-                  color: Color(0xFF1D242B),
-                ),
+              IconButton(
+                icon: const Icon(LucideIcons.bell, size: 22),
+                onPressed: () => Navigator.pushNamed(context, '/notifications'),
               ),
             ],
           ),
