@@ -15,13 +15,14 @@ exports.addTable = async (req, res) => {
         const { name, family } = req.body;
         await firewallAgent.post('/api/create_table', { table_name: name, family });
         const newTable = await Table.create({ name, family, createdBy: req.user._id });
-        res.status(201).json({ success: true, data: newTable });
+
         await logActivity(
             req.user._id,
             req.user.username,
             "Add Table",
             `Added Table ${name} with Family: ${family}`
         );
+        res.status(201).json({ success: true, data: newTable });
     } catch (error) {
         return firewallError(res, error);
     }
@@ -77,13 +78,14 @@ exports.addChain = async (req, res) => {
             type,
             createdBy: req.user._id
         });
-        res.status(201).json({ success: true, data: newChain });
+
         await logActivity(
             req.user._id,
             req.user.username,
             "Add Chain",
             `Added Chain ${name} to Table ${tableName}`
         );
+        res.status(201).json({ success: true, data: newChain });
     } catch (error) {
         return firewallError(res, error);
     }
@@ -235,6 +237,13 @@ exports.toggleRuleStatus = async (req, res) => {
             rule.handleId = null;
             await rule.save();
 
+            await logActivity(
+                req.user._id,
+                req.user.username,
+                "Disable Static Rule",
+                `Disabled Rule in ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+            );
+
             return res.json({
                 success: true,
                 message: 'Rule disabled (Removed from Firewall)',
@@ -268,7 +277,12 @@ exports.toggleRuleStatus = async (req, res) => {
             rule.isActive = true;
             rule.handleId = firewallResponse.data.handle;
             await rule.save();
-
+            await logActivity(
+                req.user._id,
+                req.user.username,
+                "Enable Static Rule",
+                `Re-enabled Rule in ${rule.chainName}, ${rule.tableName} with Action: ${rule.action}`
+            );
             return res.json({
                 success: true,
                 message: 'Rule enabled (Added to Firewall)',
@@ -326,8 +340,8 @@ exports.getAllRules = async (req, res) => {
         const staticRules = await Rule.find().lean();
 
         // 2. نجيب رولز الذكاء الاصطناعي (AI) المعتمدة فقط (Approved أو Auto-approved)
-        const aiRules = await AIRule.find({ 
-            status: { $in: ['approved', 'auto-approved'] } 
+        const aiRules = await AIRule.find({
+            status: { $in: ['approved', 'auto-approved'] }
         }).lean();
 
         // 3. توحيد شكل الرولز الثابتة (Static Rules)
@@ -339,7 +353,8 @@ exports.getAllRules = async (req, res) => {
             ruleType: rule.ruleType || 'Static',         // النوع
             expireAt: rule.expireAt || '-',              // تاريخ الانتهاء
             isActive: rule.isActive !== undefined ? rule.isActive : true, // الحالة
-            isAi: false // فلاج للفرونت إند للتمييز
+            isAi: false, // فلاج للفرونت إند للتمييز
+            createdAt: rule.createdAt
         }));
 
         // 4. توحيد شكل رولز الذكاء الاصطناعي (AI Rules)
@@ -351,7 +366,8 @@ exports.getAllRules = async (req, res) => {
             ruleType: 'AI Dynamic',                       // النوع
             expireAt: rule.expireAt || '-',
             isActive: true, // رولز الـ AI المعتمدة تعمل دائماً
-            isAi: true 
+            isAi: true,
+            createdAt: rule.createdAt
         }));
 
         // 5. ندمج المصفوفتين في مصفوفة واحدة

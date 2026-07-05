@@ -1,24 +1,38 @@
 const AIRule       = require('../models/AIRule');
 const Threat       = require('../models/Threat');
-const SystemSetting = require('../models/SystemSetting');
+const SystemSetting = require('../models/SystemSettings');
 const firewallAgent = require('../config/firewallAgent');
 const logger        = require('../utils/logger');
 const { firewallError } = require('../utils/firewall.helpers');
 const { logActivity }   = require('../utils/activityLogger');
 const { invalidateStatsCache } = require('../sockets/dashboard.socket');
+const { createNotification } = require('../utils/notificationHelper');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // helper: يجيب الـ IP المخزن في الرول (source أو destination)
 // ─────────────────────────────────────────────────────────────────────────────
-const getRuleIp = (rule) => rule.sourceIp || rule.ipDestination;
+const getRuleIp = (rule) => rule.sourceIp || rule.destinationIp;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Python Agent: هل الـ Auto Approve متفعل؟
+// 1. Flutter/Python: هل الـ Auto Approve متفعل؟
 // GET /api/ai/settings/auto-approve
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getAutoApproveStatus = async (req, res) => {
     try {
         let setting = await SystemSetting.findOne();
         if (!setting) setting = await SystemSetting.create({ autoApproveAiRules: false });
+
+        try {
+            const live = await firewallAgent.get('/config/auto_approve');
+            if (typeof live.data?.auto_approve === 'boolean' &&
+                live.data.auto_approve !== setting.autoApproveAiRules) {
+                setting.autoApproveAiRules = live.data.auto_approve;
+                await setting.save();
+            }
+        } catch (err) {
+            logger.error(`Could not reach firewall agent for auto_approve status: ${err.message}`);
+        }
+
         res.status(200).json({ success: true, autoApprove: setting.autoApproveAiRules });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -26,23 +40,126 @@ exports.getAutoApproveStatus = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Python Agent: بعت الرول بعد ما قرر يطبقها أو يستنى
-// POST /api/ai/rules
+// 2. Network_Scripts (approval_gateway.py → node_client.send_alert):
+// POST /api/netknight/alerts
+// ─────────────────────────────────────────────────────────────────────────────
+exports.receiveAlert = async (req, res) => {
+    try {
+        const {
+            request_id: requestId,
+            description,
+            explanation,
+            explanation_details: explanationDetails,
+            attack_type: attackType,
+            confidence,
+            severity,
+            action,
+            rule
+        } = req.body;
+
+        if (!requestId || !rule || (!rule.src_ip && !rule.dest_ip)) {
+            return res.status(400).json({
+                success: false,
+                message: 'request_id and rule.src_ip/rule.dest_ip are required.'
+            });
+        }
+
+        // 👈 التعديل هنا: بنشيك لو فيه deletions جاية من بايثون يبقى الرول اتطبقت
+        const isApplied = rule.deletions && rule.deletions.length > 0;
+        const status    = isApplied ? 'auto-approved' : 'pending';
+        const ip         = rule.src_ip || rule.dest_ip;
+        const expireAt   = rule.timeout ? new Date(Date.now() + rule.timeout * 1000) : null;
+
+        // 1) نسجل التهديد (Threat)
+        const newThreat = await Threat.create({
+            sourceIp:   ip,
+            attackType: attackType || 'unknown',
+            severity:   ['low', 'medium', 'high', 'critical'].includes(severity) ? severity : 'medium',
+            confidence: confidence ?? null,
+            details:    description || explanation || ''
+        });
+
+        // 2) نسجل قاعدة الـ AI (AIRule)
+        const newAIRule = await AIRule.create({
+            requestId,
+            ruleName:    `AI_${attackType || 'rule'}_${ip}`,
+            sourceIp:    rule.src_ip  || null,
+            destinationIp: rule.dest_ip || null,
+            port:        rule.port ?? null,
+            action:      action || 'unknown',
+            description: description || '',
+            explanation: explanation || '',
+            explanationDetails: explanationDetails || {},
+            attackType:  attackType || null,
+            confidence:  confidence ?? null,
+            severity:    ['low', 'medium', 'high', 'critical'].includes(severity) ? severity : null,
+            rateLimit:   rule.rate_limit || null,
+            family:      rule.family || 'inet',
+            tableName:   rule.table  || null,
+            chainName:   rule.chain  || null,
+            setName:     rule.set    || null,
+            handleId:    rule.handle_id || null,
+            deletions:   rule.deletions || [], // 👈 خزنّا مصفوفة المسح الجاهزة
+            timeout:     rule.timeout   || null,
+            expireAt,
+            status,
+            isActive:    isApplied,
+            threatId:    newThreat._id
+        });
+
+        // 3) Notifications
+        if (status === 'pending') {
+            await createNotification({
+                type:     'ai_rule_pending',
+                title:    'AI rule pending review',
+                message:  `Rule generated — suspicious activity from ${ip}, awaiting your approval`,
+                severity: 'warning',
+                tag:      'Review needed',
+                relatedId:    newAIRule._id,
+                relatedModel: 'AIRule',
+                metadata: { ip, action, attackType, confidence }
+            });
+        } else {
+            const tag = severity ? severity.charAt(0).toUpperCase() + severity.slice(1) : 'Warning';
+            const notifSeverity = ['critical', 'high'].includes(severity) ? severity : 'warning';
+            await createNotification({
+                type:     'threat_alert',
+                title:    'Threat mitigated automatically',
+                message:  description || `${attackType || 'Threat'} from ${ip} — auto-mitigated`,
+                severity: notifSeverity,
+                tag,
+                relatedId:    newAIRule._id,
+                relatedModel: 'AIRule',
+                metadata: { ip, action, attackType, confidence }
+            });
+        }
+
+        invalidateStatsCache();
+
+        return res.status(201).json({
+            success: true,
+            message: `Alert recorded as ${status}`,
+            data: newAIRule
+        });
+    } catch (error) {
+        logger.error(`receiveAlert error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// [Legacy / يدوي فقط] POST /api/ai/rules
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveAIRule = async (req, res) => {
     try {
         const {
-            sourceIp, ipDestination, action, reason, threatId, status,
+            sourceIp, destinationIp, action, reason, threatId, status,
             durationInSeconds, ruleName,
             family, tableName, chainName, handleId, setName
         } = req.body;
 
-        // واحد من الـ IP fields مطلوب على الأقل
-        if (!sourceIp && !ipDestination) {
-            return res.status(400).json({
-                success: false,
-                message: 'Either sourceIp or ipDestination is required.'
-            });
+        if (!sourceIp && !destinationIp) {
+            return res.status(400).json({ success: false, message: 'Either sourceIp or destinationIp is required.' });
         }
 
         let expireAt;
@@ -53,25 +170,36 @@ exports.receiveAIRule = async (req, res) => {
         const newAIRule = await AIRule.create({
             ruleName,
             sourceIp:      sourceIp      || null,
-            ipDestination: ipDestination || null,
+            destinationIp: destinationIp || null,
             action,
-            reason,
-            threatId,
+            explanation: reason || '',
+            threatId:    threatId || null,
             status,
-            family:    family    || 'ip',
+            family:    family    || 'inet',
             tableName: tableName || null,
             chainName: chainName || null,
             handleId:  handleId  || null,
             setName:   setName   || null,
-            timeout:   durationInSeconds || null,  // نحتفظ بالمدة عشان التوجل
+            timeout:   durationInSeconds || null,
             expireAt
         });
 
-        res.status(201).json({
-            success: true,
-            message: `Rule recorded as ${status}`,
-            data: newAIRule
-        });
+        if (status === 'pending') {
+            const ip = sourceIp || destinationIp;
+            await createNotification({
+                type:     'ai_rule_pending',
+                title:    'AI rule pending review',
+                message:  `Rule generated — suspicious activity from ${ip}, awaiting your approval`,
+                severity: 'warning',
+                tag:      'Review needed',
+                relatedId:    newAIRule._id,
+                relatedModel: 'AIRule',
+                metadata: { ip, action, reason: reason || '' }
+            });
+            invalidateStatsCache();
+        }
+
+        res.status(201).json({ success: true, message: `Rule recorded as ${status}`, data: newAIRule });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -84,9 +212,14 @@ exports.receiveAIRule = async (req, res) => {
 exports.toggleAutoApprove = async (req, res) => {
     try {
         const { autoApprove } = req.body;
+        if (typeof autoApprove !== 'boolean') {
+            return res.status(400).json({ success: false, message: 'autoApprove must be a boolean.' });
+        }
+
+        await firewallAgent.post('/config/auto_approve', { value: autoApprove });
+
         let setting = await SystemSetting.findOne();
         if (!setting) setting = new SystemSetting();
-
         setting.autoApproveAiRules = autoApprove;
         await setting.save();
 
@@ -102,7 +235,8 @@ exports.toggleAutoApprove = async (req, res) => {
             autoApprove: setting.autoApproveAiRules
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        logger.error(`toggleAutoApprove error: ${error.message}`);
+        return firewallError(res, error);
     }
 };
 
@@ -122,55 +256,55 @@ exports.getAIRules = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. Flutter: الأدمن يعمل Approve أو Reject لرول pending
 // PUT /api/ai/rules/:ruleId/review
-//
-// approve → بيبعت للـ Python Agent يطبق الرول في الفايروول
-// reject  → بتفضل في الـ DB بس كـ rejected، مش بتتطبق
 // ─────────────────────────────────────────────────────────────────────────────
 exports.reviewAIRule = async (req, res) => {
     try {
         const { ruleId }   = req.params;
-        const { decision } = req.body; // 'approve' or 'reject'
+        const { decision } = req.body; 
+
+        if (!['approve', 'reject'].includes(decision)) {
+            return res.status(400).json({ success: false, message: "decision must be 'approve' or 'reject'." });
+        }
 
         const aiRule = await AIRule.findById(ruleId);
         if (!aiRule)
             return res.status(404).json({ success: false, message: 'Rule not found' });
         if (aiRule.status !== 'pending')
             return res.status(400).json({ success: false, message: 'Rule already reviewed' });
+        if (!aiRule.requestId) {
+            return res.status(400).json({
+                success: false,
+                message: 'This rule has no request_id from the firewall agent — it cannot be approved/rejected remotely.'
+            });
+        }
 
         if (decision === 'approve') {
-            // بنبعت للـ Python Agent يطبق الرول في الفايروول
-            const r = await firewallAgent.post('/api/manage_rules', {
-                sourceIp:   aiRule.sourceIp,
-                ipDest:     aiRule.ipDestination,
-                action:     aiRule.action,
-                family:     aiRule.family    || 'ip',
-                table_name: aiRule.tableName,
-                chain_name: aiRule.chainName,
-                set_name:   aiRule.setName,
-                type:       'ai_dynamic'
-            });
-
-            if (r.data.status === 'error') {
-                return res.status(400).json({ success: false, message: r.data.message });
-            }
+            const r = await firewallAgent.post('/decisions/approve', { request_id: aiRule.requestId });
+            const payload = r.data; 
 
             aiRule.status     = 'approved';
             aiRule.reviewedBy = req.user._id;
             aiRule.isActive   = true;
 
-            // لو الـ Agent رجع handle (non-set rule) نخزنه
-            if (r.data.handle) aiRule.handleId = r.data.handle;
+            // 👈 التعديل هنا: تخزين الـ deletions بعد ما البايثون طبق القاعدة
+            if (payload?.rule?.deletions) aiRule.deletions = payload.rule.deletions;
+            if (payload?.rule?.handle_id) aiRule.handleId  = payload.rule.handle_id;
+            if (payload?.rule?.chain)     aiRule.chainName = payload.rule.chain;
+            if (payload?.rule?.set)       aiRule.setName   = payload.rule.set;
+            if (payload?.rule?.timeout) {
+                aiRule.timeout  = payload.rule.timeout;
+                aiRule.expireAt = new Date(Date.now() + payload.rule.timeout * 1000);
+            }
 
-        } else if (decision === 'reject') {
-            // مش بتتطبق — بتفضل في الـ DB كـ rejected بس
+        } else {
+            await firewallAgent.post('/decisions/reject', { request_id: aiRule.requestId });
             aiRule.status     = 'rejected';
             aiRule.reviewedBy = req.user._id;
-            aiRule.isActive   = false; // rejected rules مش شغالة في الفايروول
+            aiRule.isActive   = false;
         }
 
         await aiRule.save();
-
-        invalidateStatsCache(); 
+        invalidateStatsCache();
 
         await logActivity(
             req.user._id, req.user.username,
@@ -182,21 +316,45 @@ exports.reviewAIRule = async (req, res) => {
         res.status(200).json({ success: true, message: `Rule ${decision}d successfully`, data: aiRule });
     } catch (error) {
         logger.error(`reviewAIRule error: ${error.message}`);
+        if (error.response?.status === 404) {
+            return res.status(409).json({
+                success: false,
+                message: 'The firewall agent no longer has this pending request. The rule was not applied.'
+            });
+        }
         return firewallError(res, error);
     }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. Python Agent: بعت تهديد (Threat) جديد
-// POST /api/ai/threats
+// 6. [Legacy / يدوي فقط] POST /api/ai/threats
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveThreat = async (req, res) => {
     try {
-        const { sourceIp, attackType, severity, details } = req.body;
+        const { sourceIp, attackType, severity, confidence, details } = req.body;
 
-        const newThreat = await Threat.create({ sourceIp, attackType, severity, details });
-        logger.warn(`🚨 New Threat Detected! IP: ${sourceIp}, Type: ${attackType}`);
+        const newThreat = await Threat.create({
+            sourceIp, attackType, severity, confidence: confidence || null, details
+        });
 
+        logger.warn(`🚨 Threat Detected! IP: ${sourceIp} | Type: ${attackType} | Severity: ${severity}`);
+
+        const tag = severity ? severity.charAt(0).toUpperCase() + severity.slice(1) : 'Warning';
+        const notifSeverity = ['critical', 'high'].includes(severity) ? severity : 'warning';
+        const confidenceText = confidence ? ` — confidence: ${confidence}%` : '';
+
+        await createNotification({
+            type:     'threat_alert',
+            title:    'Threat alert detected',
+            message:  `${attackType} from ${sourceIp}${confidenceText}`,
+            severity: notifSeverity,
+            tag,
+            relatedId:    newThreat._id,
+            relatedModel: 'Threat',
+            metadata: { sourceIp, attackType, severity, confidence, details }
+        });
+
+        invalidateStatsCache();
         res.status(201).json({ success: true, message: 'Threat recorded successfully', data: newThreat });
     } catch (error) {
         logger.error(`receiveThreat error: ${error.message}`);
@@ -227,56 +385,44 @@ exports.deleteAIRule = async (req, res) => {
         const rule = await AIRule.findById(req.params.id);
         if (!rule) return res.status(404).json({ success: false, message: 'AI Rule not found' });
 
-        const ip         = getRuleIp(rule);
-        const isApplied  = ['approved', 'auto-approved'].includes(rule.status);
+        const ip        = getRuleIp(rule);
+        const isApplied = ['approved', 'auto-approved'].includes(rule.status) && rule.isActive;
 
-        // بنكلم الفايروول بس لو الرول كانت approved/auto-approved وشغالة فعلاً
-        if (isApplied && rule.isActive) {
-
-            if (rule.setName) {
-                // ① Set-based: نمسح الـ IP element من الـ Set
-                const firewallResponse = await firewallAgent.delete('/api/delete_element', {
-                    data: {
-                        family:     rule.family    || 'ip',
-                        table_name: rule.tableName,
-                        set_name:   rule.setName,
-                        ip
+        if (isApplied) {
+            // 👈 التعديل هنا: المسح هيتم عن طريق الـ deletions اللي جاية جاهزة
+            if (rule.deletions && rule.deletions.length > 0) {
+                for (const delPayload of rule.deletions) {
+                    const { label, ...cleanPayload } = delPayload; // شيلنا label عشان الـ agent مش محتاجه
+                    const firewallResponse = await firewallAgent.post('/rules/delete', cleanPayload);
+                    if (!firewallResponse.data?.ok) {
+                        logger.error(`Firewall agent failed to delete rule part [${label || 'unknown'}]`);
                     }
-                });
-
-                if (firewallResponse.data.status !== 'success') {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Firewall failed to remove element from set',
-                        details: firewallResponse.data
-                    });
+                }
+            } else {
+                // Fallback للـ Rules القديمة اللي معندهاش حقل deletions
+                let deletion = null;
+                if (rule.setName) {
+                    deletion = { mode: 'set_element', family: rule.family || 'inet', table: rule.tableName, set: rule.setName, ip };
+                    if (rule.port) deletion.port = rule.port;
+                } else if (rule.handleId) {
+                    deletion = { mode: 'handle', family: rule.family || 'inet', table: rule.tableName, chain: rule.chainName, handle: rule.handleId };
                 }
 
-            } else if (rule.handleId) {
-                
-                const firewallResponse = await firewallAgent.delete('/api/delete_rule', {
-                    data: {
-                        family: rule.family    || 'ip',
-                        table:  rule.tableName,
-                        chain:  rule.chainName,
-                        handle: rule.handleId
+                if (deletion) {
+                    const firewallResponse = await firewallAgent.post('/rules/delete', deletion);
+                    if (!firewallResponse.data?.ok) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Firewall agent failed to delete the rule',
+                            details: firewallResponse.data
+                        });
                     }
-                });
-
-                if (firewallResponse.data.status !== 'success') {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Firewall failed to delete AI rule',
-                        details: firewallResponse.data
-                    });
                 }
             }
-          
         }
 
         await rule.deleteOne();
-        
-        invalidateStatsCache(); 
+        invalidateStatsCache();
 
         await logActivity(
             req.user._id,
@@ -288,12 +434,19 @@ exports.deleteAIRule = async (req, res) => {
 
         return res.status(200).json({ success: true, message: 'AI Rule deleted successfully' });
     } catch (error) {
+        if (error.response?.status === 400) {
+            return res.status(400).json({
+                success: false,
+                message: 'Firewall agent rejected the deletion request',
+                details: error.response.data
+            });
+        }
         return firewallError(res, error);
     }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. Flutter: تفعيل / تعطيل AI Rule  (Toggle isActive)
+// 9. Flutter: تفعيل / تعطيل AI Rule (Toggle isActive)
 // PATCH /api/ai/rules/:id/toggle
 // ─────────────────────────────────────────────────────────────────────────────
 exports.toggleAIRuleStatus = async (req, res) => {
@@ -301,7 +454,6 @@ exports.toggleAIRuleStatus = async (req, res) => {
         const rule = await AIRule.findById(req.params.id);
         if (!rule) return res.status(404).json({ success: false, message: 'AI Rule not found' });
 
-        
         if (!['approved', 'auto-approved'].includes(rule.status)) {
             return res.status(400).json({
                 success: false,
@@ -311,60 +463,48 @@ exports.toggleAIRuleStatus = async (req, res) => {
 
         const ip = getRuleIp(rule);
 
-        // ────────────────────────────────────────────────
-        //  Disable: نشيل الرول من الفايروول مؤقتاً
-        // ────────────────────────────────────────────────
         if (rule.isActive) {
-
-            if (rule.setName) {
-                // Set-based disable
-                const firewallResponse = await firewallAgent.delete('/api/delete_element', {
-                    data: {
-                        family:     rule.family    || 'ip',
-                        table_name: rule.tableName,
-                        set_name:   rule.setName,
-                        ip
+            // 👈 نفس تعديل الحذف بنستخدمه هنا لتعطيل القاعدة
+            if (rule.deletions && rule.deletions.length > 0) {
+                for (const delPayload of rule.deletions) {
+                    const { label, ...cleanPayload } = delPayload;
+                    const firewallResponse = await firewallAgent.post('/rules/delete', cleanPayload);
+                    if (!firewallResponse.data?.ok) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Firewall failed to disable AI rule part [${label}]`,
+                            details: firewallResponse.data
+                        });
                     }
-                });
-
-                if (firewallResponse.data.status !== 'success') {
+                }
+            } else {
+                // Fallback للـ Rules القديمة
+                let deletion = null;
+                if (rule.setName) {
+                    deletion = { mode: 'set_element', family: rule.family || 'inet', table: rule.tableName, set: rule.setName, ip };
+                    if (rule.port) deletion.port = rule.port;
+                } else if (rule.handleId) {
+                    deletion = { mode: 'handle', family: rule.family || 'inet', table: rule.tableName, chain: rule.chainName, handle: rule.handleId };
+                } else {
                     return res.status(400).json({
                         success: false,
-                        message: 'Firewall failed to remove element from set',
-                        details: firewallResponse.data
+                        message: 'Cannot disable rule: no handle ID or set name found. The rule may not be tracked in the firewall.'
                     });
                 }
 
-            } else if (rule.handleId) {
-                // Handle-based disable: زي الـ Static Rules
-                const firewallResponse = await firewallAgent.delete('/api/delete_rule', {
-                    data: {
-                        family: rule.family    || 'ip',
-                        table:  rule.tableName,
-                        chain:  rule.chainName,
-                        handle: rule.handleId
-                    }
-                });
-
-                if (firewallResponse.data.status !== 'success') {
+                const firewallResponse = await firewallAgent.post('/rules/delete', deletion);
+                if (!firewallResponse.data?.ok) {
                     return res.status(400).json({
                         success: false,
                         message: 'Firewall failed to disable AI rule',
                         details: firewallResponse.data
                     });
                 }
-                
-                rule.handleId = null;
-
-            } else {
-                
-                return res.status(400).json({
-                    success: false,
-                    message: 'Cannot disable rule: no handle ID or set name found. The rule may not be tracked in the firewall.'
-                });
             }
 
             rule.isActive = false;
+            rule.handleId = null;
+            rule.deletions = []; // 👈 فرغنا المصفوفة لإن الـ handles خلاص اتمسحت من النيتورك
             await rule.save();
 
             await logActivity(
@@ -379,69 +519,42 @@ exports.toggleAIRuleStatus = async (req, res) => {
                 message: 'AI Rule disabled (Removed from Firewall)',
                 data: rule
             });
-
-        
-        } else {
-
-            if (rule.setName) {
-                
-                const firewallResponse = await firewallAgent.post('/api/add_element', {
-                    family:     rule.family    || 'ip',
-                    table_name: rule.tableName,
-                    set_name:   rule.setName,
-                    ip,
-                    timeout:    rule.timeout || null
-                });
-
-                if (firewallResponse.data.status !== 'success') {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Firewall failed to re-add element to set',
-                        details: firewallResponse.data
-                    });
-                }
-
-            } else {
-                
-                const firewallResponse = await firewallAgent.post('/api/add_rule', {
-                    family:     rule.family    || 'ip',
-                    table_name: rule.tableName,
-                    chain_name: rule.chainName,
-                    ip_src:     rule.sourceIp      || '',
-                    ip_dest:    rule.ipDestination || '',
-                    action:     rule.action
-                });
-
-                if (!firewallResponse.data.handle) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Firewall failed to re-add AI rule',
-                        details: firewallResponse.data
-                    });
-                }
-
-            
-                rule.handleId = firewallResponse.data.handle;
-            }
-
-            rule.isActive = true;
-            await rule.save();
-
-            await logActivity(
-                req.user._id, req.user.username,
-                'Toggle AI Rule',
-                ip || String(rule._id),
-                'AI Rule enabled (added back to firewall)'
-            );
-
-            return res.json({
-                success: true,
-                message: 'AI Rule enabled (Added to Firewall)',
-                data: rule
-            });
         }
+
+        // Re-enable: غير مدعومة من firewall agent الحالي
+        return res.status(501).json({
+            success: false,
+            message: 'Re-enabling a disabled AI rule is not supported by the firewall agent yet. Delete this rule instead.'
+        });
 
     } catch (error) {
         return firewallError(res, error);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. POST /api/netknight/bandwidth-alert 
+// ─────────────────────────────────────────────────────────────────────────────
+exports.receiveBandwidthAlert = async (req, res) => {
+    try {
+        const { message, usage_percent: usagePercent } = req.body;
+
+        if (usagePercent === undefined) {
+            return res.status(400).json({ success: false, message: 'usage_percent is required' });
+        }
+
+        await createNotification({
+            type:     'traffic_spike',
+            title:    'Unusual traffic spike',
+            message:  message || `Bandwidth usage exceeded threshold (${usagePercent}%)`,
+            severity: 'warning',
+            tag:      'Warning',
+            metadata: { usagePercent }
+        });
+
+        return res.status(200).json({ success: true, message: 'Bandwidth alert recorded' });
+    } catch (error) {
+        logger.error(`receiveBandwidthAlert error: ${error.message}`);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
