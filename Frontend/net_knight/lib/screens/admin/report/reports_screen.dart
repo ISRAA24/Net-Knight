@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:net_knight/main.dart';
 import 'package:net_knight/screens/admin/dashboard/widgets/sidebar.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:universal_html/html.dart' as html; // for web download
 
@@ -44,15 +48,43 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
       _threats = await _service.getThreats(days: _daysFilter);
       _logs = await _service.getLogs(days: _daysFilter);
     } catch (e) {
-      print('Error loading reports: $e');
+      debugPrint('Error loading reports: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // The backend currently ignores the "days" query param entirely, so we
+  // filter on the client using each record's own date/createdAt value.
+  bool _withinDays(String dateStr, int days) {
+    if (dateStr.isEmpty) return true;
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return true;
+    return DateTime.now().difference(date).inDays <= days;
+  }
+
   void _changeDaysFilter(int days) {
     setState(() => _daysFilter = days);
-    _loadData();
+  }
+
+  // ─── Manual CSV builder ────────────────────────────────────
+  // We avoid the `csv` package here: its API changed across major versions
+  // (ListToCsvConverter isn't guaranteed across pubspec ranges), and a
+  // correctly-escaped CSV line is trivial to build by hand.
+  String _escapeCsvField(String field) {
+    final needsQuoting =
+        field.contains(',') || field.contains('"') || field.contains('\n');
+    if (!needsQuoting) return field;
+    return '"${field.replaceAll('"', '""')}"';
+  }
+
+  String _buildCsv(List<String> headers, List<List<String>> rows) {
+    final buffer = StringBuffer();
+    buffer.writeln(headers.map(_escapeCsvField).join(','));
+    for (final row in rows) {
+      buffer.writeln(row.map(_escapeCsvField).join(','));
+    }
+    return buffer.toString();
   }
 
   Future<void> _exportReport() async {
@@ -78,24 +110,64 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
 
     if (format == null) return;
 
+    // NOTE: there is no '/reports/export' route on the backend at all, so
+    // exporting is generated fully on the client from the data already
+    // loaded/filtered on screen.
     try {
-      final response = await _service.exportReport(
-        days: _daysFilter,
-        format: format,
-      );
+      final isThreats = _tab == ReportTab.threats;
+      final headers = isThreats
+          ? ['Attack Name', 'Attack Source', 'Severity', 'Status', 'Date']
+          : ['Timestamp', 'Level', 'Source', 'Type', 'Message'];
+
+      final rows = isThreats
+          ? _filteredThreats
+              .map((t) => [t.attackName, t.attackSource, t.severity, t.status, t.date])
+              .toList()
+          : _filteredLogs
+              .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
+              .toList();
+
+      Uint8List bytes;
+      String filename;
+
+      if (format == 'csv') {
+        final csvData = _buildCsv(headers, rows);
+        bytes = Uint8List.fromList(utf8.encode(csvData));
+        filename = 'report.csv';
+      } else {
+        final doc = pw.Document();
+        doc.addPage(
+          pw.Page(
+            build: (context) => pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: rows,
+            ),
+          ),
+        );
+        bytes = await doc.save();
+        filename = 'report.pdf';
+      }
+
       if (kIsWeb) {
-        final blob = html.Blob([response.data]);
+        final blob = html.Blob([bytes]);
         final url = html.Url.createObjectUrlFromBlob(blob);
         final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'report.$format');
+          ..setAttribute('download', filename);
         anchor.click();
         html.Url.revokeObjectUrl(url);
-      } else {
-        // For desktop: save to file
-        print('Export not implemented for desktop yet');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$filename downloaded')),
+        );
       }
     } catch (e) {
-      print('Export error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
     }
   }
 
@@ -112,28 +184,34 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
               children: [
                 const _TopBar(title: 'Reports'),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTabsAndActions(),
-                        const SizedBox(height: 16),
-                        _buildSearchAndFilters(),
-                        const SizedBox(height: 20),
-                        _tab == ReportTab.threats
-                            ? ThreatsTab(
-                                threats: _filteredThreats,
-                                severityFilter: _severityFilter,
-                              )
-                            : LogsTab(
-                                logs: _filteredLogs,
-                                levelFilter: _levelFilter,
-                                typeFilter: _typeFilter,
-                              ),
-                      ],
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : RefreshIndicator(
+                          onRefresh: _loadData,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildTabsAndActions(),
+                                const SizedBox(height: 16),
+                                _buildSearchAndFilters(),
+                                const SizedBox(height: 20),
+                                _tab == ReportTab.threats
+                                    ? ThreatsTab(
+                                        threats: _filteredThreats,
+                                        severityFilter: _severityFilter,
+                                      )
+                                    : LogsTab(
+                                        logs: _filteredLogs,
+                                        levelFilter: _levelFilter,
+                                        typeFilter: _typeFilter,
+                                      ),
+                              ],
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -144,20 +222,32 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   }
 
   List<ThreatModel> get _filteredThreats {
-    if (_severityFilter == 'all') return _threats;
-    return _threats
-        .where((t) => t.severity.toLowerCase() == _severityFilter)
-        .toList();
+    var filtered = _threats.where((t) => _withinDays(t.date, _daysFilter)).toList();
+    if (_severityFilter != 'all') {
+      filtered = filtered.where((t) => t.severity.toLowerCase() == _severityFilter).toList();
+    }
+    return filtered;
   }
 
   List<LogModel> get _filteredLogs {
-    var filtered = _logs;
-    if (_levelFilter != 'all')
+    var filtered = _logs.where((l) => _withinDays(l.timestamp, _daysFilter)).toList();
+    if (_levelFilter != 'all') {
       filtered = filtered.where((l) => l.level == _levelFilter).toList();
-    if (_typeFilter != 'all')
+    }
+    if (_typeFilter != 'all') {
       filtered = filtered.where((l) => l.type == _typeFilter).toList();
+    }
     return filtered;
   }
+
+  // The old hardcoded list ('Security', 'Firewall', 'AI Engine') never
+  // matched real audit log actions (e.g. "Add Table", "System Login"...),
+  // so the Type filter could never actually filter anything. We now build
+  // the options from the real data instead.
+  List<String> get _typeOptions => [
+        'all',
+        ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
+      ];
 
   Widget _buildTabsAndActions() {
     return Row(
@@ -216,8 +306,8 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
           ),
           const SizedBox(width: 8),
           _DropdownFilter(
-            value: _typeFilter,
-            options: const ['all', 'Security', 'Firewall', 'AI Engine'],
+            value: _typeOptions.contains(_typeFilter) ? _typeFilter : 'all',
+            options: _typeOptions,
             onChanged: (v) => setState(() => _typeFilter = v),
           ),
           const SizedBox(width: 8),
@@ -299,7 +389,7 @@ class _DropdownFilter extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButton<String>(
-        value: value,
+        value: options.contains(value) ? value : options.first,
         dropdownColor: Colors.white,
         icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
         style: const TextStyle(color: Colors.white),

@@ -141,8 +141,13 @@ class _NATScreenState extends State<NATScreen> {
           'comment': '',
         };
       case NatType.source:
+        // NOTE: this used to send 'snat' here while the actual save request
+        // (SourceNatModel.toJson()) sends 'source' — the mismatch meant the
+        // live preview could disagree with what actually gets saved. Now
+        // both use the same value that matches the backend's enum
+        // ('masquerade' | 'source' | 'destination').
         return {
-          'nat_type': 'snat',
+          'nat_type': 'source',
           'source_ip': _snatSourceIpCtrl.text.trim(),
           'new_source_ip': _snatNewSourceIpCtrl.text.trim(),
           'output_interface': _snatInterface ?? '',
@@ -150,7 +155,7 @@ class _NATScreenState extends State<NATScreen> {
         };
       case NatType.destination:
         return {
-          'nat_type': 'dnat',
+          'nat_type': 'destination',
           'input_interface': _dnatInterface ?? '',
           'dest_ip': _dnatDestIpCtrl.text.trim(),
           'int_port': _dnatIntPortCtrl.text.trim(),

@@ -42,16 +42,30 @@ class LogModel {
   });
 
   // Backend (audit.controller.js -> getAuditLogs) actually returns:
-  // { no, date, userName, action, target, details }
+  // { no, date, userName, action, target, details } — there is NO "level"
+  // field at all, so we derive a reasonable one from the action text
+  // instead of always defaulting to "INFO" (which made the Level filter
+  // completely useless).
   factory LogModel.fromJson(Map<String, dynamic> json) {
     return LogModel(
       timestamp: json['date'] ?? json['timestamp'] ?? '',
-      level: json['level'] ?? 'INFO',
+      level: json['level'] ?? _deriveLevel(json['action']?.toString() ?? ''),
       source: json['userName'] ?? json['source'] ?? '',
       type: json['action'] ?? json['type'] ?? '',
       message: json['details'] ?? json['message'] ?? json['target'] ?? '',
       ip: json['ip'] ?? '-',
     );
+  }
+
+  static String _deriveLevel(String action) {
+    final a = action.toLowerCase();
+    if (a.contains('delete') || a.contains('reject') || a.contains('disable')) {
+      return 'WARNING';
+    }
+    if (a.contains('fail') || a.contains('error')) {
+      return 'ERROR';
+    }
+    return 'INFO';
   }
 }
 

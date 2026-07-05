@@ -11,9 +11,12 @@ class LogsTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // NOTE: the screen's default filter values are 'all levels' / 'all
+    // types' (not 'all'), so the comparison must match that exactly —
+    // otherwise every log gets filtered out from the very first frame.
     final filtered = logs.where((log) {
-      final levelMatch = levelFilter == 'all' || log.level == levelFilter;
-      final typeMatch = typeFilter == 'all' || log.type == typeFilter;
+      final levelMatch = levelFilter == 'all levels' || log.level == levelFilter;
+      final typeMatch = typeFilter == 'all types' || log.type == typeFilter;
       return levelMatch && typeMatch;
     }).toList();
 

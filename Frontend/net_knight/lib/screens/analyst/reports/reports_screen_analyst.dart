@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:net_knight/core/network/base_services.dart';
 import 'package:net_knight/core/theme/nk_colors.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:universal_html/html.dart' as html;
 
 import '../ai_generated_rules/widgets/sidebar_analyst.dart';
 import 'models/reports_model_analyst.dart';
@@ -24,7 +30,7 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
   String _severityFilter = 'all severity';
   String _levelFilter = 'all levels';
   String _typeFilter = 'all types';
-  String _dateFilter = 'last7days';
+  int _daysFilter = 7;
 
   List<ThreatModel> _threats = [];
   List<LogModel> _logs = [];
@@ -62,15 +68,61 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
-      _threats = await _service.getThreats(dateFilter: _dateFilter);
+      _threats = await _service.getThreats();
       _logs = await _service.getLogs();
     } catch (e) {
-      _error = 'Failed to load reports data';
+      if (mounted) setState(() => _error = 'Failed to load reports data');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // The backend ignores any date/day query params entirely, so filtering by
+  // date is done fully on the client using each record's own date value.
+  bool _withinDays(String dateStr, int days) {
+    if (dateStr.isEmpty) return true;
+    final date = DateTime.tryParse(dateStr);
+    if (date == null) return true;
+    return DateTime.now().difference(date).inDays <= days;
+  }
+
+  List<ThreatModel> get _filteredThreats =>
+      _threats.where((t) => _withinDays(t.date, _daysFilter)).toList();
+
+  List<LogModel> get _filteredLogs =>
+      _logs.where((l) => _withinDays(l.timestamp, _daysFilter)).toList();
+
+  // Dynamic type options built from the real audit-log actions instead of
+  // the old hardcoded ('Security'/'Firewall'/'AI Engine') list, which never
+  // matched anything real coming back from the backend.
+  List<String> get _typeOptions => [
+        'all types',
+        ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
+      ];
+
+  // ─── Manual CSV builder ────────────────────────────────────
+  // We avoid the `csv` package here: its API changed across major versions
+  // (ListToCsvConverter isn't guaranteed across pubspec ranges), and a
+  // correctly-escaped CSV line is trivial to build by hand.
+  String _escapeCsvField(String field) {
+    final needsQuoting =
+        field.contains(',') || field.contains('"') || field.contains('\n');
+    if (!needsQuoting) return field;
+    return '"${field.replaceAll('"', '""')}"';
+  }
+
+  String _buildCsv(List<String> headers, List<List<String>> rows) {
+    final buffer = StringBuffer();
+    buffer.writeln(headers.map(_escapeCsvField).join(','));
+    for (final row in rows) {
+      buffer.writeln(row.map(_escapeCsvField).join(','));
+    }
+    return buffer.toString();
   }
 
   Future<void> _exportReport() async {
@@ -78,7 +130,7 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Export Report'),
-        content: const Text('Choose format for last 7 days:'),
+        content: const Text('Choose format:'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'csv'),
@@ -94,28 +146,64 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
 
     if (format == null) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Exporting $format for last 7 days...')),
-    );
-
+    // NOTE: '/staticfirewall/export' does not exist on the backend at all,
+    // so the export is generated fully client-side from the data already
+    // loaded/filtered on screen.
     try {
-      final response = await BaseService.dio.post(
-        '/staticfirewall/export',
-        data: {
-          'format': format,
-          'days': 7,
-          'type': _tab == ReportTab.threats ? 'threats' : 'logs',
-          'severity': _severityFilter,
-        },
-      );
+      final isThreats = _tab == ReportTab.threats;
+      final headers = isThreats
+          ? ['Attack Name', 'Attack Source', 'Severity', 'Status', 'Date']
+          : ['Timestamp', 'Level', 'Source', 'Type', 'Message'];
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Download started')));
+      final rows = isThreats
+          ? _filteredThreats
+              .map((t) => [t.attackName, t.attackSource, t.severity, t.status, t.date])
+              .toList()
+          : _filteredLogs
+              .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
+              .toList();
+
+      Uint8List bytes;
+      String filename;
+
+      if (format == 'csv') {
+        final csvData = _buildCsv(headers, rows);
+        bytes = Uint8List.fromList(utf8.encode(csvData));
+        filename = 'report.csv';
+      } else {
+        final doc = pw.Document();
+        doc.addPage(
+          pw.Page(
+            build: (context) => pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: rows,
+            ),
+          ),
+        );
+        bytes = await doc.save();
+        filename = 'report.pdf';
+      }
+
+      if (kIsWeb) {
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', filename);
+        anchor.click();
+        html.Url.revokeObjectUrl(url);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$filename downloaded')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Export failed. Check backend.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
     }
   }
 
@@ -135,37 +223,61 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
             child: Column(
               children: [
                 const _TopBarAnalyst(title: 'Reports'),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildTabsAndActions(),
-                              const SizedBox(height: 16),
-                              _buildSearchAndFilters(),
-                              const SizedBox(height: 20),
-                              _tab == ReportTab.threats
-                                  ? ThreatsTabContent(
-                                      threats: _threats,
-                                      severityFilter: _severityFilter,
-                                      dateFilter: _dateFilter,
-                                    )
-                                  : LogsTabContent(
-                                      logs: _logs,
-                                      levelFilter: _levelFilter,
-                                      typeFilter: _typeFilter,
-                                    ),
-                            ],
-                          ),
-                        ),
-                ),
+                Expanded(child: _buildBody()),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTabsAndActions(),
+            const SizedBox(height: 16),
+            _buildSearchAndFilters(),
+            const SizedBox(height: 20),
+            _tab == ReportTab.threats
+                ? ThreatsTabContent(
+                    threats: _filteredThreats,
+                    severityFilter: _severityFilter,
+                    dateFilter: _daysFilter.toString(),
+                  )
+                : LogsTabContent(
+                    logs: _filteredLogs,
+                    levelFilter: _levelFilter,
+                    typeFilter: _typeFilter,
+                  ),
+          ],
+        ),
       ),
     );
   }
@@ -224,7 +336,7 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
             onChanged: (v) => setState(() => _severityFilter = v),
           ),
           const SizedBox(width: 8),
-          _DateFilter(onChanged: (v) => setState(() => _dateFilter = v)),
+          _DateFilter(currentDays: _daysFilter, onChanged: (v) => setState(() => _daysFilter = v)),
         ] else ...[
           _DropdownFilter(
             value: _levelFilter,
@@ -233,10 +345,12 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
           ),
           const SizedBox(width: 8),
           _DropdownFilter(
-            value: _typeFilter,
-            options: const ['all types', 'Security', 'Firewall', 'AI Engine'],
+            value: _typeOptions.contains(_typeFilter) ? _typeFilter : 'all types',
+            options: _typeOptions,
             onChanged: (v) => setState(() => _typeFilter = v),
           ),
+          const SizedBox(width: 8),
+          _DateFilter(currentDays: _daysFilter, onChanged: (v) => setState(() => _daysFilter = v)),
         ],
       ],
     );
@@ -315,7 +429,7 @@ class _DropdownFilter extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButton<String>(
-        value: value,
+        value: options.contains(value) ? value : options.first,
         dropdownColor: NKColors.cardDark,
         icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
         style: const TextStyle(color: NKColors.bg),
@@ -329,10 +443,11 @@ class _DropdownFilter extends StatelessWidget {
   }
 }
 
-// Date Filter
+// Date Filter — real working dropdown wired to onChanged.
 class _DateFilter extends StatelessWidget {
-  final ValueChanged<String> onChanged;
-  const _DateFilter({required this.onChanged});
+  final int currentDays;
+  final ValueChanged<int> onChanged;
+  const _DateFilter({required this.currentDays, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -342,21 +457,26 @@ class _DateFilter extends StatelessWidget {
         color: const Color(0xFF1D242B),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.calendar_today, size: 16, color: Colors.white),
-          SizedBox(width: 6),
-          Text('Last 7 days', style: TextStyle(color: Colors.white)),
+      child: DropdownButton<int>(
+        value: currentDays,
+        dropdownColor: NKColors.cardDark,
+        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+        style: const TextStyle(color: Colors.white),
+        underline: const SizedBox(),
+        items: const [
+          DropdownMenuItem(value: 1, child: Text('Last 1 day')),
+          DropdownMenuItem(value: 7, child: Text('Last 7 days')),
+          DropdownMenuItem(value: 14, child: Text('Last 14 days')),
         ],
+        onChanged: (v) => onChanged(v!),
       ),
     );
   }
 }
 
 class _TopBarAnalyst extends StatelessWidget {
+  const _TopBarAnalyst({required this.title});
   final String title;
-  const _TopBarAnalyst({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {

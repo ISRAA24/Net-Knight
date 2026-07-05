@@ -6,10 +6,33 @@ class NatService {
   final Dio _dio = BaseService.dio;
 
   // ─── Get Interfaces from API ──────────────────────────
+  // The Python firewall agent's response shape isn't guaranteed (it can
+  // come back either as a plain list, or as {interfaces: [...]}), so we
+  // handle both here instead of assuming one fixed shape (which meant the
+  // interface dropdown could silently end up empty).
   Future<List<String>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
-    final List data = response.data['data']['interfaces'];
-    return data.map((e) => e['name'].toString()).toList();
+    final data = response.data['data'];
+
+    List raw;
+    if (data is List) {
+      raw = data;
+    } else if (data is Map && data['interfaces'] is List) {
+      raw = data['interfaces'] as List;
+    } else {
+      raw = const [];
+    }
+
+    return raw
+        .map((e) {
+          if (e is Map) {
+            return e['name'] ?? e['logicalName'] ?? e['realName'];
+          }
+          return e;
+        })
+        .where((e) => e != null)
+        .map((e) => e.toString())
+        .toList();
   }
 
   Future<String> previewNat(Map<String, dynamic> data) async {
