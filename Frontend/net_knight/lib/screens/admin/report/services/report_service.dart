@@ -6,8 +6,9 @@ class ReportService {
   Future<List<ThreatModel>> getThreats({int days = 7}) async {
     try {
       final response = await BaseService.dio.get('/ai/threats', queryParameters: {'days': days});
-      if (response.data is List) {
-        return (response.data as List).map((e) => ThreatModel.fromJson(e)).toList();
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => ThreatModel.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -19,8 +20,9 @@ class ReportService {
   Future<List<LogModel>> getLogs({int days = 7}) async {
     try {
       final response = await BaseService.dio.get('/staticfirewall/logs', queryParameters: {'days': days});
-      if (response.data is List) {
-        return (response.data as List).map((e) => LogModel.fromJson(e)).toList();
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => LogModel.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -29,6 +31,9 @@ class ReportService {
     }
   }
 
+  // NOTE: '/reports/export' is not implemented on the backend at all
+  // (no route file mounted at /api/reports in server.js). This call will
+  // keep failing until that endpoint is added server-side.
   Future<Response> exportReport({int days = 7, required String format}) async {
     try {
       final response = await BaseService.dio.get(

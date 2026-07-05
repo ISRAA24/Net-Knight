@@ -5,17 +5,17 @@ class StatService {
   Future<StatData> getDashboardStats() async {
     try {
       final response = await BaseService.dio.get('/dashboard/stats');
-      final data = response.data as Map<String, dynamic>;
+      final data = response.data['data'] as Map<String, dynamic>;
 
       return StatData(
-        totalThreat: data['totalThreat']?.toString() ?? '0',
-        blockedAttack: data['blockedAttack']?.toString() ?? '0',
+        totalThreat: data['totalThreats']?.toString() ?? '0',
+        blockedAttack: data['blockedAttacks']?.toString() ?? '0',
         activeRules: data['activeRules']?.toString() ?? '0',
         pendingApprovals: data['pendingApprovals']?.toString() ?? '0',
-        trend: data['trend']?.toString() ?? '↗ 0%',
-        blockedTrend: data['blockedTrend']?.toString() ?? '↗ 0%',
-        activeTrend: data['activeTrend']?.toString() ?? '↗ 0%',
-        pendingTrend: data['pendingTrend']?.toString() ?? '— 0%',
+        trend: '↗ 0%',
+        blockedTrend: '↗ 0%',
+        activeTrend: '↗ 0%',
+        pendingTrend: '— 0%',
       );
     } catch (e) {
       print('Error fetching stats: $e');
@@ -34,9 +34,12 @@ class StatService {
 
   Future<List<ThreatData>> getThreats() async {
     try {
-      final response = await BaseService.dio.get('/dashboard/threats');
-      if (response.data is List) {
-        return (response.data as List).map((e) => ThreatData.fromJson(e)).toList();
+      // NOTE: '/dashboard/threats' does not exist on the backend.
+      // Threats actually live under '/ai/threats'.
+      final response = await BaseService.dio.get('/ai/threats');
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => ThreatData.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -45,6 +48,10 @@ class StatService {
     }
   }
 
+  // NOTE: There is currently NO backend endpoint that returns system
+  // status (firewall engine / AI detection model / RL agent / nftables
+  // controller). This needs to be added server-side first — until then
+  // this will always fail and callers should rely on fallback data.
   Future<List<StatusData>> getSystemStatus() async {
     try {
       final response = await BaseService.dio.get('/dashboard/status');

@@ -27,7 +27,7 @@ class RuleModel {
         'ipSource': ipSource,
         'ipDestination': ipDestination,
         'portDestination': portDestination,
-        'interface': interface,
+        'networkInterface': interface,
         'protocol': protocol,
         'action': action,
         'family': family,

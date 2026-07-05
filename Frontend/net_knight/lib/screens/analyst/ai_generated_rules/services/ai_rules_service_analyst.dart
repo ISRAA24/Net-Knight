@@ -6,7 +6,7 @@ class AiRulesServiceAnalyst {
   final Dio _dio = BaseService.dio;
 
   Future<List<AiRuleModelAnalyst>> getRules() async {
-    final response = await _dio.get('/ai-rules');
+    final response = await _dio.get('/ai/rules');
     final List data = response.data['data'];
     return data.map((e) => AiRuleModelAnalyst.fromJson(e)).toList();
   }

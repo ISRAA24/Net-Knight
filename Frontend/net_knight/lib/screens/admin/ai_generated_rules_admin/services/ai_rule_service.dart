@@ -5,8 +5,9 @@ class AiRuleService {
   Future<List<AiRuleModel>> getAiRules() async {
     try {
       final response = await BaseService.dio.get('/ai/rules');
-      if (response.data is List) {
-        return (response.data as List).map((e) => AiRuleModel.fromJson(e)).toList();
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => AiRuleModel.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -17,7 +18,7 @@ class AiRuleService {
 
   Future<bool> approveRule(String id) async {
     try {
-      await BaseService.dio.post('/ai/rules/$id/approve');
+      await BaseService.dio.put('/ai/rules/$id/review', data: {'decision': 'approve'});
       return true;
     } catch (e) {
       print('Error approving rule: $e');
@@ -27,7 +28,7 @@ class AiRuleService {
 
   Future<bool> rejectRule(String id) async {
     try {
-      await BaseService.dio.post('/ai/rules/$id/reject');
+      await BaseService.dio.put('/ai/rules/$id/review', data: {'decision': 'reject'});
       return true;
     } catch (e) {
       print('Error rejecting rule: $e');

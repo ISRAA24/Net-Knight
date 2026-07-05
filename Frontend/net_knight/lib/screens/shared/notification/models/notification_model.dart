@@ -3,7 +3,7 @@ class NotificationModel {
   final String title;
   final String description;
   final String time;
-  final String type; // threat, rule, system, etc.
+  final String type; // ai_rule_pending, threat_alert, traffic_spike
   bool isRead;
 
   NotificationModel({
@@ -17,10 +17,10 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] ?? '',
+      id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      time: json['time'] ?? '',
+      description: json['message'] ?? json['description'] ?? '',
+      time: json['createdAt'] ?? json['time'] ?? '',
       type: json['type'] ?? 'system',
       isRead: json['isRead'] ?? false,
     );

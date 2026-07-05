@@ -4,9 +4,13 @@ import '../models/reports_model_analyst.dart';
 class ReportsServiceAnalyst {
   Future<List<ThreatModel>> getThreats({String dateFilter = 'last7days'}) async {
     try {
-      final response = await BaseService.dio.get('/staticfirewall/threats', queryParameters: {'dateFilter': dateFilter});
-      if (response.data is List) {
-        return (response.data as List).map((e) => ThreatModel.fromJson(e)).toList();
+      final response = await BaseService.dio.get(
+        '/ai/threats',
+        queryParameters: {'dateFilter': dateFilter},
+      );
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => ThreatModel.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -18,8 +22,9 @@ class ReportsServiceAnalyst {
   Future<List<LogModel>> getLogs() async {
     try {
       final response = await BaseService.dio.get('/staticfirewall/logs');
-      if (response.data is List) {
-        return (response.data as List).map((e) => LogModel.fromJson(e)).toList();
+      final data = response.data['data'];
+      if (data is List) {
+        return data.map((e) => LogModel.fromJson(e)).toList();
       }
       return [];
     } catch (e) {

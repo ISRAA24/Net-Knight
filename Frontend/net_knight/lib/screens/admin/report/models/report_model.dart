@@ -15,11 +15,11 @@ class ThreatModel {
 
   factory ThreatModel.fromJson(Map<String, dynamic> json) {
     return ThreatModel(
-      attackName: json['attackName'] ?? '',
-      attackSource: json['attackSource'] ?? '',
+      attackName: json['attackType'] ?? json['attackName'] ?? '',
+      attackSource: json['sourceIp'] ?? json['attackSource'] ?? '',
       severity: json['severity'] ?? '',
       status: json['status'] ?? '',
-      date: json['date'] ?? '',
+      date: json['createdAt'] ?? json['date'] ?? '',
     );
   }
 }
@@ -41,13 +41,15 @@ class LogModel {
     required this.ip,
   });
 
+  // Backend (audit.controller.js -> getAuditLogs) actually returns:
+  // { no, date, userName, action, target, details }
   factory LogModel.fromJson(Map<String, dynamic> json) {
     return LogModel(
-      timestamp: json['timestamp'] ?? '',
-      level: json['level'] ?? '',
-      source: json['source'] ?? '',
-      type: json['type'] ?? '',
-      message: json['message'] ?? '',
+      timestamp: json['date'] ?? json['timestamp'] ?? '',
+      level: json['level'] ?? 'INFO',
+      source: json['userName'] ?? json['source'] ?? '',
+      type: json['action'] ?? json['type'] ?? '',
+      message: json['details'] ?? json['message'] ?? json['target'] ?? '',
       ip: json['ip'] ?? '-',
     );
   }

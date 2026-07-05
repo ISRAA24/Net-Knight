@@ -31,6 +31,7 @@ class AiRuleModelAnalyst {
   static AiRuleStatusAnalyst _parseStatus(dynamic s) {
     switch (s?.toString().toLowerCase()) {
       case 'approved':
+      case 'auto-approved':
         return AiRuleStatusAnalyst.approved;
       case 'rejected':
         return AiRuleStatusAnalyst.rejected;

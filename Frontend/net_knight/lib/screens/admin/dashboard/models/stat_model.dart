@@ -68,13 +68,17 @@ class ThreatData {
     required this.time,
   });
 
+  // Backend (/ai/threats) actually returns Threat documents shaped like:
+  // { sourceIp, attackType, severity, confidence, createdAt, details }
   factory ThreatData.fromJson(Map<String, dynamic> json) {
     return ThreatData(
-      ip: json['ip'] ?? '',
-      type: json['type'] ?? '',
-      level: json['level'] ?? '',
-      confidence: json['confidence']?.toString() ?? '0%',
-      time: json['time'] ?? '',
+      ip: json['sourceIp'] ?? json['ip'] ?? '',
+      type: json['attackType'] ?? json['type'] ?? '',
+      level: json['severity'] ?? json['level'] ?? '',
+      confidence: json['confidence'] != null
+          ? '${json['confidence']}%'
+          : (json['confidence']?.toString() ?? '0%'),
+      time: json['createdAt'] ?? json['time'] ?? '',
     );
   }
 }
