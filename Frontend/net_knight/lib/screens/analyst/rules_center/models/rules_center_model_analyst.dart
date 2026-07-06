@@ -58,6 +58,7 @@ class NatRuleModelAnalyst {
   final String sourceIp;
   final String interfaceName;
   final String destIp;
+  final String newSourceIp;
   final String extPort;
   final String intPort;
   final String natType;
@@ -69,6 +70,7 @@ class NatRuleModelAnalyst {
     required this.sourceIp,
     required this.interfaceName,
     required this.destIp,
+    required this.newSourceIp,
     required this.extPort,
     required this.intPort,
     required this.natType,
@@ -92,6 +94,7 @@ class NatRuleModelAnalyst {
           json['interfaceName'] ??
           '—',
       destIp: json['new_source_ip'] ?? json['dest_ip'] ?? json['destIp'] ?? '—',
+      newSourceIp: json['new_source_ip']?.toString() ?? json['newSourceIp'] ?? '—',
       extPort: json['ext_port']?.toString() ?? json['extPort'] ?? '—',
       intPort: json['int_port']?.toString() ?? json['intPort'] ?? '—',
       natType: json['nat_type'] ?? json['natType'] ?? '',

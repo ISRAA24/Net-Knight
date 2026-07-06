@@ -60,6 +60,15 @@ class NatTableAnalyst extends StatelessWidget {
                         const Divider(height: 1, color: Colors.black),
                     itemBuilder: (_, i) {
                       final rule = rows[i];
+                      final type = rule.natType.toLowerCase();
+                      final displayIp =
+                          (type == 'destination' || type == 'dnat')
+                          ? (rule.destIp.isEmpty ? '—' : rule.destIp)
+                          : (type == 'source' ||
+                                type == 'snat' ||
+                                type == 'source nat')
+                          ? (rule.newSourceIp.isEmpty ? '—' : rule.newSourceIp)
+                          : '—';
                       return IntrinsicHeight(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -67,7 +76,8 @@ class NatTableAnalyst extends StatelessWidget {
                             TDWidgetAnalyst(
                               flex: 2,
                               child: ReadOnlyToggleAnalyst(
-                                  enabled: rule.enabled),
+                                enabled: rule.enabled,
+                              ),
                             ),
                             const VDAnalyst(),
                             TDAnalyst(rule.sourceIp, flex: 3),
@@ -75,6 +85,8 @@ class NatTableAnalyst extends StatelessWidget {
                             TDAnalyst(rule.interfaceName, flex: 2),
                             const VDAnalyst(),
                             TDAnalyst(rule.destIp, flex: 3),
+                            const VDAnalyst(),
+                            TDAnalyst(displayIp, flex: 3),
                             const VDAnalyst(),
                             TDAnalyst(rule.extPort, flex: 2),
                             const VDAnalyst(),

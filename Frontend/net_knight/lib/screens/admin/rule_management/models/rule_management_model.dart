@@ -57,7 +57,7 @@ class RuleModel {
 class NatRuleModel {
   final String id;
   bool enabled;
-  String sourceIp, interfaceName, destIp, extPort, intPort, natType;
+  String sourceIp, interfaceName, destIp, extPort, intPort, natType, newSourceIp;
   final String created;
 
   NatRuleModel({
@@ -66,6 +66,7 @@ class NatRuleModel {
     required this.sourceIp,
     required this.interfaceName,
     required this.destIp,
+    required this.newSourceIp,
     required this.extPort,
     required this.intPort,
     required this.natType,
@@ -82,6 +83,7 @@ class NatRuleModel {
           json['interfaceName']?.toString() ??
           '',
       destIp: json['new_source_ip']?.toString() ?? json['dest_ip']?.toString() ?? json['destIp']?.toString() ?? '',
+      newSourceIp: json['new_source_ip']?.toString() ?? json['newSourceIp']?.toString() ?? '',
       extPort: json['ext_port']?.toString() ?? json['extPort']?.toString() ?? '',
       intPort: json['int_port']?.toString() ?? json['intPort']?.toString() ?? '',
       natType: json['nat_type']?.toString() ?? json['natType']?.toString() ?? 'Masquerade',

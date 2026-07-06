@@ -8,8 +8,8 @@ import '../models/rule_management_model.dart';
 // (Status, Rule Name, Source IP, Action, Origin, Created, Actions).
 class RuleTable extends StatelessWidget {
   final List<RuleModel> rules;
-  final Function(String id, bool enabled) onToggle;
-  final Function(String id) onDelete;
+  final Function(String id, bool enabled, bool isAi) onToggle;
+  final Function(String id, bool isAi) onDelete;
 
   const RuleTable({
     super.key,
@@ -77,8 +77,8 @@ class RuleTable extends StatelessWidget {
 
 class _RuleRow extends StatelessWidget {
   final RuleModel rule;
-  final Function(String id, bool enabled) onToggle;
-  final Function(String id) onDelete;
+  final Function(String id, bool enabled, bool isAi) onToggle;
+  final Function(String id, bool isAi) onDelete;
 
   const _RuleRow({
     required this.rule,
@@ -100,7 +100,7 @@ class _RuleRow extends StatelessWidget {
               // the switch is read-only for them.
               child: _SmallToggle(
                 value: rule.enabled,
-                onChanged: (v) => onToggle(rule.id, v),
+                onChanged: (v) => onToggle(rule.id, v, rule.isAi),
               ),
             ),
           ),
@@ -138,7 +138,7 @@ class _RuleRow extends StatelessWidget {
               // its firewall handles (handled by /ai/rules/:id), which is
               // a different endpoint than static rules — not wired up
               // here, so we disable delete for AI rules on this screen.
-              onPressed: () => onDelete(rule.id),
+              onPressed: () => onDelete(rule.id , rule.isAi),
             ),
           ),
         ],

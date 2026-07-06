@@ -83,8 +83,8 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
         .toList();
   }
 
-  Future<void> _toggleRule(String id, bool enabled) async {
-    final success = await _service.toggleRule(id);
+  Future<void> _toggleRule(String id, bool enabled , bool isAi ) async {
+    final success = await _service.toggleRule(id, isAi: isAi);
     if (success) {
       _loadData();
     } else if (mounted) {
@@ -92,8 +92,8 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
     }
   }
 
-  Future<void> _deleteRule(String id) async {
-    final success = await _service.deleteRule(id);
+  Future<void> _deleteRule(String id , bool isAi ) async {
+    final success = await _service.deleteRule(id, isAi: isAi);
     if (success) {
       _loadData();
     } else if (mounted) {
