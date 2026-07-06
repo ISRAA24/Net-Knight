@@ -345,23 +345,35 @@ exports.getAllRules = async (req, res) => {
         }).lean();
 
         // 3. توحيد شكل الرولز الثابتة (Static Rules)
-        const formattedStaticRules = staticRules.map(rule => ({
+       const formattedStaticRules = staticRules.map(rule => ({
             _id: rule._id,
-            ruleName: rule.name || rule.ruleName || '-', // الاسم
-            sourceIp: rule.sourceIp || rule.ip || '-',   // الـ IP
-            action: rule.action || '-',                  // الـ Action
-            ruleType: rule.ruleType || 'Static',         // النوع
-            expireAt: rule.expireAt || '-',              // تاريخ الانتهاء
-            isActive: rule.isActive !== undefined ? rule.isActive : true, // الحالة
-            isAi: false, // فلاج للفرونت إند للتمييز
-            createdAt: rule.createdAt
+            // قراءة الاسم من حقل comment بناءً على الـ Schema
+            ruleName: rule.comment || rule.name || rule.ruleName || '-', 
+            // قراءة الأولوية من handleId
+            priority: rule.handleId || rule.priority || '-',              
+            // قراءة الـ Source IP من ipSource
+            sourceIp: rule.ipSource || rule.sourceIp || rule.ip || 'ANY', 
+            // قراءة الـ Destination IP من ipDestination
+            destination: rule.ipDestination || rule.destination || '-',   
+            // قراءة الـ Port من portDestination
+            port: rule.portDestination || rule.port || '*',               
+            protocol: rule.protocol || 'ANY',            
+            action: rule.action || '-',                  
+            ruleType: 'Static',         
+            expireAt: rule.expireAt || '-',              
+            isActive: rule.isActive !== undefined ? rule.isActive : true, 
+            isAi: false, 
+            createdAt: rule.createdAt || rule.updatedAt // في حال لم يكن createdAt متاحاً
         }));
-
         // 4. توحيد شكل رولز الذكاء الاصطناعي (AI Rules)
         const formattedAiRules = aiRules.map(rule => ({
             _id: rule._id,
             ruleName: `AI_Dynamic_${rule.sourceIp}`,      // اسم تلقائي
+            priority: rule.priority || '-',               // تمت الإضافة: الأولوية (إن وجدت)
             sourceIp: rule.sourceIp || '-',
+            destination: rule.destination || '-',         // تمت الإضافة لتجنب الأخطاء في الفرونت
+            port: rule.port || '*',                       // تمت الإضافة
+            protocol: rule.protocol || 'ANY',             // تمت الإضافة
             action: rule.action || '-',
             ruleType: 'AI Dynamic',                       // النوع
             expireAt: rule.expireAt || '-',
