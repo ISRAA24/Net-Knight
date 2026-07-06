@@ -28,7 +28,7 @@ class Sidebar extends StatelessWidget {
                     isActive: currentRoute == '/dashboard'),
                 _NavItem(LucideIcons.cpu, 'AI Generated Rules',
                     route: '/ai-rules-admin', isActive: currentRoute == '/ai-rules-admin'),
-                _NavItem(LucideIcons.list, 'Rules Management',
+                _NavItem(LucideIcons.list, 'Rules Center',
                     route: '/rules-management',
                     isActive: currentRoute == '/rules-management'),
                 const _NavSection('STATIC RULES'),
