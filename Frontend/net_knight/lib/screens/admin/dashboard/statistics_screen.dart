@@ -73,6 +73,11 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
     }
   }
 
+  // "view all" on the Threat Alerts card -> Reports (admin's own reports screen).
+  Future<Object?> _goToReports() {
+    return Navigator.pushNamed(context, '/reports-admin');
+  }
+
   @override
   Widget build(BuildContext context) {
     final metrics = _socket.metrics;
@@ -100,27 +105,31 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
                           inboundSpots: metrics.inboundSpots,
                         ),
                         const SizedBox(height: 20),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: SystemStatusCard(
-                                statuses: _statuses,
-                                cpuUsage: metrics.cpuUsage,
-                                memoryUsage: metrics.memoryUsage,
-                                packetsPerSec: metrics.packetsPerSec,
-                                activeConnections: metrics.activeConnections,
+                        // ⚠️ FIX: Threat Alerts and System Status now share
+                        // the exact same height (IntrinsicHeight + stretch),
+                        // instead of each sizing itself independently.
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: SystemStatusCard(
+                                  statuses: _statuses,
+                                  cpuUsage: metrics.cpuUsage,
+                                  memoryUsage: metrics.memoryUsage,
+                                  packetsPerSec: metrics.packetsPerSec,
+                                  activeConnections: metrics.activeConnections,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ThreatAlertsCard(
-                                threats: _threats,
-                                onViewAll: () =>
-                                    Navigator.pushNamed(context, '/reports'),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ThreatAlertsCard(
+                                  threats: _threats,
+                                  onViewAll: _goToReports,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

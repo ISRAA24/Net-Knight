@@ -6,6 +6,10 @@ class AiRuleModelAnalyst {
   final String action;
   final String pattern;
   final String guide;
+  // ⚠️ ADDED: the human-readable description (e.g. "Applying a temporary
+  // block on 192.168.1.104 for 60 minutes"), shown under the action inside
+  // the black box on the rule card — matching the admin screen.
+  final String? description;
   final AiRuleStatusAnalyst status;
 
   const AiRuleModelAnalyst({
@@ -14,6 +18,7 @@ class AiRuleModelAnalyst {
     required this.action,
     required this.pattern,
     required this.guide,
+    this.description,
     this.status = AiRuleStatusAnalyst.pending,
   });
 
@@ -23,7 +28,8 @@ class AiRuleModelAnalyst {
       timeAgo: json['timeAgo'] ?? json['created_at'] ?? '',
       action: json['action'] ?? '',
       pattern: json['pattern'] ?? '',
-      guide: json['guide'] ?? '',
+      guide: json['guide'] ?? json['explanation'] ?? '',
+      description: json['description']?.toString(),
       status: _parseStatus(json['status']),
     );
   }

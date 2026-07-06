@@ -6,11 +6,19 @@ import '../../../../core/theme/nk_text_styles.dart';
 
 class ThreatAlertsCard extends StatelessWidget {
   final List<ThreatData> threats;
-  const ThreatAlertsCard({super.key, required this.threats, required Future<Object?> Function() onViewAll});
+  final Future<Object?> Function() onViewAll;
+
+  const ThreatAlertsCard({
+    super.key,
+    required this.threats,
+    required this.onViewAll,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: NKColors.surface,
@@ -24,19 +32,40 @@ class ThreatAlertsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Threat Alerts', style: NKTextStyles.heading),
-              const Text('view all', style: TextStyle(color: NKColors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+              // ⚠️ FIX: "view all" was a static Text with no tap handler at
+              // all — onViewAll was accepted by the widget but never wired up.
+              InkWell(
+                onTap: () => onViewAll(),
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'view all',
+                    style: TextStyle(
+                        color: NKColors.blue,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('${threats.length} active threats', style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text('${threats.length} active threats',
+              style: const TextStyle(
+                  color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 300,
-            child: ListView.separated(
-              itemCount: threats.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _ThreatItem(data: threats[i]),
-            ),
+          Expanded(
+            child: threats.isEmpty
+                ? const Center(
+                    child: Text('No active threats',
+                        style: TextStyle(color: Colors.black38)),
+                  )
+                : ListView.separated(
+                    itemCount: threats.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, i) => _ThreatItem(data: threats[i]),
+                  ),
           ),
         ],
       ),
@@ -49,6 +78,12 @@ class _ThreatItem extends StatelessWidget {
   const _ThreatItem({required this.data});
 
   Color get _levelColor => data.level == 'Critical' ? NKColors.amber : NKColors.red;
+
+  // ⚠️ FIX: this previously always showed the hardcoded word "Block". It now
+  // shows the real mitigation action returned by the backend (e.g.
+  // "A2_TEMP_BLOCK"), falling back to "Block" only if the backend hasn't
+  // recorded one (older documents created before the `action` field existed).
+  String get _actionLabel => data.action.isNotEmpty ? data.action : 'Block';
 
   @override
   Widget build(BuildContext context) {
@@ -89,10 +124,7 @@ class _ThreatItem extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('confidence: ${data.confidence}', style: GoogleFonts.jetBrainsMono(color: const Color(0xFFCFD6E0), fontSize: 11)),
-                GestureDetector(
-                  onTap: () {},
-                  child: const Text('Block', style: TextStyle(color: Color(0xFFD5DADF), fontSize: 13)),
-                ),
+                Text(_actionLabel, style: const TextStyle(color: Color(0xFFD5DADF), fontSize: 13)),
               ],
             ),
           ),

@@ -2,6 +2,12 @@ class RuleModel {
   final String id;
   bool enabled;
   final String ruleName;
+  // ⚠️ ADDED: `priority` so the admin's Rules Center table can show the same
+  // columns as the analyst's Rules Center table (Status, Priority, Source IP,
+  // Destination, Port, Protocol, Action, Created, Origin). The backend's
+  // GET /staticfirewall/allRules doesn't return this field today, so it
+  // defaults to '-' the same way destination/port/protocol already did.
+  final String priority;
   String sourceIp, destination, port, protocol, action;
   final String created, origin;
   final bool isAi;
@@ -10,6 +16,7 @@ class RuleModel {
     required this.id,
     required this.enabled,
     this.ruleName = '-',
+    this.priority = '-',
     required this.sourceIp,
     required this.destination,
     required this.port,
@@ -31,6 +38,7 @@ class RuleModel {
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       enabled: json['isActive'] ?? json['enabled'] ?? true,
       ruleName: json['ruleName']?.toString() ?? '-',
+      priority: json['priority']?.toString() ?? '-',
       sourceIp: json['sourceIp']?.toString() ?? 'ANY',
       destination: json['destination']?.toString() ?? '-',
       port: json['port']?.toString() ?? '*',

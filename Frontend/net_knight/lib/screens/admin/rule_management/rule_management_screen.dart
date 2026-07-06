@@ -101,8 +101,6 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
     }
   }
 
-  // ⚠️ FIX: previously this just called _loadData() without hitting the
-  // backend at all, so the NAT toggle switch silently did nothing.
   Future<void> _toggleNatRule(String id, bool enabled) async {
     final success = await _service.toggleNatRule(id);
     if (success) {
@@ -112,7 +110,6 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
     }
   }
 
-  // ⚠️ FIX: same issue as _toggleNatRule.
   Future<void> _deleteNatRule(String id) async {
     final success = await _service.deleteNatRule(id);
     if (success) {
@@ -141,22 +138,25 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
               children: [
                 const _TopBar(title: 'Rules Center'),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ViewSelector(
-                          active: _activeView,
-                          onChanged: (v) => setState(() => _activeView = v),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSearchBar(),
-                        const SizedBox(height: 20),
-                        Expanded(
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : _activeView == RuleView.firewall
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      // ⚠️ FIX: the table now lives inside a scroll view and
+                      // sizes itself to its own content (grows/shrinks with
+                      // the number of rows) instead of being force-fit into a
+                      // fixed Expanded area that used to clip/overflow.
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ViewSelector(
+                                active: _activeView,
+                                onChanged: (v) => setState(() => _activeView = v),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildSearchBar(),
+                              const SizedBox(height: 20),
+                              _activeView == RuleView.firewall
                                   ? RuleTable(
                                       rules: _filteredRules,
                                       onToggle: _toggleRule,
@@ -167,10 +167,9 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
                                       onToggle: _toggleNatRule,
                                       onDelete: _deleteNatRule,
                                     ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),

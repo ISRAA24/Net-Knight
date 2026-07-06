@@ -83,6 +83,11 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     }
   }
 
+  // "view all" on the Threat Alerts card -> the analyst's own Reports screen.
+  void _goToReports() {
+    Navigator.pushNamed(context, '/reports');
+  }
+
   static final _fallbackStats = [
     StatDataAnalyst(
       label: 'Total Threat',
@@ -242,26 +247,32 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
               ],
             ),
             const SizedBox(height: 20),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: SystemStatusCardAnalyst(
-                    statuses: statuses,
-                    cpuUsage: metrics.cpuUsage,
-                    memoryUsage: metrics.memoryUsage,
-                    packetsPerSec: metrics.packetsPerSec,
-                    activeConnections: metrics.activeConnections,
+            // ⚠️ FIX: System Status and Threat Alerts now share the exact
+            // same box height (IntrinsicHeight + stretch), matching the
+            // admin dashboard's layout.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: SystemStatusCardAnalyst(
+                      statuses: statuses,
+                      cpuUsage: metrics.cpuUsage,
+                      memoryUsage: metrics.memoryUsage,
+                      packetsPerSec: metrics.packetsPerSec,
+                      activeConnections: metrics.activeConnections,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ThreatAlertsCardAnalyst(
-                    threats: threats,
-                    totalThreats: totalThreats,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ThreatAlertsCardAnalyst(
+                      threats: threats,
+                      totalThreats: totalThreats,
+                      onViewAll: _goToReports,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

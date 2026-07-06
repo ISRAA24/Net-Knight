@@ -38,10 +38,31 @@ class RuleCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
+          // ⚠️ FIX: the black box now shows the action AND the description
+          // underneath it (matching the reference sample: action
+          // "A2_TEMP_BLOCK" + description "Applying a temporary block on
+          // 192.168.1.104 for 60 minutes"), instead of only the raw action.
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: const Color(0xFF080B0F), borderRadius: BorderRadius.circular(8)),
-            child: Text(rule.action, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, color: Colors.blue, fontWeight: FontWeight.w500)),
+            child: Column(
+              children: [
+                Text(
+                  rule.action,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, color: Colors.blue, fontWeight: FontWeight.w500),
+                ),
+                if ((rule.description ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    rule.description!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12.5, color: Colors.white70),
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -49,7 +70,7 @@ class RuleCard extends StatelessWidget {
           _sub(rule.guide),
           const SizedBox(height: 16),
 
-          // Detected Pattern - يبدأ بـ mitigation_reason
+          // Detected Pattern - يبدأ بـ mitigation_reason (بدون الـ summary)
           _label('Detected Pattern'),
           const SizedBox(height: 8),
           _DetectedPatternSection(rule: rule),
@@ -96,6 +117,11 @@ class _DetectedPatternSectionState extends State<_DetectedPatternSection> {
   @override
   Widget build(BuildContext context) {
     final details = widget.rule.explanationDetails;
+    // ⚠️ REMOVED: the `summary` field used to be shown here as an extra line
+    // above the mitigation reason — it duplicated the black action box /
+    // "The guide" text, so it's no longer rendered. Everything else in this
+    // section (mitigation reason, analyst notes, evidence, IDS/anomaly
+    // details) stays exactly as before.
     final mitigation = details?['mitigation_reason']?.toString() ?? widget.rule.mitigationReason ?? widget.rule.description ?? 'No mitigation details available';
     final analystNotes = details?['analyst_notes']?.toString() ?? '';
 

@@ -90,14 +90,20 @@ class NotificationCard extends StatelessWidget {
     );
   }
 
+  // ⚠️ FIX: the backend only ever sends `type` as one of
+  // 'ai_rule_pending' | 'threat_alert' | 'traffic_spike'
+  // (see Backend/src/models/notification.js + notificationHelper.js).
+  // The old switch statements here compared against 'threat' / 'rule' /
+  // 'system', which never matched anything, so every notification silently
+  // fell back to the generic grey bell icon regardless of its real type.
   IconData _getIcon(String type) {
     switch (type.toLowerCase()) {
-      case 'threat':
+      case 'threat_alert':
         return Icons.warning_amber_rounded;
-      case 'rule':
+      case 'ai_rule_pending':
         return Icons.rule;
-      case 'system':
-        return Icons.settings;
+      case 'traffic_spike':
+        return Icons.bolt;
       default:
         return Icons.notifications;
     }
@@ -105,12 +111,12 @@ class NotificationCard extends StatelessWidget {
 
   Color _getIconBg(String type) {
     switch (type.toLowerCase()) {
-      case 'threat':
+      case 'threat_alert':
         return Colors.red.withOpacity(0.2);
-      case 'rule':
+      case 'ai_rule_pending':
         return Colors.orange.withOpacity(0.2);
-      case 'system':
-        return Colors.blue.withOpacity(0.2);
+      case 'traffic_spike':
+        return Colors.amber.withOpacity(0.2);
       default:
         return Colors.grey.withOpacity(0.2);
     }
@@ -118,12 +124,12 @@ class NotificationCard extends StatelessWidget {
 
   Color _getIconColor(String type) {
     switch (type.toLowerCase()) {
-      case 'threat':
+      case 'threat_alert':
         return Colors.red;
-      case 'rule':
+      case 'ai_rule_pending':
         return Colors.orange;
-      case 'system':
-        return Colors.blue;
+      case 'traffic_spike':
+        return Colors.amber;
       default:
         return Colors.grey;
     }

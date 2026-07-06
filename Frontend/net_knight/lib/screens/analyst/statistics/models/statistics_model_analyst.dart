@@ -65,6 +65,9 @@ class ThreatDataAnalyst {
   final String level;
   final String confidence;
   final String time;
+  // ⚠️ ADDED: real mitigation action from the backend Threat document,
+  // used instead of a hardcoded "Block" label.
+  final String action;
 
   const ThreatDataAnalyst({
     required this.ip,
@@ -72,6 +75,7 @@ class ThreatDataAnalyst {
     required this.level,
     required this.confidence,
     required this.time,
+    this.action = '',
   });
 
   factory ThreatDataAnalyst.fromJson(Map<String, dynamic> json) {
@@ -81,6 +85,7 @@ class ThreatDataAnalyst {
       level: json['level'] ?? '',
       confidence: json['confidence'] ?? '',
       time: json['time'] ?? '',
+      action: (json['action'] ?? '').toString(),
     );
   }
 }

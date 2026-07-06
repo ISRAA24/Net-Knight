@@ -7,14 +7,18 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
     super.key,
     required this.threats,
     required this.totalThreats,
+    required this.onViewAll,
   });
 
   final List<ThreatDataAnalyst> threats;
   final int totalThreats;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FB),
@@ -24,13 +28,35 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Threat Alerts',
-            style: GoogleFonts.rajdhani(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-              color: const Color(0xFF1D242B),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Threat Alerts',
+                style: GoogleFonts.rajdhani(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: const Color(0xFF1D242B),
+                ),
+              ),
+              // ⚠️ ADDED: analyst side previously had no "view all" affordance
+              // at all on this card — added to match the admin card and
+              // navigate to the analyst's own Reports screen.
+              InkWell(
+                onTap: onViewAll,
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text(
+                    'view all',
+                    style: TextStyle(
+                        color: Color(0xFF3B82F6),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -41,13 +67,17 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 300,
-            child: ListView.separated(
-              itemCount: threats.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (_, i) => _ThreatItemAnalyst(threats[i]),
-            ),
+          Expanded(
+            child: threats.isEmpty
+                ? const Center(
+                    child: Text('No active threats',
+                        style: TextStyle(color: Colors.black38)),
+                  )
+                : ListView.separated(
+                    itemCount: threats.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, i) => _ThreatItemAnalyst(threats[i]),
+                  ),
           ),
         ],
       ),
@@ -61,6 +91,10 @@ class _ThreatItemAnalyst extends StatelessWidget {
 
   Color get _levelColor =>
       d.level == 'Critical' ? const Color(0xFFF59E0B) : const Color(0xFFF85149);
+
+  // ⚠️ FIX: previously showed a hardcoded "Block" label — now shows the real
+  // mitigation action coming from the backend (e.g. "A2_TEMP_BLOCK").
+  String get _actionLabel => d.action.isNotEmpty ? d.action : 'Block';
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +167,7 @@ class _ThreatItemAnalyst extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Block',
+                  _actionLabel,
                   style: GoogleFonts.roboto(
                     fontSize: 13,
                     color: const Color(0xFFD5DADF),

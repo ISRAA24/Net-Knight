@@ -59,6 +59,10 @@ class ThreatData {
   final String level;
   final String confidence;
   final String time;
+  // ⚠️ ADDED: the mitigation action taken for this threat (e.g. "A2_TEMP_BLOCK"),
+  // populated from the backend Threat document. Used to replace the previously
+  // hardcoded "Block" label on the Threat Alerts card.
+  final String action;
 
   const ThreatData({
     required this.ip,
@@ -66,10 +70,11 @@ class ThreatData {
     required this.level,
     required this.confidence,
     required this.time,
+    this.action = '',
   });
 
   // Backend (/ai/threats) actually returns Threat documents shaped like:
-  // { sourceIp, attackType, severity, confidence, createdAt, details }
+  // { sourceIp, attackType, severity, confidence, createdAt, details, action }
   factory ThreatData.fromJson(Map<String, dynamic> json) {
     return ThreatData(
       ip: json['sourceIp'] ?? json['ip'] ?? '',
@@ -79,6 +84,7 @@ class ThreatData {
           ? '${json['confidence']}%'
           : (json['confidence']?.toString() ?? '0%'),
       time: json['createdAt'] ?? json['time'] ?? '',
+      action: (json['action'] ?? '').toString(),
     );
   }
 }

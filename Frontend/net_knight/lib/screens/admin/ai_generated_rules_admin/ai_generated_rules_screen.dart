@@ -51,7 +51,16 @@ class _AiGeneratedRulesScreenAdminState
 
   Future<void> _approveRule(String id) async {
     final success = await _service.approveRule(id);
-    if (success) _loadRules();
+    if (success) {
+      _loadRules();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to approve rule'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _rejectRule(String id) async {
@@ -64,9 +73,8 @@ class _AiGeneratedRulesScreenAdminState
     if (success) _loadRules();
   }
 
-  Future<void> _toggleAutoApprove() async {
-    if (_autoApproveLoading) return;
-    final newValue = !_autoApprove;
+  Future<void> _toggleAutoApprove(bool? newValue) async {
+    if (_autoApproveLoading || newValue == null) return;
     setState(() {
       _autoApprove = newValue;
       _autoApproveLoading = true;
@@ -109,10 +117,91 @@ class _AiGeneratedRulesScreenAdminState
                       children: [
                         StatsRow(
                           autoApprove: _autoApprove,
-                          onToggleAuto: _toggleAutoApprove,
+                          onToggleAuto: () => _toggleAutoApprove(!_autoApprove),
                           rules: _rules,
                         ),
                         const SizedBox(height: 20),
+
+                        // ⚠️ ADDED: header row with "AI Generated Rules
+                        // Review" / "Rules awaiting approval: N" on the left
+                        // and the "Automatic Approval" checkbox on the right,
+                        // matching the reference screenshot. The checkbox is
+                        // wired to GET/PUT /ai/settings/auto-approve.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'AI Generated Rules Review',
+                                  style: GoogleFonts.rajdhani(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: const Color(0xFF1D242B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Rules awaiting approval: '
+                                  '${_rules.where((r) => r.status == AiRuleStatus.pending).length}',
+                                  style: const TextStyle(
+                                    fontFamily: 'Roboto',
+                                    color: Color.fromARGB(168, 0, 0, 0),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            InkWell(
+                              onTap: _autoApproveLoading
+                                  ? null
+                                  : () => _toggleAutoApprove(!_autoApprove),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: _autoApproveLoading
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(2),
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Checkbox(
+                                              value: _autoApprove,
+                                              onChanged: _toggleAutoApprove,
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Automatic Approval',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF1D242B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
                         _RulesSection(
                           rules: _rules,
                           isLoading: _isLoading,

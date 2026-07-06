@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:net_knight/main.dart';
+import 'package:net_knight/core/network/base_services.dart';
 import 'package:net_knight/screens/admin/dashboard/widgets/sidebar.dart';
+import 'package:net_knight/screens/analyst/ai_generated_rules/widgets/sidebar_analyst.dart';
 import 'package:provider/provider.dart';
 
 import 'models/notification_model.dart';
@@ -21,12 +23,41 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
   List<NotificationModel> _notifications = [];
   bool _isLoading = true;
 
+  // ⚠️ FIX: this screen used to always render the admin Sidebar, even when
+  // an analyst opened it from the bell icon on their own screens (analysts
+  // must never see admin-only navigation items). We now read the stored
+  // role and render the matching sidebar (Sidebar for admin/super_admin,
+  // SidebarAnalyst for analyst).
+  String _username = 'User';
+  String _role = '';
+  String _initials = 'U';
+  bool get _isAnalyst => _role.toLowerCase() == 'analyst';
+
   int get _unreadCount => _notifications.where((n) => !n.isRead).length;
 
   @override
   void initState() {
     super.initState();
+    _loadUserInfo();
     _loadNotifications();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final username = await TokenStorage.getUsername();
+    final role = await TokenStorage.getRole();
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _role = role;
+        _initials = _computeInitials(username);
+      });
+    }
+  }
+
+  String _computeInitials(String name) {
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    return 'U';
   }
 
   void _syncProvider() {
@@ -77,21 +108,20 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
     }
   }
 
-  Future<void> _deleteAllNotifications() async {
-    final success = await _service.deleteAllNotifications();
-    if (success) {
-      setState(() => _notifications = []);
-      _syncProvider();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B0E14),
       body: Row(
         children: [
-          const Sidebar(),
+          _isAnalyst
+              ? SidebarAnalyst(
+                  activeRoute: '/notifications',
+                  username: _username,
+                  role: _role,
+                  initials: _initials,
+                )
+              : const Sidebar(),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

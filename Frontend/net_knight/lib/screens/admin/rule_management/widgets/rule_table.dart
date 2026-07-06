@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../models/rule_management_model.dart';
 
+// ⚠️ FIX: this table now shows the same column set as the analyst's Rules
+// Center screen (Status, Priority, Source IP, Destination, Port, Protocol,
+// Action, Origin, Created, + Admin-only Delete), instead of a reduced set
+// (Status, Rule Name, Source IP, Action, Origin, Created, Actions).
 class RuleTable extends StatelessWidget {
   final List<RuleModel> rules;
   final Function(String id, bool enabled) onToggle;
@@ -19,14 +23,18 @@ class RuleTable extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               color: Colors.white,
               child: const Row(
                 children: [
                   _TH('Status', flex: 2),
-                  _TH('Rule Name', flex: 3),
+                  _TH('Priority', flex: 2),
                   _TH('Source IP', flex: 3),
+                  _TH('Destination', flex: 3),
+                  _TH('Port', flex: 2),
+                  _TH('Protocol', flex: 2),
                   _TH('Action', flex: 2),
                   _TH('Origin', flex: 2),
                   _TH('Created', flex: 2),
@@ -35,18 +43,21 @@ class RuleTable extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.black),
-            Expanded(
-              child: rules.isEmpty
-                  ? const Center(child: Text('No rules found'))
-                  : ListView.separated(
-                      itemCount: rules.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
-                      itemBuilder: (_, i) {
-                        final rule = rules[i];
-                        return _RuleRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
-                      },
-                    ),
-            ),
+            rules.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: Text('No rules found')),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: rules.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
+                    itemBuilder: (_, i) {
+                      final rule = rules[i];
+                      return _RuleRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
+                    },
+                  ),
           ],
         ),
       ),
@@ -80,9 +91,15 @@ class _RuleRow extends StatelessWidget {
             ),
           ),
           _VD(),
-          _TD(rule.ruleName, flex: 3),
+          _TD(rule.priority, flex: 2),
           _VD(),
           _TD(rule.sourceIp, flex: 3),
+          _VD(),
+          _TD(rule.destination, flex: 3),
+          _VD(),
+          _TD(rule.port, flex: 2),
+          _VD(),
+          _TD(rule.protocol, flex: 2),
           _VD(),
           _TDWidget(
             flex: 2,
@@ -128,7 +145,7 @@ class _TH extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
     ),
   );
 }
@@ -143,7 +160,7 @@ class _TD extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text),
+      child: Text(text, overflow: TextOverflow.ellipsis),
     ),
   );
 }

@@ -19,6 +19,7 @@ class NatTable extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               color: Colors.white,
@@ -37,18 +38,24 @@ class NatTable extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.black),
-            Expanded(
-              child: natRules.isEmpty
-                  ? const Center(child: Text('No NAT rules found'))
-                  : ListView.separated(
-                      itemCount: natRules.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
-                      itemBuilder: (_, i) {
-                        final rule = natRules[i];
-                        return _NatRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
-                      },
-                    ),
-            ),
+            // ⚠️ FIX: no longer wrapped in Expanded — the table now sizes
+            // itself to the number of NAT rules (grows/shrinks with data)
+            // since the parent screen puts this inside a scroll view.
+            natRules.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: Text('No NAT rules found')),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: natRules.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
+                    itemBuilder: (_, i) {
+                      final rule = natRules[i];
+                      return _NatRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
+                    },
+                  ),
           ],
         ),
       ),
@@ -124,7 +131,7 @@ class _TH extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
     ),
   );
 }
@@ -139,7 +146,7 @@ class _TD extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text),
+      child: Text(text, overflow: TextOverflow.ellipsis),
     ),
   );
 }
