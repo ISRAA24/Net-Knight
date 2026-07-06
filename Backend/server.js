@@ -57,32 +57,24 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications',   notificationRoutes);
 app.use(errorHandler);
 
-// ── HTTP Server + Socket.IO ──────────────────────────────────────────────────
-// لازم نعمل http.createServer عشان Socket.IO يشتغل على نفس الـ port
 const server = http.createServer(app);
  
 const io = new Server(server, {
     cors: {
-        origin: '*', // Flutter بيتوصل من أي مكان
+        origin: '*', 
         methods: ['GET', 'POST']
     }
 });
  
-// بدأنا الـ Socket.IO للداشبورد
+
 initDashboardSocket(io);
 
-// بدأنا الـ WebSocket الخام بتاع Network_Scripts (gateway/ws_monitor.py)
-// على /netknight/monitor — منفصل عن Socket.IO عمدًا (بروتوكولين مختلفين).
+
 initPythonMetricsSocket(server);
 
 const PORT = process.env.PORT || 3003;
 
-// ⚠️ كانت هنا bug حرج: app.listen(...) بيعمل http.createServer() *جديد* من
-// تحتك وبيشغّل هو اللي بيسمع فعليًا على الـ PORT — مش نفس الـ `server` اللي
-// وصّلنا عليه فوق Socket.IO والـ WebSocket الخام. يعني أي طلب upgrade
-// (Socket.IO من الفلاتر، أو WS من ws_monitor.py) كان بيوصل لسيرفر تاني
-// معندوش أي WebSocket handling خالص، فيرجع HTTP 404 عادي — وده بالظبط اللي
-// كان بيوصل لمهندس الشبكات. الحل: نستخدم نفس `server` اللي معاه Socket.IO/WS.
+
 server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server running on port ${PORT}`);
     logger.info(`Socket.IO ready for Flutter clients`);

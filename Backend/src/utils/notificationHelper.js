@@ -1,17 +1,10 @@
-/**
- * notificationHelper.js
- *
- * helper مركزي:
- *   ① يخزن الـ notification في MongoDB
- *   ② يعمل Socket.IO broadcast لكل الـ Flutter clients
- *   ③ يبعت email لكل الـ users المسجلين (super_admin, admin, analyst)
- */
+
 const Notification = require('../models/notification');
 const User         = require('../models/User');
 const sendEmail    = require('./sendEmail');
 const logger       = require('./logger');
 
-// ── lazy import لتجنب circular dependency مع dashboard.socket ───────────────
+
 let _broadcast = null;
 const getBroadcast = () => {
     if (!_broadcast)
@@ -19,11 +12,9 @@ const getBroadcast = () => {
     return _broadcast;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// buildEmailHtml — بتبني الـ HTML template حسب نوع الـ notification
-// ─────────────────────────────────────────────────────────────────────────────
+
 const buildEmailHtml = (username, notif) => {
-    // ألوان وأيقونات لكل نوع
+    
     const config = {
         ai_rule_pending: {
             emoji:       '🤖',
@@ -50,7 +41,7 @@ const buildEmailHtml = (username, notif) => {
 
     const c = config[notif.type] || config.traffic_spike;
 
-    // بيانات إضافية تظهر في جدول داخل الإيميل
+    
     const metaRows = buildMetaRows(notif);
 
     return `<!DOCTYPE html>
@@ -147,9 +138,7 @@ const buildEmailHtml = (username, notif) => {
 </html>`;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// buildMetaRows — بيبني صفوف الجدول من الـ metadata حسب نوع الـ notification
-// ─────────────────────────────────────────────────────────────────────────────
+
 const buildMetaRows = (notif) => {
     const m = notif.metadata || {};
     const rows = [];
@@ -186,18 +175,14 @@ const buildMetaRows = (notif) => {
     return rows.join('');
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// emailSubjects — عنوان الإيميل لكل نوع
-// ─────────────────────────────────────────────────────────────────────────────
+
 const emailSubjects = {
     ai_rule_pending: '⚠️ AI Rule Pending Review — Net-Knight',
     threat_alert:    '🚨 Threat Alert Detected — Net-Knight',
     traffic_spike:   '⚡ Unusual Traffic Spike — Net-Knight'
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// sendEmailsToAllUsers — بيجيب كل الـ users ويبعتلهم emails بشكل parallel
-// ─────────────────────────────────────────────────────────────────────────────
+
 const sendEmailsToAllUsers = async (notif) => {
     try {
         const users = await User.find({ isVerified: true }, 'email username');
@@ -212,12 +197,12 @@ const sendEmailsToAllUsers = async (notif) => {
                 html:    buildEmailHtml(user.username, notif),
                 message: notif.message // plain text fallback
             }).catch(err => {
-                // فشل إيميل واحد مش لازم يوقف الباقيين
+                
                 logger.warn(`Email to ${user.email} failed: ${err.message}`);
             })
         );
 
-        // بنبعت كلهم parallel ومش بننتظر — الـ main flow متأثرش
+        
         Promise.allSettled(emailTasks).then(results => {
             const sent   = results.filter(r => r.status === 'fulfilled').length;
             const failed = results.filter(r => r.status === 'rejected').length;
@@ -229,10 +214,7 @@ const sendEmailsToAllUsers = async (notif) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// createNotification — الدالة الرئيسية
-// ① DB   ② Socket.IO broadcast   ③ Email to all users
-// ─────────────────────────────────────────────────────────────────────────────
+
 const createNotification = async ({
     type, title, message, severity, tag,
     relatedId, relatedModel, metadata

@@ -13,9 +13,9 @@ const { getAuditLogs } = require('../controllers/audit.controller');
 
 router.use(protect);
 
-router.get('/nat', authorize('super_admin', 'admin'), getNatRules);
+router.get('/nat', authorize('super_admin', 'admin', 'analyst'), getNatRules);
 router.get('/interfaces', authorize('super_admin', 'admin'), getInterfaces);
-router.get('/allRules', authorize('super_admin', 'admin'), getAllRules);
+router.get('/allRules', authorize('super_admin', 'admin', 'analyst'), getAllRules);
 router.get('/tables', authorize('super_admin', 'admin'), getTables);
 router.post('/tables', authorize('super_admin', 'admin'), validate(addTableSchema), addTable);
 router.get('/chains', authorize('super_admin', 'admin'), getChains);

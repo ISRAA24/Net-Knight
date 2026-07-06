@@ -3,12 +3,10 @@ const Threat  = require('../models/Threat');
 const Rule    = require('../models/StaticRule');
 const logger  = require('../utils/logger');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stats Cache — بنعمل DB queries كل 30 ثانية بس مش كل ثانية
-// ─────────────────────────────────────────────────────────────────────────────
+
 let cachedStats      = null;
 let lastStatsFetchAt = 0;
-const STATS_TTL_MS   = 30_000; // 30 ثانية
+const STATS_TTL_MS   = 30_000; 
 
 const fetchStats = async () => {
     const now = Date.now();
@@ -38,7 +36,7 @@ const fetchStats = async () => {
     return cachedStats;
 };
 
-// بمسحنا الـ cache لما حاجة تتغير في الـ DB (approve/reject/delete)
+
 exports.invalidateStatsCache = () => {
     cachedStats      = null;
     lastStatsFetchAt = 0;

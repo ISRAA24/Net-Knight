@@ -30,7 +30,7 @@ router.post('/threats', receiveThreat);
 router.put('/settings/auto-approve', protect, authorize('super_admin', 'admin'), toggleAutoApprove);
 
 // AI Rules — CRUD + Review + Toggle
-router.get('/rules', protect, getAIRules);
+router.get('/rules', getAIRules);
 router.put('/rules/:ruleId/review', protect, authorize('super_admin', 'admin'), reviewAIRule);
 router.delete('/rules/:id', protect, authorize('super_admin', 'admin'), deleteAIRule);
 router.patch('/rules/:id/toggle', protect, authorize('super_admin', 'admin'), toggleAIRuleStatus);
