@@ -14,6 +14,54 @@ const { createNotification } = require('../utils/notificationHelper');
 const getRuleIp = (rule) => rule.sourceIp || rule.destinationIp;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// helper: بتمسح رول من الفايروول (عن طريق deletions الجاهزة أو fallback بالـ handle/set)
+// بترجع true لو تقدر تكمل تمسح من الداتابيس، و false لو لازم تحاول تاني بعدين
+// (نفس منطق deleteAIRule/toggleAIRuleStatus بالظبط عشان السلوك يفضل متسق)
+// ─────────────────────────────────────────────────────────────────────────────
+const removeRuleFromFirewall = async (rule) => {
+    const ip = getRuleIp(rule);
+
+    if (rule.deletions && rule.deletions.length > 0) {
+        for (const delPayload of rule.deletions) {
+            const { label, ...cleanPayload } = delPayload;
+            try {
+                const firewallResponse = await firewallAgent.post('/rules/delete', cleanPayload);
+                if (!firewallResponse.data?.ok) {
+                    logger.error(`Firewall agent failed to delete rule part [${label || 'unknown'}] for expired rule ${rule._id}`);
+                }
+            } catch (err) {
+                logger.error(`Firewall agent error deleting rule part [${label || 'unknown'}] for expired rule ${rule._id}: ${err.message}`);
+            }
+        }
+        // زي سلوك deleteAIRule بالظبط: بنكمل ونمسح من الداتابيس حتى لو جزء من الـ deletions فشل
+        return true;
+    }
+
+    // Fallback للـ Rules القديمة اللي معندهاش حقل deletions
+    let deletion = null;
+    if (rule.setName) {
+        deletion = { mode: 'set_element', family: rule.family || 'inet', table: rule.tableName, set: rule.setName, ip };
+        if (rule.port) deletion.port = rule.port;
+    } else if (rule.handleId) {
+        deletion = { mode: 'handle', family: rule.family || 'inet', table: rule.tableName, chain: rule.chainName, handle: rule.handleId };
+    }
+
+    if (!deletion) return true; // مفيش حاجة متطبقة في الفايروول أصلا (رول pending/rejected مثلا)
+
+    try {
+        const firewallResponse = await firewallAgent.post('/rules/delete', deletion);
+        if (!firewallResponse.data?.ok) {
+            logger.error(`Firewall agent failed to delete expired rule ${rule._id}`);
+            return false; // هنسيب الرول في الداتابيس عشان الـ job يحاول تاني الدورة الجاية
+        }
+        return true;
+    } catch (err) {
+        logger.error(`Firewall agent error deleting expired rule ${rule._id}: ${err.message}`);
+        return false;
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Flutter/Python: هل الـ Auto Approve متفعل؟
 // GET /api/ai/settings/auto-approve
 // ─────────────────────────────────────────────────────────────────────────────
@@ -558,3 +606,57 @@ exports.receiveBandwidthAlert = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. 🕒 Auto-Expire Job: بتدور على كل الـ AI Rules اللي خلص التايم اوت بتاعها
+// (expireAt <= دلوقتي) وتمسحها من الفايروول ومن الداتابيس تلقائي
+// مفيش route لها — بتتشغل لوحدها من الـ scheduler تحت
+// ─────────────────────────────────────────────────────────────────────────────
+exports.expireTimedOutRules = async () => {
+    try {
+        const now = new Date();
+        const expiredRules = await AIRule.find({
+            isActive: true,
+            expireAt: { $ne: null, $lte: now }
+        });
+
+        if (expiredRules.length === 0) return;
+
+        logger.info(`⏱️ Found ${expiredRules.length} expired AI rule(s) — cleaning up...`);
+
+        for (const rule of expiredRules) {
+            const ip = getRuleIp(rule);
+
+            try {
+                const removedFromFirewall = await removeRuleFromFirewall(rule);
+
+                if (!removedFromFirewall) {
+                    // هنسيب الرول زي ما هي في الداتابيس عشان الـ job ياخد فرصة تاني يمسحها من الفايروول
+                    // في الدورة الجاية، بدل ما نخليها "يتيمة" (متمسوحة من DB بس لسه شغالة في الفايروول)
+                    logger.error(`Skipping DB cleanup for expired rule ${rule._id} (${ip || 'no ip'}) — firewall deletion failed, will retry next cycle.`);
+                    continue;
+                }
+
+                await rule.deleteOne();
+
+
+                logger.info(`✅ Expired AI rule removed (firewall + DB): ${rule._id} (${ip || 'no ip'})`);
+            } catch (err) {
+                logger.error(`Error while expiring AI rule ${rule._id}: ${err.message}`);
+            }
+        }
+
+        invalidateStatsCache();
+    } catch (error) {
+        logger.error(`expireTimedOutRules error: ${error.message}`);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔁 تشغيل الفحص الدوري: كل دقيقة بنشيك هل فيه رولز خلصت التايم اوت بتاعها
+// (بيشتغل تلقائي أول ما السيرفر يرفع الـ controller ده، مفيش داعي لأي setup إضافي)
+// ─────────────────────────────────────────────────────────────────────────────
+const EXPIRY_CHECK_INTERVAL_MS = 60 * 1000; // كل دقيقة، غيّرها لو محتاج تايمنج مختلف
+setInterval(() => {
+    exports.expireTimedOutRules();
+}, EXPIRY_CHECK_INTERVAL_MS);
