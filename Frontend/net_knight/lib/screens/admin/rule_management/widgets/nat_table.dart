@@ -28,7 +28,7 @@ class NatTable extends StatelessWidget {
                   _TH('Status', flex: 2),
                   _TH('Source IP', flex: 3),
                   _TH('Interface', flex: 2),
-                  _TH('Dest IP', flex: 3),
+                  _TH('Translated IP/Dest IP', flex: 3),
                   _TH('Ext Port', flex: 2),
                   _TH('Int Port', flex: 2),
                   _TH('NAT Type', flex: 2),

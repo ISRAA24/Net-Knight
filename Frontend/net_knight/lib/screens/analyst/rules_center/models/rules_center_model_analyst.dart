@@ -91,7 +91,7 @@ class NatRuleModelAnalyst {
           json['input_interface'] ??
           json['interfaceName'] ??
           '—',
-      destIp: json['dest_ip'] ?? json['destIp'] ?? '—',
+      destIp: json['new_source_ip'] ?? json['dest_ip'] ?? json['destIp'] ?? '—',
       extPort: json['ext_port']?.toString() ?? json['extPort'] ?? '—',
       intPort: json['int_port']?.toString() ?? json['intPort'] ?? '—',
       natType: json['nat_type'] ?? json['natType'] ?? '',

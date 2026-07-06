@@ -29,7 +29,7 @@ class NatTableAnalyst extends StatelessWidget {
                   THDAnalyst(),
                   THAnalyst('Interface', flex: 2),
                   THDAnalyst(),
-                  THAnalyst('Dest IP', flex: 3),
+                  THAnalyst('Translated IP/Dest IP', flex: 3),
                   THDAnalyst(),
                   THAnalyst('Ext Port', flex: 2),
                   THDAnalyst(),

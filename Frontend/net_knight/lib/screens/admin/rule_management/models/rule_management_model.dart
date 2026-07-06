@@ -33,15 +33,17 @@ class RuleModel {
   //   isAi, createdAt }
   // so those extra fields are kept only for widget-layout compatibility
   // and default to '-' when the backend doesn't provide them.
-  factory RuleModel.fromJson(Map<String, dynamic> json) {
+    factory RuleModel.fromJson(Map<String, dynamic> json) {
     return RuleModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       enabled: json['isActive'] ?? json['enabled'] ?? true,
       ruleName: json['ruleName']?.toString() ?? '-',
       priority: json['priority']?.toString() ?? '-',
-      sourceIp: json['sourceIp']?.toString() ?? 'ANY',
-      destination: json['destination']?.toString() ?? '-',
-      port: json['port']?.toString() ?? '*',
+      sourceIp: json['sourceIp']?.toString() ?? json['ip_src']?.toString() ?? 'ANY',
+      // إضافة ip_dest
+      destination: json['destination']?.toString() ?? json['ip_dest']?.toString() ?? '-',
+      // إضافة port_dest
+      port: json['port']?.toString() ?? json['port_dest']?.toString() ?? '*',
       protocol: json['protocol']?.toString() ?? 'ANY',
       action: json['action']?.toString() ?? '-',
       created: json['createdAt']?.toString() ?? json['created']?.toString() ?? '',
@@ -49,6 +51,7 @@ class RuleModel {
       isAi: json['isAi'] ?? false,
     );
   }
+
 }
 
 class NatRuleModel {
@@ -78,7 +81,7 @@ class NatRuleModel {
           json['input_interface']?.toString() ??
           json['interfaceName']?.toString() ??
           '',
-      destIp: json['dest_ip']?.toString() ?? json['destIp']?.toString() ?? '',
+      destIp: json['new_source_ip']?.toString() ?? json['dest_ip']?.toString() ?? json['destIp']?.toString() ?? '',
       extPort: json['ext_port']?.toString() ?? json['extPort']?.toString() ?? '',
       intPort: json['int_port']?.toString() ?? json['intPort']?.toString() ?? '',
       natType: json['nat_type']?.toString() ?? json['natType']?.toString() ?? 'Masquerade',

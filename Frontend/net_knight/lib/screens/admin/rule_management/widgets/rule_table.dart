@@ -11,7 +11,12 @@ class RuleTable extends StatelessWidget {
   final Function(String id, bool enabled) onToggle;
   final Function(String id) onDelete;
 
-  const RuleTable({super.key, required this.rules, required this.onToggle, required this.onDelete});
+  const RuleTable({
+    super.key,
+    required this.rules,
+    required this.onToggle,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +57,15 @@ class RuleTable extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: rules.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Colors.black),
                     itemBuilder: (_, i) {
                       final rule = rules[i];
-                      return _RuleRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
+                      return _RuleRow(
+                        rule: rule,
+                        onToggle: onToggle,
+                        onDelete: onDelete,
+                      );
                     },
                   ),
           ],
@@ -70,7 +80,11 @@ class _RuleRow extends StatelessWidget {
   final Function(String id, bool enabled) onToggle;
   final Function(String id) onDelete;
 
-  const _RuleRow({required this.rule, required this.onToggle, required this.onDelete});
+  const _RuleRow({
+    required this.rule,
+    required this.onToggle,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +100,7 @@ class _RuleRow extends StatelessWidget {
               // the switch is read-only for them.
               child: _SmallToggle(
                 value: rule.enabled,
-                onChanged: rule.isAi ? null : (v) => onToggle(rule.id, v),
+                onChanged: (v) => onToggle(rule.id, v),
               ),
             ),
           ),
@@ -103,7 +117,13 @@ class _RuleRow extends StatelessWidget {
           _VD(),
           _TDWidget(
             flex: 2,
-            child: Text(rule.action, style: TextStyle(color: _actionColor(rule.action), fontWeight: FontWeight.bold)),
+            child: Text(
+              rule.action,
+              style: TextStyle(
+                color: _actionColor(rule.action),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           _VD(),
           _TD(rule.origin, flex: 2),
@@ -118,7 +138,7 @@ class _RuleRow extends StatelessWidget {
               // its firewall handles (handled by /ai/rules/:id), which is
               // a different endpoint than static rules — not wired up
               // here, so we disable delete for AI rules on this screen.
-              onPressed: rule.isAi ? null : () => onDelete(rule.id),
+              onPressed: () => onDelete(rule.id),
             ),
           ),
         ],
@@ -145,7 +165,11 @@ class _TH extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+        overflow: TextOverflow.ellipsis,
+      ),
     ),
   );
 }
@@ -173,16 +197,14 @@ class _TDWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     flex: flex,
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: child,
-    ),
+    child: Padding(padding: const EdgeInsets.all(14), child: child),
   );
 }
 
 class _VD extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Container(width: 1, color: Colors.black);
+  Widget build(BuildContext context) =>
+      Container(width: 1, color: Colors.black);
 }
 
 class _SmallToggle extends StatelessWidget {
