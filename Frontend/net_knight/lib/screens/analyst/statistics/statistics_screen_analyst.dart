@@ -182,8 +182,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     final metrics = _socket.metrics;
     final rt = _socket.stats;
 
-    // الـ stats cards: لو الـ socket بعت أرقام حقيقية (rt) نستخدمها،
-    // وإلا نرجع لـ _data (HTTP) أو fallback.
     final stats = <StatDataAnalyst>[
       StatDataAnalyst(
         label: 'Total Threat',
@@ -250,7 +248,7 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
             // double.infinity` internals have something concrete to size
             // against, matching how the admin dashboard lays this out.
             SizedBox(
-              height: 480,
+              height: double.infinity,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
