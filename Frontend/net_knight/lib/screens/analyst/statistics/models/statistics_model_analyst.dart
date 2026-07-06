@@ -65,8 +65,8 @@ class ThreatDataAnalyst {
   final String level;
   final String confidence;
   final String time;
-  // ⚠️ ADDED: real mitigation action from the backend Threat document,
-  // used instead of a hardcoded "Block" label.
+  // Real mitigation action from the backend Threat document (Threat.js
+  // now has an `action` field), used instead of a hardcoded "Block" label.
   final String action;
 
   const ThreatDataAnalyst({
@@ -78,13 +78,31 @@ class ThreatDataAnalyst {
     this.action = '',
   });
 
+  // ⚠️ FIX: the backend (GET /ai/threats -> Threat model) actually returns
+  // documents shaped like { sourceIp, attackType, severity, confidence,
+  // createdAt, action, details } — there is no "ip"/"type"/"level"/"time"
+  // field at all, so every threat used to render with blank IP/type/level/
+  // time (only `action` matched, since that field name lines up with the
+  // backend's new field). We now read the real field names, keeping the
+  // old ones as a fallback, and capitalize severity so it matches the
+  // 'Critical'/'High' comparisons used by ThreatAlertsCardAnalyst.
   factory ThreatDataAnalyst.fromJson(Map<String, dynamic> json) {
+    final rawLevel = (json['severity'] ?? json['level'] ?? '').toString();
+    final level = rawLevel.isEmpty
+        ? ''
+        : rawLevel[0].toUpperCase() + rawLevel.substring(1).toLowerCase();
+
+    final rawConfidence = json['confidence'];
+    final confidence = rawConfidence != null
+        ? '$rawConfidence%'
+        : (json['confidence']?.toString() ?? '0%');
+
     return ThreatDataAnalyst(
-      ip: json['ip'] ?? '',
-      type: json['type'] ?? '',
-      level: json['level'] ?? '',
-      confidence: json['confidence'] ?? '',
-      time: json['time'] ?? '',
+      ip: json['sourceIp']?.toString() ?? json['ip']?.toString() ?? '',
+      type: json['attackType']?.toString() ?? json['type']?.toString() ?? '',
+      level: level,
+      confidence: confidence,
+      time: json['createdAt']?.toString() ?? json['time']?.toString() ?? '',
       action: (json['action'] ?? '').toString(),
     );
   }

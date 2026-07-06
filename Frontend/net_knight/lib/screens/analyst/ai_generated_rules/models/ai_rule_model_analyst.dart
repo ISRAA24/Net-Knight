@@ -6,10 +6,13 @@ class AiRuleModelAnalyst {
   final String action;
   final String pattern;
   final String guide;
-  // ⚠️ ADDED: the human-readable description (e.g. "Applying a temporary
-  // block on 192.168.1.104 for 60 minutes"), shown under the action inside
-  // the black box on the rule card — matching the admin screen.
   final String? description;
+  final String? mitigationReason;
+  final String? idsLabel;
+  final String? anomalySeverity;
+  final Map<String, dynamic>? explanationDetails;
+  final List<dynamic>? evidence;
+  final bool isActive;
   final AiRuleStatusAnalyst status;
 
   const AiRuleModelAnalyst({
@@ -19,19 +22,58 @@ class AiRuleModelAnalyst {
     required this.pattern,
     required this.guide,
     this.description,
+    this.mitigationReason,
+    this.idsLabel,
+    this.anomalySeverity,
+    this.explanationDetails,
+    this.evidence,
+    this.isActive = true,
     this.status = AiRuleStatusAnalyst.pending,
   });
 
+  // ⚠️ FIX: this model previously only read 'pattern'/'created_at', which
+  // don't exist on the AIRule document at all, so "Detected pattern" always
+  // rendered empty. It now reads the same real fields the admin model uses
+  // (explanationDetails / mitigation_reason / evidence / ids / anomaly),
+  // so the Detected Pattern section can show the same Read More/Read Less
+  // content as the admin screen.
   factory AiRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
     return AiRuleModelAnalyst(
-      id: json['_id'] ?? json['id'] ?? '',
-      timeAgo: json['timeAgo'] ?? json['created_at'] ?? '',
-      action: json['action'] ?? '',
-      pattern: json['pattern'] ?? '',
-      guide: json['guide'] ?? json['explanation'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      timeAgo: _timeAgoFrom(json['createdAt']?.toString()),
+      action: (json['action'] ?? json['description'] ?? '').toString(),
+      pattern: _buildPattern(json),
+      guide: (json['explanation'] ?? json['description'] ?? '').toString(),
       description: json['description']?.toString(),
+      mitigationReason:
+          json['explanationDetails']?['mitigation_reason']?.toString() ??
+              json['mitigation_reason']?.toString(),
+      idsLabel: json['ids']?['label']?.toString(),
+      anomalySeverity: json['anomaly']?['severity']?.toString(),
+      explanationDetails: json['explanationDetails'] as Map<String, dynamic>?,
+      evidence: json['explanationDetails']?['evidence'] as List<dynamic>? ??
+          json['evidence'] as List<dynamic>?,
+      isActive: json['isActive'] ?? true,
       status: _parseStatus(json['status']),
     );
+  }
+
+  static String _buildPattern(Map<String, dynamic> json) {
+    final attackType = json['attackType']?.toString() ?? '';
+    final confidence = json['confidence'];
+    if (attackType.isEmpty) return json['description']?.toString() ?? '';
+    return confidence != null ? '$attackType ($confidence% confidence)' : attackType;
+  }
+
+  static String _timeAgoFrom(String? iso) {
+    if (iso == null || iso.isEmpty) return 'just now';
+    final date = DateTime.tryParse(iso);
+    if (date == null) return 'just now';
+    final diff = DateTime.now().difference(date);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   static AiRuleStatusAnalyst _parseStatus(dynamic s) {

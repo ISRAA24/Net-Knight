@@ -83,11 +83,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     }
   }
 
-  // "view all" on the Threat Alerts card -> the analyst's own Reports screen.
-  void _goToReports() {
-    Navigator.pushNamed(context, '/reports');
-  }
-
   static final _fallbackStats = [
     StatDataAnalyst(
       label: 'Total Threat',
@@ -247,12 +242,17 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
               ],
             ),
             const SizedBox(height: 20),
-            // ⚠️ FIX: System Status and Threat Alerts now share the exact
-            // same box height (IntrinsicHeight + stretch), matching the
-            // admin dashboard's layout.
-            IntrinsicHeight(
+            // ⚠️ FIX: SystemStatusCardAnalyst and ThreatAlertsCardAnalyst were
+            // both wrapped in `Expanded` inside this Row but the Row itself
+            // has no bounded height (it's inside a SingleChildScrollView), so
+            // Expanded here has nothing to expand into. We give the Row a
+            // fixed height so ThreatAlertsCardAnalyst's `Expanded`/`height:
+            // double.infinity` internals have something concrete to size
+            // against, matching how the admin dashboard lays this out.
+            SizedBox(
+              height: 480,
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: SystemStatusCardAnalyst(
@@ -265,10 +265,16 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
+                    // ⚠️ FIX: ThreatAlertsCardAnalyst now requires `onViewAll`
+                    // (it added a "view all" link matching the admin card) —
+                    // this call was missing it entirely, which is a compile
+                    // error (missing required argument). Wired it to the
+                    // analyst's own Reports screen, same as the admin card
+                    // navigates to '/reports-admin'.
                     child: ThreatAlertsCardAnalyst(
                       threats: threats,
                       totalThreats: totalThreats,
-                      onViewAll: _goToReports,
+                      onViewAll: () => Navigator.pushNamed(context, '/reports'),
                     ),
                   ),
                 ],

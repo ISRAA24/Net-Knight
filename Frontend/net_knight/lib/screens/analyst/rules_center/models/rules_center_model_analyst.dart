@@ -34,12 +34,23 @@ class FirewallRuleModelAnalyst {
       };
 
   factory FirewallRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
+    // ⚠️ FIX: the backend's getAllRules controller does not return a
+    // "priority" field at all (it lives on Chain, not on the rule itself),
+    // so json['priority'] is always null. The old ternary checked
+    // `(json['priority'] ?? 0) is int` (always true) but then assigned the
+    // RAW json['priority'] (still null) to this non-nullable `int` field —
+    // that threw a runtime TypeError on every single rule, which crashed
+    // getFirewallRules() and made the whole Rules Center screen show
+    // "Failed to load rules". We now properly default to 0.
+    final rawPriority = json['priority'];
+    final priority = rawPriority is int
+        ? rawPriority
+        : int.tryParse(rawPriority?.toString() ?? '') ?? 0;
+
     return FirewallRuleModelAnalyst(
       id: json['_id'] ?? json['id'] ?? '',
       enabled: json['isActive'] ?? json['enabled'] ?? true,
-      priority: (json['priority'] ?? 0) is int
-          ? json['priority']
-          : int.tryParse(json['priority'].toString()) ?? 0,
+      priority: priority,
       sourceIp: json['sourceIp'] ?? json['ip_src'] ?? '-',
       destination: json['destination'] ?? json['ip_dest'] ?? '-',
       port: json['port'] ?? json['port_dest'] ?? '*',
@@ -85,6 +96,12 @@ class NatRuleModelAnalyst {
       };
 
   factory NatRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
+    // ⚠️ FIX: destIp used to read json['new_source_ip'] FIRST (before
+    // dest_ip), so a Source NAT rule's "Dest IP" column ended up showing
+    // the *new source* IP instead of falling back to '—' (Source/
+    // Masquerade rules have no real destination IP). newSourceIp is now
+    // the only field reading new_source_ip, keeping the two concepts
+    // separate instead of one leaking into the other.
     return NatRuleModelAnalyst(
       id: json['_id'] ?? json['id'] ?? '',
       enabled: json['isActive'] ?? json['enabled'] ?? true,
@@ -93,8 +110,9 @@ class NatRuleModelAnalyst {
           json['input_interface'] ??
           json['interfaceName'] ??
           '—',
-      destIp: json['new_source_ip'] ?? json['dest_ip'] ?? json['destIp'] ?? '—',
-      newSourceIp: json['new_source_ip']?.toString() ?? json['newSourceIp'] ?? '—',
+      destIp: json['dest_ip'] ?? json['destIp'] ?? '—',
+      newSourceIp:
+          json['new_source_ip']?.toString() ?? json['newSourceIp'] ?? '—',
       extPort: json['ext_port']?.toString() ?? json['extPort'] ?? '—',
       intPort: json['int_port']?.toString() ?? json['intPort'] ?? '—',
       natType: json['nat_type'] ?? json['natType'] ?? '',

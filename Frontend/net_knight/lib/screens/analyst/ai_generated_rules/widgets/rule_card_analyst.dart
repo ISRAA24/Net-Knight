@@ -55,9 +55,6 @@ class RuleCardAnalyst extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Action command box
-          // ⚠️ FIX: now also shows the description underneath the action
-          // (matching the admin screen and the reference sample), instead
-          // of the action alone.
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
@@ -65,30 +62,14 @@ class RuleCardAnalyst extends StatelessWidget {
               color: _kRuleBg,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Column(
-              children: [
-                Text(
-                  rule.action,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'RobotoMono',
-                    fontSize: 15,
-                    color: _kActionTxt,
-                  ),
-                ),
-                if ((rule.description ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    rule.description!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 11.5,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ],
+            child: Text(
+              rule.action,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'RobotoMono',
+                fontSize: 15,
+                color: _kActionTxt,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -96,11 +77,16 @@ class RuleCardAnalyst extends StatelessWidget {
           _label('The guide'),
           const SizedBox(height: 1),
           _sub(rule.guide),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
 
+          // ⚠️ FIX: previously this just showed the raw (mostly empty)
+          // `rule.pattern` string. Now it mirrors the admin screen's
+          // Detected Pattern section: starts with the mitigation reason,
+          // and has a "Read More Details" / "Read Less" toggle that reveals
+          // analyst notes, evidence, IDS label, and anomaly severity.
           _label('Detected pattern'),
-          const SizedBox(height: 2),
-          _sub(rule.pattern),
+          const SizedBox(height: 4),
+          _DetectedPatternSectionAnalyst(rule: rule),
         ],
       ),
     );
@@ -124,4 +110,139 @@ class RuleCardAnalyst extends StatelessWidget {
           color: Color.fromARGB(161, 0, 0, 0),
         ),
       );
+}
+
+class _DetectedPatternSectionAnalyst extends StatefulWidget {
+  const _DetectedPatternSectionAnalyst({required this.rule});
+
+  final AiRuleModelAnalyst rule;
+
+  @override
+  State<_DetectedPatternSectionAnalyst> createState() =>
+      _DetectedPatternSectionAnalystState();
+}
+
+class _DetectedPatternSectionAnalystState
+    extends State<_DetectedPatternSectionAnalyst> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = widget.rule.explanationDetails;
+    final mitigation = details?['mitigation_reason']?.toString() ??
+        widget.rule.mitigationReason ??
+        widget.rule.description ??
+        'No mitigation details available';
+    final analystNotes = details?['analyst_notes']?.toString() ?? '';
+    final evidence =
+        (details?['evidence'] as List?) ?? widget.rule.evidence ?? const [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // يبدأ مباشرة بـ mitigation_reason زي شاشة الأدمن
+        Text(
+          mitigation,
+          style: const TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 11,
+            color: Color.fromARGB(161, 0, 0, 0),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _expanded ? 'Read Less' : 'Read More Details',
+                style: const TextStyle(
+                  color: _kBlue,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+              Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                color: _kBlue,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+
+        if (_expanded) ...[
+          const SizedBox(height: 12),
+          if (analystNotes.isNotEmpty)
+            _DetailItemAnalyst('Analyst Notes', analystNotes),
+
+          const Divider(height: 20),
+
+          const Text(
+            'Evidence:',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: _kOnSurface,
+            ),
+          ),
+          ...evidence.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '• ${e['feature']}: ${e['value']} → ${e['reason']}',
+                style: const TextStyle(fontSize: 11.5),
+              ),
+            ),
+          ),
+
+          if (widget.rule.idsLabel != null)
+            _DetailItemAnalyst('IDS Label', widget.rule.idsLabel!),
+          if (widget.rule.anomalySeverity != null)
+            _DetailItemAnalyst('Severity', widget.rule.anomalySeverity!),
+        ],
+      ],
+    );
+  }
+}
+
+class _DetailItemAnalyst extends StatelessWidget {
+  const _DetailItemAnalyst(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: _kOnSurface,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Color.fromARGB(161, 0, 0, 0),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
