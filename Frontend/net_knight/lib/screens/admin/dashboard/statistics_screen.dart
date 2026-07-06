@@ -71,7 +71,7 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
       _stats = await _service.getDashboardStats();
       _threats = await _service.getThreats();
     } catch (e) {
-      print('Error loading stats: $e');
+      debugPrint('Error loading stats: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -103,48 +103,57 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
               children: [
                 const _TopBar(title: 'Statistics'),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StatsGrid(stats: _stats),
-                        const SizedBox(height: 20),
-                        ChartSection(
-                          outboundSpots: metrics.outboundSpots,
-                          inboundSpots: metrics.inboundSpots,
-                        ),
-                        const SizedBox(height: 20),
-                        // Threat Alerts and System Status share the exact
-                        // same height (IntrinsicHeight + stretch), instead
-                        // of each sizing itself independently.
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: SystemStatusCard(
-                                  statuses: statuses,
-                                  cpuUsage: metrics.cpuUsage,
-                                  memoryUsage: metrics.memoryUsage,
-                                  packetsPerSec: metrics.packetsPerSec,
-                                  activeConnections:
-                                      metrics.activeConnections,
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : RefreshIndicator(
+                          onRefresh: _loadStats,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                StatsGrid(stats: _stats),
+                                const SizedBox(height: 20),
+                                ChartSection(
+                                  outboundSpots: metrics.outboundSpots,
+                                  inboundSpots: metrics.inboundSpots,
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ThreatAlertsCard(
-                                  threats: _threats,
-                                  onViewAll: _goToReports,
+                                const SizedBox(height: 20),
+                                // Threat Alerts and System Status share the
+                                // exact same height (IntrinsicHeight +
+                                // stretch), instead of each sizing itself
+                                // independently.
+                                IntrinsicHeight(
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        child: SystemStatusCard(
+                                          statuses: statuses,
+                                          cpuUsage: metrics.cpuUsage,
+                                          memoryUsage: metrics.memoryUsage,
+                                          packetsPerSec:
+                                              metrics.packetsPerSec,
+                                          activeConnections:
+                                              metrics.activeConnections,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: ThreatAlertsCard(
+                                          threats: _threats,
+                                          onViewAll: _goToReports,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -170,12 +179,15 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Text(title,
+                  style: GoogleFonts.rajdhani(
+                      fontSize: 26, fontWeight: FontWeight.w500)),
               Stack(
                 children: [
                   IconButton(
                     icon: const Icon(LucideIcons.bell, size: 22),
-                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/notifications'),
                   ),
                   if (unread > 0)
                     Positioned(
@@ -189,7 +201,10 @@ class _TopBar extends StatelessWidget {
                         ),
                         child: Text(
                           '$unread',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),

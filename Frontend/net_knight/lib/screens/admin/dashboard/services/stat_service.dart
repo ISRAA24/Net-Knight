@@ -101,11 +101,23 @@ class StatService {
   // uses (statistics_screen_analyst.dart's `_fallbackStatuses`) so the
   // two screens behave consistently until a real endpoint is added.
   Future<List<StatusData>> getSystemStatus() async {
+    return computeLiveStatuses();
+  }
+
+  // ⚠️ FIX: statistics_screen.dart calls `StatService.computeLiveStatuses()`
+  // as a static method on every build (so the System Status card reflects
+  // the socket's live connection/heartbeat state immediately, not just
+  // once at initial load). That static method never existed — only the
+  // async instance method above did — causing a compile-time error
+  // (undefined_method). Mirrors
+  // StatisticsServiceAnalyst.computeLiveStatuses() on the analyst side.
+  static List<StatusData> computeLiveStatuses() {
     final socket = DashboardSocketService.instance;
     final alive = socket.isConnected && socket.isAgentAlive;
 
-    final onlineColor = const Color(0xFF22C55E);
-    final offlineColor = const Color(0xFFEF4444);
+    const onlineColor = Color(0xFF22C55E);
+    const offlineColor = Color(0xFFEF4444);
+    const autoColor = Color(0xFF3B82F6);
 
     return [
       StatusData(
@@ -121,7 +133,7 @@ class StatService {
       StatusData(
         'RL agent',
         alive ? 'Auto' : 'offline',
-        alive ? const Color(0xFF3B82F6) : offlineColor,
+        alive ? autoColor : offlineColor,
       ),
       StatusData(
         'nftables controller',
