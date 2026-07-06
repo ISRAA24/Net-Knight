@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
-// transporter بيتعمل مرة واحدة عند تحميل الـ module مش كل مرة
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -11,17 +11,17 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * sendEmail — إرسال إيميل عام
+ * 
  *
  * @param {object} options
- * @param {string}   options.email    - المرسل إليه
- * @param {string}   options.subject  - الموضوع
- * @param {string}  [options.message] - نص عادي (fallback)
- * @param {string}  [options.html]    - HTML مخصص (أولوية على message)
- * @param {string}  [options.code]    - كود التحقق (للـ verification emails القديمة)
+ * @param {string}   options.email    
+ * @param {string}   options.subject  
+ * @param {string}  [options.message] 
+ * @param {string}  [options.html]    
+ * @param {string}  [options.code]    
  */
 const sendEmail = async (options) => {
-    // لو فيه code معناها verification email - نستخدم التمبليت القديم
+    
     const html = options.html || (options.code
         ? `<div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
                <h2 style="color: #1a1a2e;">Net-Knight Verification</h2>
