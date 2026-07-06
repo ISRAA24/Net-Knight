@@ -33,14 +33,54 @@ class StatService {
     }
   }
 
+  // ⚠️ FIX (frontend-only, no backend change needed): the Threat document
+  // itself (Backend/src/models/Threat.js) has no `action` field at all —
+  // the mitigation action actually lives on the related AIRule document
+  // (AIRule.action, linked back via AIRule.threatId -> Threat._id). Instead
+  // of requiring the backend to duplicate that field onto Threat, we fetch
+  // both '/ai/threats' and '/ai/rules' here and join them client-side by
+  // matching threat._id against rule.threatId. Threats that have no
+  // matching AIRule (e.g. ones created through the legacy manual
+  // '/ai/threats' POST route with no linked rule) simply fall back to the
+  // default empty action, same as before.
   Future<List<ThreatData>> getThreats() async {
     try {
-      // NOTE: '/dashboard/threats' does not exist on the backend.
-      // Threats actually live under '/ai/threats'.
-      final response = await BaseService.dio.get('/ai/threats');
-      final data = response.data['data'];
-      if (data is List) {
-        return data.map((e) => ThreatData.fromJson(e)).toList();
+      final results = await Future.wait([
+        BaseService.dio.get('/ai/threats'),
+        BaseService.dio.get('/ai/rules'),
+      ]);
+
+      final threatsData = results[0].data['data'];
+      final rulesData = results[1].data['data'];
+
+      final actionByThreatId = <String, String>{};
+      if (rulesData is List) {
+        for (final rule in rulesData) {
+          if (rule is! Map) continue;
+          final threatId = rule['threatId'];
+          final action = rule['action'];
+          if (threatId != null && action != null && action.toString().isNotEmpty) {
+            actionByThreatId[threatId.toString()] = action.toString();
+          }
+        }
+      }
+
+      if (threatsData is List) {
+        return threatsData.map((e) {
+          final threat = ThreatData.fromJson(e);
+          if (e is! Map) return threat;
+          final id = (e['_id'] ?? e['id'])?.toString();
+          final matchedAction = id != null ? actionByThreatId[id] : null;
+          if (matchedAction == null) return threat;
+          return ThreatData(
+            ip: threat.ip,
+            type: threat.type,
+            level: threat.level,
+            confidence: threat.confidence,
+            time: threat.time,
+            action: matchedAction,
+          );
+        }).toList();
       }
       return [];
     } catch (e) {
