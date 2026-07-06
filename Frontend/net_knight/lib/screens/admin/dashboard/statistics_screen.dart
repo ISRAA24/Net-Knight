@@ -26,7 +26,6 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
 
   StatData? _stats;
   List<ThreatData> _threats = [];
-  List<StatusData> _statuses = [];
   bool _isLoading = true;
 
   @override
@@ -45,18 +44,24 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
   void _onRealtimeUpdate() {
     if (!mounted) return;
     setState(() {
-      // بندمج الـ realtime counters (لو وصلت) مع الـ trends اللي أصلاً عندنا
       final rt = _socket.stats;
       _stats = StatData(
         totalThreat: rt.totalThreats.toString(),
         blockedAttack: rt.blockedAttacks.toString(),
         activeRules: rt.activeRules.toString(),
         pendingApprovals: rt.pendingApprovals.toString(),
-        trend: _stats?.trend ?? '↗ 0%',
-        blockedTrend: _stats?.blockedTrend ?? '↗ 0%',
-        activeTrend: _stats?.activeTrend ?? '↗ 0%',
-        pendingTrend: _stats?.pendingTrend ?? '— 0%',
+        // ⚠️ FIX: trend/blockedTrend/activeTrend/pendingTrend were
+        // hardcoded strings that never changed. They now come from
+        // DashboardSocketService's TrendTracker, which compares each
+        // stat's current value against the last value it saw (real ↗/↘/—
+        // direction + percentage, not static text).
+        trend: _socket.totalThreatsTrend,
+        blockedTrend: _socket.blockedAttacksTrend,
+        activeTrend: _socket.activeRulesTrend,
+        pendingTrend: _socket.pendingApprovalsTrend,
       );
+      // System status is recomputed live in build() via
+      // StatService.computeLiveStatuses(), so no state update needed here.
     });
   }
 
@@ -65,7 +70,6 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
     try {
       _stats = await _service.getDashboardStats();
       _threats = await _service.getThreats();
-      _statuses = await _service.getSystemStatus();
     } catch (e) {
       print('Error loading stats: $e');
     } finally {
@@ -81,6 +85,12 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
   @override
   Widget build(BuildContext context) {
     final metrics = _socket.metrics;
+    // ⚠️ FIX: system status used to be fetched once via a non-existent
+    // '/dashboard/status' endpoint and always fell back to a hardcoded
+    // "online" list. It's now derived live from DashboardSocketService's
+    // connection/heartbeat state on every build (which re-runs on every
+    // socket update via _onRealtimeUpdate).
+    final statuses = StatService.computeLiveStatuses();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -105,20 +115,21 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
                           inboundSpots: metrics.inboundSpots,
                         ),
                         const SizedBox(height: 20),
-                        // ⚠️ FIX: Threat Alerts and System Status now share
-                        // the exact same height (IntrinsicHeight + stretch),
-                        // instead of each sizing itself independently.
+                        // Threat Alerts and System Status share the exact
+                        // same height (IntrinsicHeight + stretch), instead
+                        // of each sizing itself independently.
                         IntrinsicHeight(
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Expanded(
                                 child: SystemStatusCard(
-                                  statuses: _statuses,
+                                  statuses: statuses,
                                   cpuUsage: metrics.cpuUsage,
                                   memoryUsage: metrics.memoryUsage,
                                   packetsPerSec: metrics.packetsPerSec,
-                                  activeConnections: metrics.activeConnections,
+                                  activeConnections:
+                                      metrics.activeConnections,
                                 ),
                               ),
                               const SizedBox(width: 12),

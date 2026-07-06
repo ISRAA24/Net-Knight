@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:net_knight/core/network/base_services.dart';
+import 'package:net_knight/core/network/dashboard_socket_service.dart';
 import '../models/stat_model.dart';
 
 class StatService {
@@ -59,7 +60,9 @@ class StatService {
           if (rule is! Map) continue;
           final threatId = rule['threatId'];
           final action = rule['action'];
-          if (threatId != null && action != null && action.toString().isNotEmpty) {
+          if (threatId != null &&
+              action != null &&
+              action.toString().isNotEmpty) {
             actionByThreatId[threatId.toString()] = action.toString();
           }
         }
@@ -98,22 +101,33 @@ class StatService {
   // uses (statistics_screen_analyst.dart's `_fallbackStatuses`) so the
   // two screens behave consistently until a real endpoint is added.
   Future<List<StatusData>> getSystemStatus() async {
-    try {
-      final response = await BaseService.dio.get('/dashboard/status');
-      if (response.data is List) {
-        return (response.data as List).map((e) => StatusData.fromJson(e)).toList();
-      }
-      return _fallbackStatuses;
-    } catch (e) {
-      print('Error fetching system status: $e');
-      return _fallbackStatuses;
-    }
-  }
+    final socket = DashboardSocketService.instance;
+    final alive = socket.isConnected && socket.isAgentAlive;
 
-  static final List<StatusData> _fallbackStatuses = [
-    StatusData('firewall engine', 'online', const Color(0xFF22C55E)),
-    StatusData('AI detection model', 'online', const Color(0xFF22C55E)),
-    StatusData('RL agent', 'Auto', const Color(0xFF3B82F6)),
-    StatusData('nftables controller', 'online', const Color(0xFF22C55E)),
-  ];
+    final onlineColor = const Color(0xFF22C55E);
+    final offlineColor = const Color(0xFFEF4444);
+
+    return [
+      StatusData(
+        'firewall engine',
+        alive ? 'online' : 'offline',
+        alive ? onlineColor : offlineColor,
+      ),
+      StatusData(
+        'AI detection model',
+        alive ? 'online' : 'offline',
+        alive ? onlineColor : offlineColor,
+      ),
+      StatusData(
+        'RL agent',
+        alive ? 'Auto' : 'offline',
+        alive ? const Color(0xFF3B82F6) : offlineColor,
+      ),
+      StatusData(
+        'nftables controller',
+        alive ? 'online' : 'offline',
+        alive ? onlineColor : offlineColor,
+      ),
+    ];
+  }
 }

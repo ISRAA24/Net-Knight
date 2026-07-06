@@ -110,29 +110,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     ),
   ];
 
-  static final _fallbackStatuses = [
-    StatusDataAnalyst(
-      name: 'firewall engine',
-      status: 'online',
-      color: const Color(0xFF22C55E),
-    ),
-    StatusDataAnalyst(
-      name: 'AI detection model',
-      status: 'online',
-      color: const Color(0xFF22C55E),
-    ),
-    StatusDataAnalyst(
-      name: 'RL agent',
-      status: 'Auto',
-      color: const Color(0xFF3B82F6),
-    ),
-    StatusDataAnalyst(
-      name: 'nftables controller',
-      status: 'online',
-      color: const Color(0xFF22C55E),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,36 +159,47 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     final metrics = _socket.metrics;
     final rt = _socket.stats;
 
+    // ⚠️ FIX: trend for each card used to fall back to a value pulled from
+    // _data (the one-time HTTP snapshot from _loadData()), which never
+    // changed afterwards ('— 0%' or whatever it happened to be at load
+    // time). It now comes from DashboardSocketService's TrendTracker,
+    // which recomputes a real ↗/↘/— direction + percentage every time a
+    // 'dashboard:update' arrives, by comparing against the previous value.
     final stats = <StatDataAnalyst>[
       StatDataAnalyst(
         label: 'Total Threat',
         value: rt.totalThreats.toString(),
-        trend: _data?.stats.isNotEmpty == true ? _data!.stats[0].trend : '— 0%',
+        trend: _socket.totalThreatsTrend,
         color: const Color(0xFF3B82F6),
       ),
       StatDataAnalyst(
         label: 'Blocked Attack',
         value: rt.blockedAttacks.toString(),
-        trend: (_data?.stats.length ?? 0) > 1 ? _data!.stats[1].trend : '— 0%',
+        trend: _socket.blockedAttacksTrend,
         color: const Color(0xFFF59E0B),
       ),
       StatDataAnalyst(
         label: 'Active Rules',
         value: rt.activeRules.toString(),
-        trend: (_data?.stats.length ?? 0) > 2 ? _data!.stats[2].trend : '— 0%',
+        trend: _socket.activeRulesTrend,
         color: const Color(0xFF22C55E),
       ),
       StatDataAnalyst(
         label: 'Pending Approvals',
         value: rt.pendingApprovals.toString(),
-        trend: (_data?.stats.length ?? 0) > 3 ? _data!.stats[3].trend : '— 0%',
+        trend: _socket.pendingApprovalsTrend,
         color: Colors.purpleAccent,
       ),
     ];
 
-    final statuses = _data?.systemStatuses.isNotEmpty == true
-        ? _data!.systemStatuses
-        : _fallbackStatuses;
+    // ⚠️ FIX: system status used to fall back to a hardcoded "online" list
+    // whenever _data.systemStatuses was empty, and even when it wasn't
+    // empty it was only computed once (at _loadData() time) — it never
+    // reflected the agent going offline afterwards. It's now recomputed
+    // live on every build (which re-runs on every socket update via
+    // _onRealtimeUpdate), driven by DashboardSocketService's
+    // connection/heartbeat state.
+    final statuses = StatisticsServiceAnalyst.computeLiveStatuses();
     final threats = _data?.threats ?? const [];
     final totalThreats = rt.totalThreats;
 
@@ -240,9 +228,9 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
               ],
             ),
             const SizedBox(height: 20),
-            // ⚠️ FIX: SystemStatusCardAnalyst and ThreatAlertsCardAnalyst were
-            // both wrapped in `Expanded` inside this Row but the Row itself
-            // has no bounded height (it's inside a SingleChildScrollView), so
+            // SystemStatusCardAnalyst and ThreatAlertsCardAnalyst were both
+            // wrapped in `Expanded` inside this Row but the Row itself has
+            // no bounded height (it's inside a SingleChildScrollView), so
             // Expanded here has nothing to expand into. We give the Row a
             // fixed height so ThreatAlertsCardAnalyst's `Expanded`/`height:
             // double.infinity` internals have something concrete to size
@@ -263,12 +251,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    // ⚠️ FIX: ThreatAlertsCardAnalyst now requires `onViewAll`
-                    // (it added a "view all" link matching the admin card) —
-                    // this call was missing it entirely, which is a compile
-                    // error (missing required argument). Wired it to the
-                    // analyst's own Reports screen, same as the admin card
-                    // navigates to '/reports-admin'.
                     child: ThreatAlertsCardAnalyst(
                       threats: threats,
                       totalThreats: totalThreats,

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:net_knight/core/network/base_services.dart';
+import 'package:net_knight/core/network/dashboard_socket_service.dart';
 import '../models/statistics_model_analyst.dart';
 
 class StatisticsServiceAnalyst {
@@ -12,10 +13,9 @@ class StatisticsServiceAnalyst {
   // every call 404'd, which is exactly why the Statistics screen showed
   // "Failed to load statistics". The admin dashboard gets the same data
   // by combining GET /dashboard/stats (counters) and GET /ai/threats
-  // (threat list), plus a static fallback for system status and realtime
-  // metrics coming from the Socket.IO connection (handled already in
-  // StatisticsScreenAnalyst via DashboardSocketService). We now do the
-  // same here instead of hitting a route that was never implemented.
+  // (threat list). System status used to be a static fallback list —
+  // it's now derived from the DashboardSocketService connection (see
+  // _computeLiveStatuses below) instead of hardcoded strings.
   Future<StatisticsSummaryAnalyst> getStatistics() async {
     final results = await Future.wait([
       _getDashboardStats(),
@@ -56,7 +56,7 @@ class StatisticsServiceAnalyst {
 
     return StatisticsSummaryAnalyst(
       stats: stats,
-      systemStatuses: _fallbackStatuses,
+      systemStatuses: computeLiveStatuses(),
       threats: threats,
       // Realtime values (cpu/memory/packets/connections) are provided by
       // DashboardSocketService in the screen itself, so we only need safe
@@ -101,28 +101,47 @@ class StatisticsServiceAnalyst {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  // Same static fallback used on the admin dashboard (StatService) —
-  // there is currently no backend endpoint for live system-status rows.
-  static final List<StatusDataAnalyst> _fallbackStatuses = [
-    const StatusDataAnalyst(
-      name: 'firewall engine',
-      status: 'online',
-      color: Color(0xFF22C55E),
-    ),
-    const StatusDataAnalyst(
-      name: 'AI detection model',
-      status: 'online',
-      color: Color(0xFF22C55E),
-    ),
-    const StatusDataAnalyst(
-      name: 'RL agent',
-      status: 'Auto',
-      color: Color(0xFF3B82F6),
-    ),
-    const StatusDataAnalyst(
-      name: 'nftables controller',
-      status: 'online',
-      color: Color(0xFF22C55E),
-    ),
-  ];
+  // ⚠️ FIX: there is still no backend endpoint that returns per-component
+  // system status (firewall engine / AI detection model / RL agent /
+  // nftables controller are not tracked separately anywhere). Instead of
+  // hardcoding all four rows as permanently "online" (static text), we
+  // derive a real (if coarse) signal from DashboardSocketService: whether
+  // a 'dashboard:update' with realtime metrics has arrived from the
+  // Python agent within the last few seconds. All four rows move together
+  // since they currently share the same single signal — this is a
+  // meaningful improvement over a fixed string, but it is NOT a substitute
+  // for a backend endpoint that reports each component's health
+  // individually. This is public (not private) so the screen can recompute
+  // it live on every socket update, not just once at initial load.
+  static List<StatusDataAnalyst> computeLiveStatuses() {
+    final socket = DashboardSocketService.instance;
+    final alive = socket.isConnected && socket.isAgentAlive;
+
+    const onlineColor = Color(0xFF22C55E);
+    const offlineColor = Color(0xFFF85149);
+    const autoColor = Color(0xFF3B82F6);
+
+    return [
+      StatusDataAnalyst(
+        name: 'firewall engine',
+        status: alive ? 'online' : 'offline',
+        color: alive ? onlineColor : offlineColor,
+      ),
+      StatusDataAnalyst(
+        name: 'AI detection model',
+        status: alive ? 'online' : 'offline',
+        color: alive ? onlineColor : offlineColor,
+      ),
+      StatusDataAnalyst(
+        name: 'RL agent',
+        status: alive ? 'Auto' : 'offline',
+        color: alive ? autoColor : offlineColor,
+      ),
+      StatusDataAnalyst(
+        name: 'nftables controller',
+        status: alive ? 'online' : 'offline',
+        color: alive ? onlineColor : offlineColor,
+      ),
+    ];
+  }
 }

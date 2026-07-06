@@ -6,7 +6,16 @@ import 'package:net_knight/core/network/base_services.dart';
 /// Fixed protocol order — لازم يطابق بالظبط PROTOCOL_BUCKETS في
 /// Backend/src/sockets/pythonMetrics.socket.js (uppercase كلهم بما فيهم OTHER)
 const List<String> kProtocolOrder = [
-  'TLS', 'HTTP', 'FTP', 'SSH', 'TCP', 'UDP', 'ICMP', 'DNS', 'DHCP', 'OTHER'
+  'TLS',
+  'HTTP',
+  'FTP',
+  'SSH',
+  'TCP',
+  'UDP',
+  'ICMP',
+  'DNS',
+  'DHCP',
+  'OTHER',
 ];
 
 class RealtimeMetrics {
@@ -72,12 +81,38 @@ class DashboardStatsRt {
     this.pendingApprovals = 0,
   });
 
-  factory DashboardStatsRt.fromJson(Map<String, dynamic> j) => DashboardStatsRt(
+  factory DashboardStatsRt.fromJson(Map<String, dynamic> j) =>
+      DashboardStatsRt(
         totalThreats: (j['totalThreats'] ?? 0) as int,
         blockedAttacks: (j['blockedAttacks'] ?? 0) as int,
         activeRules: (j['activeRules'] ?? 0) as int,
         pendingApprovals: (j['pendingApprovals'] ?? 0) as int,
       );
+}
+
+/// بيتابع قيمة إحصائية واحدة عبر الوقت ويحسب اتجاهها (↗ / ↘ / —) بمقارنة
+/// القيمة الحالية بآخر قيمة اتسجلت. ده اتجاه "حقيقي" (مش ثابت)، لكنه نسبي
+/// لآخر تحديث وصل من الـ socket خلال نفس الجلسة (session) — مش "زاد عن
+/// إمبارح" أو "عن الأسبوع اللي فات". حساب ترند بالمعنى ده (مقارنة بفترة
+/// زمنية محددة) محتاج الباك يخزن ويرجع snapshot تاريخي.
+class TrendTracker {
+  int? _previous;
+
+  String update(int current) {
+    final prev = _previous;
+    _previous = current;
+
+    if (prev == null || prev == current) return '— 0%';
+
+    if (prev == 0) {
+      // مفيش قيمة سابقة نقارن بيها نسبة عليها — بس فعليًا زاد من صفر
+      return current > 0 ? '↗ 100%' : '— 0%';
+    }
+
+    final diff = current - prev;
+    final pct = ((diff.abs() / prev) * 100).round();
+    return diff > 0 ? '↗ $pct%' : '↘ $pct%';
+  }
 }
 
 /// Singleton — Socket.IO واحد بس للتطبيق كله (Admin + Analyst)
@@ -91,6 +126,26 @@ class DashboardSocketService extends ChangeNotifier {
 
   RealtimeMetrics metrics = const RealtimeMetrics();
   DashboardStatsRt stats = const DashboardStatsRt();
+
+  // آخر وقت وصلت فيه رسالة realtime فعلية من الـ Python agent
+  DateTime? _lastRealtimeUpdateAt;
+  static const _agentTimeout = Duration(seconds: 10);
+
+  /// true لو وصلت رسالة realtime خلال آخر 10 ثواني (يعني الـ Python agent شغال فعليًا)
+  bool get isAgentAlive =>
+      _lastRealtimeUpdateAt != null &&
+      DateTime.now().difference(_lastRealtimeUpdateAt!) < _agentTimeout;
+
+  // trend labels الحقيقية لكل كارد، بتتحدث مع كل 'dashboard:update'
+  final _totalThreatsTrend = TrendTracker();
+  final _blockedAttacksTrend = TrendTracker();
+  final _activeRulesTrend = TrendTracker();
+  final _pendingApprovalsTrend = TrendTracker();
+
+  String totalThreatsTrend = '— 0%';
+  String blockedAttacksTrend = '— 0%';
+  String activeRulesTrend = '— 0%';
+  String pendingApprovalsTrend = '— 0%';
 
   /// بينادَى عند تشغيل الأبليكيشن (main.dart). آمن ينادَى أكتر من مرة.
   void connect() {
@@ -114,11 +169,24 @@ class DashboardSocketService extends ChangeNotifier {
         final map = Map<String, dynamic>.from(data as Map);
         if (map['realtime'] != null) {
           metrics = RealtimeMetrics.fromJson(
-              Map<String, dynamic>.from(map['realtime'] as Map));
+            Map<String, dynamic>.from(map['realtime'] as Map),
+          );
+          _lastRealtimeUpdateAt = DateTime.now();
         }
         if (map['stats'] != null) {
-          stats = DashboardStatsRt.fromJson(
-              Map<String, dynamic>.from(map['stats'] as Map));
+          final newStats = DashboardStatsRt.fromJson(
+            Map<String, dynamic>.from(map['stats'] as Map),
+          );
+
+          // نحسب الاتجاه قبل ما نستبدل stats بالقيم الجديدة
+          totalThreatsTrend = _totalThreatsTrend.update(newStats.totalThreats);
+          blockedAttacksTrend =
+              _blockedAttacksTrend.update(newStats.blockedAttacks);
+          activeRulesTrend = _activeRulesTrend.update(newStats.activeRules);
+          pendingApprovalsTrend =
+              _pendingApprovalsTrend.update(newStats.pendingApprovals);
+
+          stats = newStats;
         }
         notifyListeners();
       } catch (e) {
@@ -130,7 +198,10 @@ class DashboardSocketService extends ChangeNotifier {
       onNewNotification?.call();
     });
 
-    _socket!.onDisconnect((_) => debugPrint('[Socket] disconnected'));
+    _socket!.onDisconnect((_) {
+      debugPrint('[Socket] disconnected');
+      notifyListeners(); // عشان الـ UI يعرف إن الـ socket اتقطع
+    });
     _socket!.onConnectError((e) => debugPrint('[Socket] connect error: $e'));
     _socket!.onError((e) => debugPrint('[Socket] error: $e'));
   }
