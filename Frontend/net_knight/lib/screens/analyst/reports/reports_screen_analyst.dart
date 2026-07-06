@@ -31,7 +31,8 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
   String _levelFilter = 'all levels';
   String _typeFilter = 'all types';
   int _daysFilter = 7;
-
+  final _searchController = TextEditingController(); // ⬅️ جديد
+  String _searchQuery = '';
   List<ThreatModel> _threats = [];
   List<LogModel> _logs = [];
   bool _isLoading = true;
@@ -47,6 +48,12 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
     super.initState();
     _loadUserInfo();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserInfo() async {
@@ -91,19 +98,48 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
     return DateTime.now().difference(date).inDays <= days;
   }
 
-  List<ThreatModel> get _filteredThreats =>
-      _threats.where((t) => _withinDays(t.date, _daysFilter)).toList();
+  List<ThreatModel> get _filteredThreats {
+    var filtered = _threats
+        .where((t) => _withinDays(t.date, _daysFilter))
+        .toList();
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered
+          .where(
+            (t) =>
+                t.attackName.toLowerCase().contains(q) ||
+                t.attackSource.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+    return filtered;
+  }
 
-  List<LogModel> get _filteredLogs =>
-      _logs.where((l) => _withinDays(l.timestamp, _daysFilter)).toList();
+  List<LogModel> get _filteredLogs {
+    var filtered = _logs
+        .where((l) => _withinDays(l.timestamp, _daysFilter))
+        .toList();
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered
+          .where(
+            (l) =>
+                l.message.toLowerCase().contains(q) ||
+                l.source.toLowerCase().contains(q) ||
+                l.type.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+    return filtered;
+  }
 
   // Dynamic type options built from the real audit-log actions instead of
   // the old hardcoded ('Security'/'Firewall'/'AI Engine') list, which never
   // matched anything real coming back from the backend.
   List<String> get _typeOptions => [
-        'all types',
-        ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
-      ];
+    'all types',
+    ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
+  ];
 
   // ─── Manual CSV builder ────────────────────────────────────
   // We avoid the `csv` package here: its API changed across major versions
@@ -157,11 +193,19 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
 
       final rows = isThreats
           ? _filteredThreats
-              .map((t) => [t.attackName, t.attackSource, t.severity, t.status, t.date])
-              .toList()
+                .map(
+                  (t) => [
+                    t.attackName,
+                    t.attackSource,
+                    t.severity,
+                    t.status,
+                    t.date,
+                  ],
+                )
+                .toList()
           : _filteredLogs
-              .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
-              .toList();
+                .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
+                .toList();
 
       Uint8List bytes;
       String filename;
@@ -174,10 +218,8 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
         final doc = pw.Document();
         doc.addPage(
           pw.Page(
-            build: (context) => pw.TableHelper.fromTextArray(
-              headers: headers,
-              data: rows,
-            ),
+            build: (context) =>
+                pw.TableHelper.fromTextArray(headers: headers, data: rows),
           ),
         );
         bytes = await doc.save();
@@ -194,15 +236,15 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$filename downloaded')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$filename downloaded')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     }
   }
@@ -313,6 +355,8 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
           width: 280,
           height: 40,
           child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
             decoration: InputDecoration(
               hintText: 'Search.....',
               prefixIcon: const Icon(LucideIcons.search, size: 16),
@@ -336,7 +380,10 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
             onChanged: (v) => setState(() => _severityFilter = v),
           ),
           const SizedBox(width: 8),
-          _DateFilter(currentDays: _daysFilter, onChanged: (v) => setState(() => _daysFilter = v)),
+          _DateFilter(
+            currentDays: _daysFilter,
+            onChanged: (v) => setState(() => _daysFilter = v),
+          ),
         ] else ...[
           _DropdownFilter(
             value: _levelFilter,
@@ -345,12 +392,17 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
           ),
           const SizedBox(width: 8),
           _DropdownFilter(
-            value: _typeOptions.contains(_typeFilter) ? _typeFilter : 'all types',
+            value: _typeOptions.contains(_typeFilter)
+                ? _typeFilter
+                : 'all types',
             options: _typeOptions,
             onChanged: (v) => setState(() => _typeFilter = v),
           ),
           const SizedBox(width: 8),
-          _DateFilter(currentDays: _daysFilter, onChanged: (v) => setState(() => _daysFilter = v)),
+          _DateFilter(
+            currentDays: _daysFilter,
+            onChanged: (v) => setState(() => _daysFilter = v),
+          ),
         ],
       ],
     );

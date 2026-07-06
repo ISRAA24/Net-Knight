@@ -248,7 +248,7 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
             // double.infinity` internals have something concrete to size
             // against, matching how the admin dashboard lays this out.
             SizedBox(
-              height: double.infinity,
+              height: 560,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

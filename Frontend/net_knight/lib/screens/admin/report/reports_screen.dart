@@ -30,6 +30,8 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   List<ThreatModel> _threats = [];
   List<LogModel> _logs = [];
   bool _isLoading = true;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   String _severityFilter = 'all';
   String _levelFilter = 'all';
@@ -40,6 +42,12 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -121,11 +129,19 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
 
       final rows = isThreats
           ? _filteredThreats
-              .map((t) => [t.attackName, t.attackSource, t.severity, t.status, t.date])
-              .toList()
+                .map(
+                  (t) => [
+                    t.attackName,
+                    t.attackSource,
+                    t.severity,
+                    t.status,
+                    t.date,
+                  ],
+                )
+                .toList()
           : _filteredLogs
-              .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
-              .toList();
+                .map((l) => [l.timestamp, l.level, l.source, l.type, l.message])
+                .toList();
 
       Uint8List bytes;
       String filename;
@@ -138,10 +154,8 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
         final doc = pw.Document();
         doc.addPage(
           pw.Page(
-            build: (context) => pw.TableHelper.fromTextArray(
-              headers: headers,
-              data: rows,
-            ),
+            build: (context) =>
+                pw.TableHelper.fromTextArray(headers: headers, data: rows),
           ),
         );
         bytes = await doc.save();
@@ -158,15 +172,15 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$filename downloaded')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$filename downloaded')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     }
   }
@@ -222,20 +236,40 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   }
 
   List<ThreatModel> get _filteredThreats {
-    var filtered = _threats.where((t) => _withinDays(t.date, _daysFilter)).toList();
+    var filtered = _threats
+        .where((t) => _withinDays(t.date, _daysFilter))
+        .toList();
     if (_severityFilter != 'all') {
-      filtered = filtered.where((t) => t.severity.toLowerCase() == _severityFilter).toList();
+      filtered = filtered
+          .where((t) => t.severity.toLowerCase() == _severityFilter)
+          .toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((t) {
+        return t.attackName.toLowerCase().contains(query) ||
+            t.attackSource.toLowerCase().contains(query) ||
+            t.status.toLowerCase().contains(query);
+      }).toList();
     }
     return filtered;
   }
 
   List<LogModel> get _filteredLogs {
-    var filtered = _logs.where((l) => _withinDays(l.timestamp, _daysFilter)).toList();
+    var filtered = _logs
+        .where((l) => _withinDays(l.timestamp, _daysFilter))
+        .toList();
     if (_levelFilter != 'all') {
       filtered = filtered.where((l) => l.level == _levelFilter).toList();
     }
     if (_typeFilter != 'all') {
       filtered = filtered.where((l) => l.type == _typeFilter).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((l) {
+        return l.message.toLowerCase().contains(query);
+      }).toList();
     }
     return filtered;
   }
@@ -245,9 +279,9 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   // so the Type filter could never actually filter anything. We now build
   // the options from the real data instead.
   List<String> get _typeOptions => [
-        'all',
-        ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
-      ];
+    'all',
+    ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
+  ];
 
   Widget _buildTabsAndActions() {
     return Row(
@@ -280,6 +314,8 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
           width: 280,
           height: 40,
           child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
             decoration: InputDecoration(
               hintText: 'Search.....',
               prefixIcon: const Icon(LucideIcons.search, size: 16),
@@ -449,12 +485,19 @@ class _TopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: GoogleFonts.rajdhani(fontSize: 26, fontWeight: FontWeight.w500)),
+              Text(
+                title,
+                style: GoogleFonts.rajdhani(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               Stack(
                 children: [
                   IconButton(
                     icon: const Icon(LucideIcons.bell, size: 22),
-                    onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/notifications'),
                   ),
                   if (unread > 0)
                     Positioned(
@@ -468,7 +511,11 @@ class _TopBar extends StatelessWidget {
                         ),
                         child: Text(
                           '$unread',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

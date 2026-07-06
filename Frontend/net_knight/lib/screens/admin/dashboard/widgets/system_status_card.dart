@@ -55,9 +55,16 @@ class SystemStatusCard extends StatelessWidget {
           const SizedBox(height: 30),
           Row(
             children: [
-              Expanded(child: _InfoCard(value: packetsPerSec, label: 'packet/sec')),
+              Expanded(
+                child: _InfoCard(value: packetsPerSec, label: 'packet/sec'),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _InfoCard(value: activeConnections, label: 'active connections')),
+              Expanded(
+                child: _InfoCard(
+                  value: activeConnections,
+                  label: 'active connections',
+                ),
+              ),
             ],
           ),
         ],
@@ -72,7 +79,10 @@ class _StatusTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = (MediaQuery.of(context).size.width / 2 - 40).clamp(100.0, 150.0);
+    final width = (MediaQuery.of(context).size.width / 2 - 40).clamp(
+      100.0,
+      150.0,
+    );
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -83,17 +93,22 @@ class _StatusTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(data.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(
+            data.name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
           const SizedBox(height: 8),
-          Text(data.status,
-              style: TextStyle(
-                  color: data.color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14)),
+          Text(
+            data.status,
+            style: TextStyle(
+              color: data.color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
         ],
       ),
     );
@@ -103,7 +118,11 @@ class _StatusTile extends StatelessWidget {
 class _UsageBar extends StatelessWidget {
   final String label, value;
   final double percent;
-  const _UsageBar({required this.label, required this.percent, required this.value});
+  const _UsageBar({
+    required this.label,
+    required this.percent,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -112,18 +131,35 @@ class _UsageBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: percent,
-            minHeight: 10,
-            backgroundColor: Colors.white,
-            valueColor: const AlwaysStoppedAnimation<Color>(NKColors.primary),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color.fromARGB(47, 0, 0, 0),
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: percent,
+              minHeight: 10,
+              backgroundColor: Colors.white,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF0077C2),
+              ),
+            ),
           ),
         ),
       ],
@@ -145,9 +181,20 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
         ],
       ),
     );
