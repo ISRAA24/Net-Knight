@@ -7,7 +7,12 @@ class NatTable extends StatelessWidget {
   final Function(String id, bool enabled) onToggle;
   final Function(String id) onDelete;
 
-  const NatTable({super.key, required this.natRules, required this.onToggle, required this.onDelete});
+  const NatTable({
+    super.key,
+    required this.natRules,
+    required this.onToggle,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +33,7 @@ class NatTable extends StatelessWidget {
                   _TH('Status', flex: 2),
                   _TH('Source IP', flex: 3),
                   _TH('Interface', flex: 2),
-                  _TH('Dest IP', flex: 3),
+                  _TH('Translated IP/Dest IP', flex: 3),
                   _TH('Ext Port', flex: 2),
                   _TH('Int Port', flex: 2),
                   _TH('NAT Type', flex: 2),
@@ -50,10 +55,15 @@ class NatTable extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: natRules.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.black),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Colors.black),
                     itemBuilder: (_, i) {
                       final rule = natRules[i];
-                      return _NatRow(rule: rule, onToggle: onToggle, onDelete: onDelete);
+                      return _NatRow(
+                        rule: rule,
+                        onToggle: onToggle,
+                        onDelete: onDelete,
+                      );
                     },
                   ),
           ],
@@ -68,7 +78,20 @@ class _NatRow extends StatelessWidget {
   final Function(String id, bool enabled) onToggle;
   final Function(String id) onDelete;
 
-  const _NatRow({required this.rule, required this.onToggle, required this.onDelete});
+  const _NatRow({
+    required this.rule,
+    required this.onToggle,
+    required this.onDelete,
+  });
+  String _getDisplayIp(NatRuleModel rule) {
+    final type = rule.natType.toLowerCase();
+    if (type == 'destination' || type == 'dnat') {
+      return rule.destIp.isEmpty ? '—' : rule.destIp;
+    } else if (type == 'source' || type == 'snat' || type == 'source nat') {
+      return rule.newSourceIp.isEmpty ? '—' : rule.newSourceIp;
+    }
+    return '—'; // في حالة masquerade أو أي نوع آخر
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +102,10 @@ class _NatRow extends StatelessWidget {
           _TDWidget(
             flex: 2,
             child: Center(
-              child: _SmallToggle(value: rule.enabled, onChanged: (v) => onToggle(rule.id, v)),
+              child: _SmallToggle(
+                value: rule.enabled,
+                onChanged: (v) => onToggle(rule.id, v),
+              ),
             ),
           ),
           _VD(),
@@ -95,7 +121,13 @@ class _NatRow extends StatelessWidget {
           _VD(),
           _TDWidget(
             flex: 2,
-            child: Text(rule.natType, style: TextStyle(color: _natTypeColor(rule.natType), fontWeight: FontWeight.bold)),
+            child: Text(
+              rule.natType,
+              style: TextStyle(
+                color: _natTypeColor(rule.natType),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           _VD(),
           _TD(rule.created, flex: 2),
@@ -131,7 +163,11 @@ class _TH extends StatelessWidget {
     flex: flex,
     child: Padding(
       padding: const EdgeInsets.all(14),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+        overflow: TextOverflow.ellipsis,
+      ),
     ),
   );
 }
@@ -159,16 +195,14 @@ class _TDWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     flex: flex,
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: child,
-    ),
+    child: Padding(padding: const EdgeInsets.all(14), child: child),
   );
 }
 
 class _VD extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Container(width: 1, color: Colors.black);
+  Widget build(BuildContext context) =>
+      Container(width: 1, color: Colors.black);
 }
 
 class _SmallToggle extends StatelessWidget {

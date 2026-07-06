@@ -42,8 +42,12 @@ class RuleService {
   // NOTE: AI-generated rules live in a different collection (AIRule) and
   // cannot be toggled through this endpoint — the caller must not invoke
   // this for rules where `isAi == true`.
-  Future<bool> toggleRule(String id) async {
+  Future<bool> toggleRule(String id, {bool isAi = false}) async {
     try {
+      if (isAi) {
+        // الـ Endpoint الخاص بالـ AI
+        await BaseService.dio.patch('/ai/rules/$id/toggle'); 
+      }
       await BaseService.dio.patch('/staticfirewall/rules/$id/toggle');
       return true;
     } catch (e) {
@@ -55,9 +59,14 @@ class RuleService {
   // ⚠️ FIX: '/staticfirewall/rule/$priority' was wrong on two counts:
   // the path segment is 'rules' (plural), and the identifier must be the
   // Mongo _id, not the (non-existent) "priority" field.
-  Future<bool> deleteRule(String id) async {
+  Future<bool> deleteRule(String id, {bool isAi = false}) async {
     try {
-      await BaseService.dio.delete('/staticfirewall/rules/$id');
+      if (isAi) {
+        // الـ Endpoint الخاص بالـ AI
+        await BaseService.dio.delete('/ai/rules/$id');
+      } else {
+        await BaseService.dio.delete('/staticfirewall/rules/$id');
+      }
       return true;
     } catch (e) {
       print('Error deleting rule: $e');
