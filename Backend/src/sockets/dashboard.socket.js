@@ -1,12 +1,12 @@
-const AIRule  = require('../models/AIRule');
-const Threat  = require('../models/Threat');
-const Rule    = require('../models/StaticRule');
-const logger  = require('../utils/logger');
+const AIRule = require('../models/AIRule');
+const Threat = require('../models/Threat');
+const Rule = require('../models/StaticRule');
+const logger = require('../utils/logger');
 
 
-let cachedStats      = null;
+let cachedStats = null;
 let lastStatsFetchAt = 0;
-const STATS_TTL_MS   = 30_000; 
+const STATS_TTL_MS = 30_000;
 
 const fetchStats = async () => {
     const now = Date.now();
@@ -38,7 +38,7 @@ const fetchStats = async () => {
 
 
 exports.invalidateStatsCache = () => {
-    cachedStats      = null;
+    cachedStats = null;
     lastStatsFetchAt = 0;
 };
 
@@ -50,7 +50,7 @@ exports.initDashboardSocket = (ioServer) => {
     io.on('connection', async (socket) => {
         logger.info(`[Dashboard] Flutter connected: ${socket.id}`);
 
-        // فور الاتصال نبعتله أحدث stats من غير ما يستنى
+
         try {
             const stats = await fetchStats();
             socket.emit('dashboard:update', { stats });
@@ -64,24 +64,21 @@ exports.initDashboardSocket = (ioServer) => {
     });
 };
 
-// بيتبعت من dashboard.controller كل ثانية لما Python يبعت metrics
+
 exports.broadcastMetrics = async (metrics) => {
     if (!io) return;
     try {
         const stats = await fetchStats();
         io.emit('dashboard:update', {
-            realtime: metrics, // من Python: cpu, memory, packets, trafficChart
-            stats              // من MongoDB: threats, rules, pending
+            realtime: metrics,
+            stats
         });
     } catch (err) {
         logger.error(`broadcastMetrics error: ${err.message}`);
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// broadcastNotification — بيتبعت من notificationHelper كل ما notification تتخلق
-// بيبعت event 'notification:new' لكل الـ Flutter clients المتوصلين
-// ─────────────────────────────────────────────────────────────────────────────
+
 exports.broadcastNotification = (notification) => {
     if (!io) return;
     io.emit('notification:new', notification);

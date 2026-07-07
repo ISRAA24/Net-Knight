@@ -118,11 +118,18 @@ exports.receiveAlert = async (req, res) => {
         const ip         = rule.src_ip || rule.dest_ip;
         const expireAt   = rule.timeout ? new Date(Date.now() + rule.timeout * 1000) : null;
 
+        // 👈 نطبّع الـ severity (lowercase + trim) عشان لو جاية من بايثون بحروف كابيتال
+        // أو فيها مسافات زيادة، ماتفضلش دايما توقع على الـ default 'medium'
+        const normalizedSeverity = typeof severity === 'string' ? severity.trim().toLowerCase() : null;
+        const validSeverity = ['low', 'medium', 'high', 'critical'].includes(normalizedSeverity)
+            ? normalizedSeverity
+            : null;
+
         // 1) نسجل التهديد (Threat)
         const newThreat = await Threat.create({
             sourceIp:   ip,
             attackType: attackType || 'unknown',
-            severity:   ['low', 'medium', 'high', 'critical'].includes(severity) ? severity : 'medium',
+            severity:   validSeverity || 'medium',
             confidence: confidence ?? null,
             details:    description || explanation || ''
         });
@@ -140,7 +147,7 @@ exports.receiveAlert = async (req, res) => {
             explanationDetails: explanationDetails || {},
             attackType:  attackType || null,
             confidence:  confidence ?? null,
-            severity:    ['low', 'medium', 'high', 'critical'].includes(severity) ? severity : null,
+            severity:    validSeverity,
             rateLimit:   rule.rate_limit || null,
             family:      rule.family || 'inet',
             tableName:   rule.table  || null,
@@ -168,8 +175,8 @@ exports.receiveAlert = async (req, res) => {
                 metadata: { ip, action, attackType, confidence }
             });
         } else {
-            const tag = severity ? severity.charAt(0).toUpperCase() + severity.slice(1) : 'Warning';
-            const notifSeverity = ['critical', 'high'].includes(severity) ? severity : 'warning';
+            const tag = validSeverity ? validSeverity.charAt(0).toUpperCase() + validSeverity.slice(1) : 'Warning';
+            const notifSeverity = ['critical', 'high'].includes(validSeverity) ? validSeverity : 'warning';
             await createNotification({
                 type:     'threat_alert',
                 title:    'Threat mitigated automatically',

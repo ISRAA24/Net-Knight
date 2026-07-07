@@ -3,12 +3,6 @@ const logger       = require('../utils/logger');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/notifications
-// Flutter: جلب كل الـ notifications مع pagination وفلتر اختياري بالـ isRead
-//
-// Query params:
-//   ?page=1&limit=20
-//   ?isRead=false   ← لو عايز الـ unread بس
-//   ?type=threat_alert | ai_rule_pending | traffic_spike
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getNotifications = async (req, res) => {
     try {
@@ -40,7 +34,7 @@ exports.getNotifications = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/notifications/unread-count
-// Flutter: عداد الـ notifications الغير مقروءة (الـ badge على أيقونة الجرس)
+// 
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getUnreadCount = async (req, res) => {
     try {
@@ -54,7 +48,6 @@ exports.getUnreadCount = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/notifications/:id/read
-// Flutter: تعليم notification واحدة كـ مقروءة
 // ─────────────────────────────────────────────────────────────────────────────
 exports.markAsRead = async (req, res) => {
     try {
@@ -74,7 +67,6 @@ exports.markAsRead = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/notifications/read-all
-// Flutter: تعليم كل الـ notifications كـ مقروءة (زرار "Mark all as read")
 // ─────────────────────────────────────────────────────────────────────────────
 exports.markAllAsRead = async (req, res) => {
     try {
@@ -107,7 +99,6 @@ exports.deleteNotification = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/notifications
-// Flutter: مسح كل الـ notifications (زرار "Clear all")
 // ─────────────────────────────────────────────────────────────────────────────
 exports.clearAllNotifications = async (req, res) => {
     try {
