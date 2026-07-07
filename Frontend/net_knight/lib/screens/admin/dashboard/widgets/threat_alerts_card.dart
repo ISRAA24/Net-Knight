@@ -77,7 +77,29 @@ class _ThreatItem extends StatelessWidget {
   final ThreatData data;
   const _ThreatItem({required this.data});
 
-  Color get _levelColor => data.level == 'Critical' ? NKColors.amber : NKColors.red;
+  // ⚠️ FIX: previously only 'Critical' had a distinct color (amber) and
+  // every other severity — including 'High' and 'Medium' — fell into the
+  // same red bucket, so the color gave no real signal about how severe
+  // the threat actually is. Now each real backend severity value maps to
+  // its own color, matching the legend already used elsewhere in the app
+  // (ThreatsTabContent): critical -> red, high -> deep orange,
+  // medium -> amber, low -> green. Anything else (e.g. the 'Unknown'
+  // fallback from the model) gets a neutral grey instead of silently
+  // defaulting to red.
+  Color get _levelColor {
+    switch (data.level.toLowerCase()) {
+      case 'critical':
+        return NKColors.red;
+      case 'high':
+        return const Color(0xFFF97316);
+      case 'medium':
+        return NKColors.amber;
+      case 'low':
+        return NKColors.green;
+      default:
+        return const Color(0xFF8A93A6);
+    }
+  }
 
   // ⚠️ FIX: this previously always showed the hardcoded word "Block". It now
   // shows the real mitigation action returned by the backend (e.g.

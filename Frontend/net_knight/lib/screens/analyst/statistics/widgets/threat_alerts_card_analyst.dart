@@ -89,8 +89,29 @@ class _ThreatItemAnalyst extends StatelessWidget {
   const _ThreatItemAnalyst(this.d);
   final ThreatDataAnalyst d;
 
-  Color get _levelColor =>
-      d.level == 'Critical' ? const Color(0xFFF59E0B) : const Color(0xFFF85149);
+  // ⚠️ FIX: previously only 'Critical' had its own color and every other
+  // severity (High/Medium/Low/Unknown) fell into the same red bucket, so
+  // the color gave no real signal about how severe the threat actually is
+  // — a "Medium" threat looked exactly as alarming as a "Critical" one.
+  // Now each real backend severity value maps to its own color, matching
+  // the legend already used elsewhere in the app (ThreatsTabContent):
+  // critical -> red, high -> deep orange, medium -> amber, low -> green.
+  // Anything else (e.g. the 'Unknown' fallback from the model) gets a
+  // neutral grey instead of silently defaulting to red.
+  Color get _levelColor {
+    switch (d.level.toLowerCase()) {
+      case 'critical':
+        return const Color(0xFFF85149);
+      case 'high':
+        return const Color(0xFFF97316);
+      case 'medium':
+        return const Color(0xFFF59E0B);
+      case 'low':
+        return const Color(0xFF22C55E);
+      default:
+        return const Color(0xFF8A93A6);
+    }
+  }
 
   // ⚠️ FIX: previously showed a hardcoded "Block" label — now shows the real
   // mitigation action coming from the backend (e.g. "A2_TEMP_BLOCK").

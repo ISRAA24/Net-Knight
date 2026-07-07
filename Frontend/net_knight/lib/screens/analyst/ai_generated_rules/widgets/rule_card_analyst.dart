@@ -55,6 +55,11 @@ class RuleCardAnalyst extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Action command box
+          // ⚠️ FIX: now shows the action AND the description underneath it
+          // (matching the admin's RuleCard: action "A3_PERM_BLOCK" +
+          // description "[CRITICAL] DoS detected with 99.0% IDS
+          // confidence. Mitigation applied: A3_PERM_BLOCK."), instead of
+          // only the raw action with nothing else in the box.
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
@@ -62,14 +67,30 @@ class RuleCardAnalyst extends StatelessWidget {
               color: _kRuleBg,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(
-              rule.action,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'RobotoMono',
-                fontSize: 15,
-                color: _kActionTxt,
-              ),
+            child: Column(
+              children: [
+                Text(
+                  rule.action,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'RobotoMono',
+                    fontSize: 15,
+                    color: _kActionTxt,
+                  ),
+                ),
+                if ((rule.description ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    rule.description!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 12,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 8),
