@@ -4,7 +4,13 @@ import 'package:flutter/material.dart';
 class FirewallRuleModelAnalyst {
   final String id;
   final bool enabled;
-  final int priority;
+  // ⚠️ NOTE: `priority` field removed entirely. The backend's
+  // GET /staticfirewall/allRules never returns a real priority for a rule
+  // (priority actually lives on the Chain document, not the Rule), so this
+  // field was always either '-' or a wrong value (the nftables handleId).
+  // Rather than keep a field that can never hold real data, it's been
+  // dropped from the model — see FirewallTableAnalyst for the matching
+  // column removal.
   final String sourceIp;
   final String destination;
   final String port;
@@ -16,7 +22,6 @@ class FirewallRuleModelAnalyst {
   const FirewallRuleModelAnalyst({
     required this.id,
     required this.enabled,
-    required this.priority,
     required this.sourceIp,
     required this.destination,
     required this.port,
@@ -34,30 +39,16 @@ class FirewallRuleModelAnalyst {
       };
 
   factory FirewallRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
-    // ⚠️ FIX: the backend's getAllRules controller does not return a
-    // "priority" field at all (it lives on Chain, not on the rule itself),
-    // so json['priority'] is always null. The old ternary checked
-    // `(json['priority'] ?? 0) is int` (always true) but then assigned the
-    // RAW json['priority'] (still null) to this non-nullable `int` field —
-    // that threw a runtime TypeError on every single rule, which crashed
-    // getFirewallRules() and made the whole Rules Center screen show
-    // "Failed to load rules". We now properly default to 0.
-    final rawPriority = json['priority'];
-    final priority = rawPriority is int
-        ? rawPriority
-        : int.tryParse(rawPriority?.toString() ?? '') ?? 0;
-
     return FirewallRuleModelAnalyst(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
       enabled: json['isActive'] ?? json['enabled'] ?? true,
-      priority: priority,
-      sourceIp: json['sourceIp'] ?? json['ip_src'] ?? '-',
-      destination: json['destination'] ?? json['ip_dest'] ?? '-',
-      port: json['port'] ?? json['port_dest'] ?? '*',
-      protocol: json['protocol'] ?? 'ANY',
-      action: json['action'] ?? '-',
-      created: json['createdAt'] ?? json['created'] ?? '',
-      origin: json['ruleType'] ?? json['origin'] ?? 'Static',
+      sourceIp: (json['sourceIp'] ?? json['ip_src'] ?? '-').toString(),
+      destination: (json['destination'] ?? json['ip_dest'] ?? '-').toString(),
+      port: (json['port'] ?? json['port_dest'] ?? '*').toString(),
+      protocol: (json['protocol'] ?? 'ANY').toString(),
+      action: (json['action'] ?? '-').toString(),
+      created: (json['createdAt'] ?? json['created'] ?? '').toString(),
+      origin: (json['ruleType'] ?? json['origin'] ?? 'Static').toString(),
     );
   }
 }
@@ -96,27 +87,26 @@ class NatRuleModelAnalyst {
       };
 
   factory NatRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
-    // ⚠️ FIX: destIp used to read json['new_source_ip'] FIRST (before
-    // dest_ip), so a Source NAT rule's "Dest IP" column ended up showing
-    // the *new source* IP instead of falling back to '—' (Source/
-    // Masquerade rules have no real destination IP). newSourceIp is now
-    // the only field reading new_source_ip, keeping the two concepts
-    // separate instead of one leaking into the other.
+    // destIp/newSourceIp stay separate concepts: destIp only ever reads
+    // dest_ip (Destination NAT), newSourceIp only ever reads new_source_ip
+    // (Source NAT). The table widget derives the single "Translated
+    // IP/Dest IP" display value itself, based on nat_type.
     return NatRuleModelAnalyst(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
       enabled: json['isActive'] ?? json['enabled'] ?? true,
-      sourceIp: json['source_ip'] ?? json['sourceIp'] ?? '—',
-      interfaceName: json['output_interface'] ??
-          json['input_interface'] ??
-          json['interfaceName'] ??
-          '—',
-      destIp: json['dest_ip'] ?? json['destIp'] ?? '—',
+      sourceIp: (json['source_ip'] ?? json['sourceIp'] ?? '—').toString(),
+      interfaceName: (json['output_interface'] ??
+              json['input_interface'] ??
+              json['interfaceName'] ??
+              '—')
+          .toString(),
+      destIp: (json['dest_ip'] ?? json['destIp'] ?? '—').toString(),
       newSourceIp:
-          json['new_source_ip']?.toString() ?? json['newSourceIp'] ?? '—',
-      extPort: json['ext_port']?.toString() ?? json['extPort'] ?? '—',
-      intPort: json['int_port']?.toString() ?? json['intPort'] ?? '—',
-      natType: json['nat_type'] ?? json['natType'] ?? '',
-      created: json['createdAt'] ?? json['created'] ?? '',
+          (json['new_source_ip'] ?? json['newSourceIp'] ?? '—').toString(),
+      extPort: (json['ext_port'] ?? json['extPort'] ?? '—').toString(),
+      intPort: (json['int_port'] ?? json['intPort'] ?? '—').toString(),
+      natType: (json['nat_type'] ?? json['natType'] ?? '').toString(),
+      created: (json['createdAt'] ?? json['created'] ?? '').toString(),
     );
   }
 }
