@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:net_knight/core/network/base_services.dart';
 import '../models/rule_management_model.dart';
 
@@ -39,17 +40,39 @@ class RuleService {
   // Mongo _id (not the old "priority" field, which the backend model
   // doesn't even have).
   //
-  // NOTE: AI-generated rules live in a different collection (AIRule) and
-  // cannot be toggled through this endpoint — the caller must not invoke
-  // this for rules where `isAi == true`.
+  // ⚠️ FIX 2 (the actual bug behind "the toggle doesn't work"): the
+  // `if (isAi)` branch below was missing its `else`, so EVERY toggle call
+  // for an AI-generated rule ended up hitting BOTH endpoints:
+  //   1. PATCH /ai/rules/:id/toggle          (correct — this succeeds)
+  //   2. PATCH /staticfirewall/rules/:id/toggle  (wrong — this 404s, since
+  //      that id only exists in the AIRule collection, not StaticRule)
+  // The second call always threw, so the whole function always returned
+  // false for AI rules — even though the backend had actually already
+  // toggled the rule via call #1. The screen never refreshed after a
+  // "failed" toggle, so the UI looked completely unresponsive.
+  //
+  // ⚠️ Backend note (not a frontend bug): re-enabling a previously
+  // disabled AI rule is intentionally rejected by the backend with 501
+  // ("Re-enabling a disabled AI rule is not supported by the firewall
+  // agent yet. Delete this rule instead."). Toggling AI rules only works
+  // in the disable direction — this method surfaces that specific error
+  // message (via [RuleToggleException]) instead of a generic failure, so
+  // the screen can show the real reason instead of just "Failed to
+  // update rule".
   Future<bool> toggleRule(String id, {bool isAi = false}) async {
     try {
       if (isAi) {
-        // الـ Endpoint الخاص بالـ AI
-        await BaseService.dio.patch('/ai/rules/$id/toggle'); 
+        await BaseService.dio.patch('/ai/rules/$id/toggle');
+      } else {
+        await BaseService.dio.patch('/staticfirewall/rules/$id/toggle');
       }
-      await BaseService.dio.patch('/staticfirewall/rules/$id/toggle');
       return true;
+    } on DioException catch (e) {
+      final message = e.response?.data is Map
+          ? (e.response?.data['message']?.toString() ?? e.message)
+          : e.message;
+      print('Error toggling rule: $message');
+      throw RuleToggleException(message ?? 'Failed to update rule');
     } catch (e) {
       print('Error toggling rule: $e');
       return false;
@@ -98,4 +121,15 @@ class RuleService {
       return false;
     }
   }
+}
+
+/// Thrown by [RuleService.toggleRule] when the backend rejects the toggle
+/// with a specific, user-relevant reason (e.g. the 501 "re-enabling AI
+/// rules is not supported" case) instead of a generic connection failure.
+class RuleToggleException implements Exception {
+  final String message;
+  const RuleToggleException(this.message);
+
+  @override
+  String toString() => message;
 }
