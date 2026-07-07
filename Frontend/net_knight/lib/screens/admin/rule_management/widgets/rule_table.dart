@@ -216,28 +216,39 @@ class _SmallToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = onChanged == null;
-    return Opacity(
-      opacity: disabled ? 0.4 : 1,
-      child: GestureDetector(
-        onTap: disabled ? null : () => onChanged!(!value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 36,
-          height: 20,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: value ? Colors.blue : Colors.grey,
-          ),
-          padding: const EdgeInsets.all(2),
-          child: AnimatedAlign(
+    // ⚠️ FIX: previously this was just a bare GestureDetector, and
+    // GestureDetector alone does NOT change the mouse cursor on Flutter
+    // Web/Desktop (unlike InkWell, which sets a click cursor automatically).
+    // So hovering over the toggle kept showing the default arrow instead of
+    // a pointer/hand, even though tapping it worked fine. Wrapping it in a
+    // MouseRegion with an explicit cursor fixes that — click cursor when
+    // enabled, forbidden cursor when disabled (AI rule row with no handler).
+    return MouseRegion(
+      cursor:
+          disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+      child: Opacity(
+        opacity: disabled ? 0.4 : 1,
+        child: GestureDetector(
+          onTap: disabled ? null : () => onChanged!(!value),
+          child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
+            width: 36,
+            height: 20,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: value ? Colors.blue : Colors.grey,
+            ),
+            padding: const EdgeInsets.all(2),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 200),
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

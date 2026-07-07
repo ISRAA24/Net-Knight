@@ -83,16 +83,33 @@ class _RuleManagementScreenState extends State<RuleManagementScreen> {
         .toList();
   }
 
-  Future<void> _toggleRule(String id, bool enabled , bool isAi ) async {
-    final success = await _service.toggleRule(id, isAi: isAi);
-    if (success) {
-      _loadData();
-    } else if (mounted) {
-      _showError('Failed to update rule');
+  // ⚠️ FIX: this previously had no try/catch at all around the service
+  // call. RuleService.toggleRule() throws a RuleToggleException whenever
+  // the backend rejects the toggle with a specific reason (most notably
+  // the 501 "Re-enabling a disabled AI rule is not supported by the
+  // firewall agent yet. Delete this rule instead." case from
+  // ai.controller.js -> toggleAIRuleStatus). Since nothing here caught
+  // that exception, it propagated up unhandled: the UI showed no error at
+  // all and the toggle looked like it silently did nothing / froze. We
+  // now catch RuleToggleException specifically and surface its real
+  // message via _showError, and keep the generic catch as a fallback for
+  // any other unexpected failure.
+  Future<void> _toggleRule(String id, bool enabled, bool isAi) async {
+    try {
+      final success = await _service.toggleRule(id, isAi: isAi);
+      if (success) {
+        _loadData();
+      } else if (mounted) {
+        _showError('Failed to update rule');
+      }
+    } on RuleToggleException catch (e) {
+      if (mounted) _showError(e.message);
+    } catch (e) {
+      if (mounted) _showError('Failed to update rule');
     }
   }
 
-  Future<void> _deleteRule(String id , bool isAi ) async {
+  Future<void> _deleteRule(String id, bool isAi) async {
     final success = await _service.deleteRule(id, isAi: isAi);
     if (success) {
       _loadData();
