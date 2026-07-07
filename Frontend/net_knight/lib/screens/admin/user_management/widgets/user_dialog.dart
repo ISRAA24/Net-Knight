@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -58,6 +59,16 @@ class _UserDialogState extends State<UserDialog> {
     super.dispose();
   }
 
+  // ⚠️ FIX: this previously had a bare try { } finally { } with no catch
+  // block at all. If the backend rejected the request (e.g. 400 "User
+  // already exists" from addUser, or a Joi validation error such as a
+  // password under 8 characters), the exception propagated unhandled —
+  // the dialog just sat there with no feedback at all about what went
+  // wrong (other screens like Tables/Chains/Rules/NAT already show a
+  // SnackBar on DioException; this dialog was the odd one out). We now
+  // catch DioException specifically (surfacing the backend's real message
+  // when available) plus a generic fallback for anything else, and show
+  // an error SnackBar instead of failing silently.
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty || _email.text.trim().isEmpty) return;
 
@@ -70,9 +81,22 @@ class _UserDialogState extends State<UserDialog> {
         _role,
       );
       if (mounted) Navigator.pop(context);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final serverMessage = data is Map ? data['message']?.toString() : null;
+      _showError(serverMessage ?? 'Failed to save user. Please try again.');
+    } catch (_) {
+      _showError('Failed to save user. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override

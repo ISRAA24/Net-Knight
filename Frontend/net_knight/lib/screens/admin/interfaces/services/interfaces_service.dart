@@ -20,10 +20,18 @@ class InterfacesService {
   }
 
   // ─── Edit interface ────────────────────────────
+  // ⚠️ FIX: this previously only sent `status` and `ipAddress`, so editing
+  // the Logical Name in EditInterfaceDialog silently did nothing — the
+  // dialog closed as if it succeeded, but the new name was never sent to
+  // the backend and was lost. We now include `logicalName` in the request
+  // body as well. (Note: this still requires the corresponding backend
+  // route/controller to actually persist `logicalName` for the change to
+  // take effect end-to-end.)
   Future<void> editInterface(String realName, InterfaceModel updated) async {
     await _dio.put(
       '/staticfirewall/interfaces/$realName',
       data: {
+        'logicalName': updated.logicalName,
         'status': updated.status == 'connected' ? 'up' : 'down',
         'ipAddress': updated.ip,
       },

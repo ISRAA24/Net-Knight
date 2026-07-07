@@ -62,7 +62,7 @@ class AiRuleModelAnalyst {
     final attackType = json['attackType']?.toString() ?? '';
     final confidence = json['confidence'];
     if (attackType.isEmpty) return json['description']?.toString() ?? '';
-    return confidence != null ? '$attackType ($confidence% confidence)' : attackType;
+    return confidence != null ? '$attackType (${confidence*100}%)' : attackType;
   }
 
   static String _timeAgoFrom(String? iso) {
