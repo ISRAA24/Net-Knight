@@ -15,7 +15,7 @@ class StatisticsServiceAnalyst {
   // by combining GET /dashboard/stats (counters) and GET /ai/threats
   // (threat list). System status used to be a static fallback list —
   // it's now derived from the DashboardSocketService connection (see
-  // _computeLiveStatuses below) instead of hardcoded strings.
+  // computeLiveStatuses below) instead of hardcoded strings.
   Future<StatisticsSummaryAnalyst> getStatistics() async {
     final results = await Future.wait([
       _getDashboardStats(),
@@ -76,21 +76,66 @@ class StatisticsServiceAnalyst {
       if (data is Map) return Map<String, dynamic>.from(data);
       return {};
     } catch (e) {
-      print('Error fetching dashboard stats: $e');
+      debugPrint('Error fetching dashboard stats: $e');
       return {};
     }
   }
 
+  // ⚠️ FIX: the Threat document itself (Backend/src/models/Threat.js) has
+  // no `action` field at all — the real mitigation action lives on the
+  // related AIRule document (AIRule.action, linked back via
+  // AIRule.threatId -> Threat._id). This previously read `json['action']`
+  // straight off the /ai/threats response, which is always null/empty, so
+  // the Threat Alerts card here always fell back to the hardcoded "Block"
+  // label and never showed the real per-threat action (unlike the admin
+  // dashboard's StatService.getThreats(), which already does this join).
+  // We now fetch both '/ai/threats' and '/ai/rules' and join them
+  // client-side by matching threat._id against rule.threatId, exactly
+  // like the admin implementation, so both dashboards behave identically.
   Future<List<ThreatDataAnalyst>> _getThreats() async {
     try {
-      final response = await _dio.get('/ai/threats');
-      final data = response.data['data'];
-      if (data is List) {
-        return data.map((e) => ThreatDataAnalyst.fromJson(e)).toList();
+      final results = await Future.wait([
+        _dio.get('/ai/threats'),
+        _dio.get('/ai/rules'),
+      ]);
+
+      final threatsData = results[0].data['data'];
+      final rulesData = results[1].data['data'];
+
+      final actionByThreatId = <String, String>{};
+      if (rulesData is List) {
+        for (final rule in rulesData) {
+          if (rule is! Map) continue;
+          final threatId = rule['threatId'];
+          final action = rule['action'];
+          if (threatId != null &&
+              action != null &&
+              action.toString().isNotEmpty) {
+            actionByThreatId[threatId.toString()] = action.toString();
+          }
+        }
+      }
+
+      if (threatsData is List) {
+        return threatsData.map((e) {
+          final threat = ThreatDataAnalyst.fromJson(e);
+          if (e is! Map) return threat;
+          final id = (e['_id'] ?? e['id'])?.toString();
+          final matchedAction = id != null ? actionByThreatId[id] : null;
+          if (matchedAction == null || matchedAction.isEmpty) return threat;
+          return ThreatDataAnalyst(
+            ip: threat.ip,
+            type: threat.type,
+            level: threat.level,
+            confidence: threat.confidence,
+            time: threat.time,
+            action: matchedAction,
+          );
+        }).toList();
       }
       return [];
     } catch (e) {
-      print('Error fetching threats: $e');
+      debugPrint('Error fetching threats: $e');
       return [];
     }
   }
