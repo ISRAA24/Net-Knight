@@ -10,7 +10,7 @@ const {
 } = require('../controllers/notification.controller');
 const { protect } = require('../middleware/auth.middleware');
 
-// كل الـ notification routes بتطلب JWT (Flutter فقط)
+
 router.use(protect);
 
 router.get   ('/',               getNotifications);

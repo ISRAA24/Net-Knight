@@ -6,24 +6,6 @@ const logger  = require('../utils/logger');
 const { createNotification } = require('../utils/notificationHelper');
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/dashboard/metrics  ← Python بيكلم الـ endpoint ده كل ثانية
-//
-// الـ body اللي Python بيبعته:
-// {
-//   "packetsPerSecond": 11456,
-//   "activeConnections": 1449,
-//   "cpuUsage": 67.5,
-//   "memoryUsage": 71.2,
-//   "trafficChart": {
-//     "HTTP":  { "inbound": 2500, "outbound": 1800 },
-//     "HTTPS": { "inbound": 4200, "outbound": 3100 },
-//     "DNS":   { "inbound": 800,  "outbound": 750  },
-//     "SSH":   { "inbound": 120,  "outbound": 95   }
-//     ... (أي عدد من البروتوكولات)
-//   }
-// }
-//
-// Node.js بياخد الـ metrics دي، بيضيف الـ stats من MongoDB،
-// وبيعمل broadcast لكل الـ Flutter clients المتوصلين عبر Socket.IO
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveMetrics = async (req, res) => {
     try {
@@ -33,11 +15,11 @@ exports.receiveMetrics = async (req, res) => {
             return res.status(400).json({ success: false, message: 'cpu_usage and memory_usage are required' });
         }
 
-        // broadcast للـ Flutter clients (non-blocking — مش محتاجين نستنى)
+        
         broadcastMetrics({ packetsPerSecond: packets_per_second, activeConnections: active_connections, cpuUsage: cpu_usage, memoryUsage: memory_usage, trafficChart: traffic_chart })
             .catch(err => logger.error(`broadcastMetrics failed: ${err.message}`));
 
-        // نرد على Python بسرعة
+        
         return res.status(200).json({ success: true });
 
     } catch (error) {
@@ -48,9 +30,6 @@ exports.receiveMetrics = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/dashboard/stats  ← Flutter بيكلمها مرة واحدة وقت فتح الداشبورد
-//
-// بترجع الـ stats بدون realtime metrics
-// (الـ realtime بييجي بعدين عبر Socket.IO)
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getStats = async (req, res) => {
     try {
@@ -84,31 +63,10 @@ exports.getStats = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/dashboard/traffic-spike  ← Python بيكلمها لما يكشف spike غير طبيعي
+// POST /api/dashboard/traffic-spike 
 //
-// Body من Python:
-// {
-//   "interface":        "eth0",
-//   "direction":        "inbound",       // inbound | outbound
-//   "currentBandwidth": 2.3,             // القيمة الحالية
-//   "threshold":        2.0,             // الـ threshold اللي اتعدى
-//   "unit":             "Gbps",          // الوحدة
-//   "message":          "..."            // اختياري - لو Python عايد يبعت message جاهزة
-// }
 // ─────────────────────────────────────────────────────────────────────────────
-
- 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/netknight/bandwidth-alert  ← ده المسار والـ payload الحقيقيين
-// (gateway/ws_monitor.py → node_client.send_bandwidth_alert، القسم 10)
-//
-// Body الحقيقي من Python:
-// { "message": "Warning: Bandwidth usage is high and has exceeded 80%.",
-//   "usage_percent": 84.3 }
-//
-// ⚠️ مختلف تمامًا عن receiveTrafficSpike تحت (اللي كانت مبنية على شكل بيانات
-// افتراضي: interface/direction/currentBandwidth/threshold/unit — الشكل ده
-// Network_Scripts معندوش أي نية يبعته بيه).
+// POST /api/netknight/bandwidth-alert  
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveBandwidthAlert = async (req, res) => {
     try {
@@ -136,8 +94,6 @@ exports.receiveBandwidthAlert = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // [Legacy] POST /api/dashboard/traffic-spike
-// ⚠️ Network_Scripts مش بينادي المسار أو الشكل ده خالص — شوفي receiveBandwidthAlert
-// فوق لللي فعليًا بيتبعت. سايبين ده شغال للإدخال اليدوي/الاختبار بس.
 // ─────────────────────────────────────────────────────────────────────────────
 exports.receiveTrafficSpike = async (req, res) => {
     try {
