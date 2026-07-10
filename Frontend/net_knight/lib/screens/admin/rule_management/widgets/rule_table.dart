@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../models/rule_management_model.dart';
 
-// ⚠️ FIX: this table now shows the same column set as the analyst's Rules
-// Center screen (Status, Priority, Source IP, Destination, Port, Protocol,
-// Action, Origin, Created, + Admin-only Delete), instead of a reduced set
-// (Status, Rule Name, Source IP, Action, Origin, Created, Actions).
 class RuleTable extends StatelessWidget {
   final List<RuleModel> rules;
   final Function(String id, bool enabled, bool isAi) onToggle;
@@ -95,9 +91,7 @@ class _RuleRow extends StatelessWidget {
           _TDWidget(
             flex: 2,
             child: Center(
-              // AI-generated rules live in a different collection and
-              // can't be toggled through this static-rule endpoint, so
-              // the switch is read-only for them.
+
               child: _SmallToggle(
                 value: rule.enabled,
                 onChanged: (v) => onToggle(rule.id, v, rule.isAi),
@@ -134,10 +128,7 @@ class _RuleRow extends StatelessWidget {
             flex: 2,
             child: IconButton(
               icon: const Icon(LucideIcons.trash2, size: 16),
-              // Deleting an AI rule also requires the backend to unwind
-              // its firewall handles (handled by /ai/rules/:id), which is
-              // a different endpoint than static rules — not wired up
-              // here, so we disable delete for AI rules on this screen.
+
               onPressed: () => onDelete(rule.id , rule.isAi),
             ),
           ),
@@ -216,13 +207,7 @@ class _SmallToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disabled = onChanged == null;
-    // ⚠️ FIX: previously this was just a bare GestureDetector, and
-    // GestureDetector alone does NOT change the mouse cursor on Flutter
-    // Web/Desktop (unlike InkWell, which sets a click cursor automatically).
-    // So hovering over the toggle kept showing the default arrow instead of
-    // a pointer/hand, even though tapping it worked fine. Wrapping it in a
-    // MouseRegion with an explicit cursor fixes that — click cursor when
-    // enabled, forbidden cursor when disabled (AI rule row with no handler).
+
     return MouseRegion(
       cursor:
           disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,

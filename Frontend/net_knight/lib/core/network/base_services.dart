@@ -4,22 +4,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html' as html;
 
 class BaseService {
   static Dio? _dioInstance;
   // ignore: unused_field
   static const _storage = FlutterSecureStorage();
+  static const String previewBaseUrl = 'http://100.92.143.50:9090/api';
 
-  static String get _baseHost => html.window.location.hostname ?? 'localhost';
-
-  static String get previewBaseUrl => 'http://$_baseHost:9090/api';
-
-  static String _resolvedBaseUrl = '';
+  static String _resolvedBaseUrl = 'http://100.97.136.8:3003/api';
 
   // ─── Init ─────────────────────────────────────────────
   static Future<void> init() async {
-    String baseUrl = 'http://$_baseHost:3003/api';
+    String baseUrl = 'http://100.97.136.8:3003/api';
 
     if (kIsWeb) {
       try {
@@ -94,6 +90,7 @@ class TokenStorage {
     }
   }
 
+  // ─── Get Username ─────────────────────────────────
   static Future<String> getUsername() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
@@ -103,6 +100,7 @@ class TokenStorage {
     }
   }
 
+  // ─── Get Role ─────────────────────────────────────
   static Future<String> getRole() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();

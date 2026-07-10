@@ -43,9 +43,7 @@ class NatTable extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.black),
-            // ⚠️ FIX: no longer wrapped in Expanded — the table now sizes
-            // itself to the number of NAT rules (grows/shrinks with data)
-            // since the parent screen puts this inside a scroll view.
+
             natRules.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(32),
@@ -90,7 +88,7 @@ class _NatRow extends StatelessWidget {
     } else if (type == 'source' || type == 'snat' || type == 'source nat') {
       return rule.newSourceIp.isEmpty ? '—' : rule.newSourceIp;
     }
-    return '—'; // في حالة masquerade أو أي نوع آخر
+    return '—'; 
   }
 
   @override
@@ -213,12 +211,7 @@ class _SmallToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ⚠️ FIX: previously this was just a bare GestureDetector, and
-    // GestureDetector alone does NOT change the mouse cursor on Flutter
-    // Web/Desktop (unlike InkWell, which sets a click cursor automatically).
-    // So hovering over the toggle kept showing the default arrow instead of
-    // a pointer/hand, even though tapping it worked fine. Wrapping it in a
-    // MouseRegion with an explicit click cursor fixes that.
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(

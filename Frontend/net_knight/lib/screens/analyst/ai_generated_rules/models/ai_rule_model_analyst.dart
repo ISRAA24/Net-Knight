@@ -31,12 +31,6 @@ class AiRuleModelAnalyst {
     this.status = AiRuleStatusAnalyst.pending,
   });
 
-  // ⚠️ FIX: this model previously only read 'pattern'/'created_at', which
-  // don't exist on the AIRule document at all, so "Detected pattern" always
-  // rendered empty. It now reads the same real fields the admin model uses
-  // (explanationDetails / mitigation_reason / evidence / ids / anomaly),
-  // so the Detected Pattern section can show the same Read More/Read Less
-  // content as the admin screen.
   factory AiRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
     return AiRuleModelAnalyst(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -47,11 +41,12 @@ class AiRuleModelAnalyst {
       description: json['description']?.toString(),
       mitigationReason:
           json['explanationDetails']?['mitigation_reason']?.toString() ??
-              json['mitigation_reason']?.toString(),
+          json['mitigation_reason']?.toString(),
       idsLabel: json['ids']?['label']?.toString(),
       anomalySeverity: json['anomaly']?['severity']?.toString(),
       explanationDetails: json['explanationDetails'] as Map<String, dynamic>?,
-      evidence: json['explanationDetails']?['evidence'] as List<dynamic>? ??
+      evidence:
+          json['explanationDetails']?['evidence'] as List<dynamic>? ??
           json['evidence'] as List<dynamic>?,
       isActive: json['isActive'] ?? true,
       status: _parseStatus(json['status']),
@@ -62,7 +57,9 @@ class AiRuleModelAnalyst {
     final attackType = json['attackType']?.toString() ?? '';
     final confidence = json['confidence'];
     if (attackType.isEmpty) return json['description']?.toString() ?? '';
-    return confidence != null ? '$attackType (${confidence*100}%)' : attackType;
+    return confidence != null
+        ? '$attackType (${confidence * 100}%)'
+        : attackType;
   }
 
   static String _timeAgoFrom(String? iso) {
@@ -104,12 +101,15 @@ class AiRulesStatsAnalyst {
 
   factory AiRulesStatsAnalyst.fromRules(List<AiRuleModelAnalyst> rules) {
     return AiRulesStatsAnalyst(
-      pending:
-          rules.where((r) => r.status == AiRuleStatusAnalyst.pending).length,
-      approved:
-          rules.where((r) => r.status == AiRuleStatusAnalyst.approved).length,
-      rejected:
-          rules.where((r) => r.status == AiRuleStatusAnalyst.rejected).length,
+      pending: rules
+          .where((r) => r.status == AiRuleStatusAnalyst.pending)
+          .length,
+      approved: rules
+          .where((r) => r.status == AiRuleStatusAnalyst.approved)
+          .length,
+      rejected: rules
+          .where((r) => r.status == AiRuleStatusAnalyst.rejected)
+          .length,
       total: rules.length,
     );
   }

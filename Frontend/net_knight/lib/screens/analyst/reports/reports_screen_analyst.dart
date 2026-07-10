@@ -31,14 +31,13 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
   String _levelFilter = 'all levels';
   String _typeFilter = 'all types';
   int _daysFilter = 7;
-  final _searchController = TextEditingController(); // ⬅️ جديد
+  final _searchController = TextEditingController();
   String _searchQuery = '';
   List<ThreatModel> _threats = [];
   List<LogModel> _logs = [];
   bool _isLoading = true;
   String? _error;
 
-  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
   String _username = 'User';
   String _role = '';
   String _initials = 'U';
@@ -89,8 +88,6 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
     }
   }
 
-  // The backend ignores any date/day query params entirely, so filtering by
-  // date is done fully on the client using each record's own date value.
   bool _withinDays(String dateStr, int days) {
     if (dateStr.isEmpty) return true;
     final date = DateTime.tryParse(dateStr);
@@ -133,18 +130,13 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
     return filtered;
   }
 
-  // Dynamic type options built from the real audit-log actions instead of
-  // the old hardcoded ('Security'/'Firewall'/'AI Engine') list, which never
-  // matched anything real coming back from the backend.
   List<String> get _typeOptions => [
     'all types',
     ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),
   ];
 
   // ─── Manual CSV builder ────────────────────────────────────
-  // We avoid the `csv` package here: its API changed across major versions
-  // (ListToCsvConverter isn't guaranteed across pubspec ranges), and a
-  // correctly-escaped CSV line is trivial to build by hand.
+
   String _escapeCsvField(String field) {
     final needsQuoting =
         field.contains(',') || field.contains('"') || field.contains('\n');
@@ -182,9 +174,6 @@ class _ReportsScreenAnalystState extends State<ReportsScreenAnalyst> {
 
     if (format == null) return;
 
-    // NOTE: '/staticfirewall/export' does not exist on the backend at all,
-    // so the export is generated fully client-side from the data already
-    // loaded/filtered on screen.
     try {
       final isThreats = _tab == ReportTab.threats;
       final headers = isThreats
@@ -495,7 +484,6 @@ class _DropdownFilter extends StatelessWidget {
   }
 }
 
-// Date Filter — real working dropdown wired to onChanged.
 class _DateFilter extends StatelessWidget {
   final int currentDays;
   final ValueChanged<int> onChanged;

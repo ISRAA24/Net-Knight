@@ -54,12 +54,6 @@ class RuleCardAnalyst extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Action command box
-          // ⚠️ FIX: now shows the action AND the description underneath it
-          // (matching the admin's RuleCard: action "A3_PERM_BLOCK" +
-          // description "[CRITICAL] DoS detected with 99.0% IDS
-          // confidence. Mitigation applied: A3_PERM_BLOCK."), instead of
-          // only the raw action with nothing else in the box.
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
@@ -100,11 +94,6 @@ class RuleCardAnalyst extends StatelessWidget {
           _sub(rule.guide),
           const SizedBox(height: 8),
 
-          // ⚠️ FIX: previously this just showed the raw (mostly empty)
-          // `rule.pattern` string. Now it mirrors the admin screen's
-          // Detected Pattern section: starts with the mitigation reason,
-          // and has a "Read More Details" / "Read Less" toggle that reveals
-          // analyst notes, evidence, IDS label, and anomaly severity.
           _label('Detected pattern'),
           const SizedBox(height: 4),
           _DetectedPatternSectionAnalyst(rule: rule),
@@ -161,7 +150,6 @@ class _DetectedPatternSectionAnalystState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // يبدأ مباشرة بـ mitigation_reason زي شاشة الأدمن
         Text(
           mitigation,
           style: const TextStyle(

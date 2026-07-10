@@ -15,7 +15,8 @@ class NotificationsScreenAdmin extends StatefulWidget {
   const NotificationsScreenAdmin({super.key});
 
   @override
-  State<NotificationsScreenAdmin> createState() => _NotificationsScreenAdminState();
+  State<NotificationsScreenAdmin> createState() =>
+      _NotificationsScreenAdminState();
 }
 
 class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
@@ -23,11 +24,6 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
   List<NotificationModel> _notifications = [];
   bool _isLoading = true;
 
-  // ⚠️ FIX: this screen used to always render the admin Sidebar, even when
-  // an analyst opened it from the bell icon on their own screens (analysts
-  // must never see admin-only navigation items). We now read the stored
-  // role and render the matching sidebar (Sidebar for admin/super_admin,
-  // SidebarAnalyst for analyst).
   String _username = 'User';
   String _role = '';
   String _initials = 'U';
@@ -82,7 +78,9 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
     if (success) {
       setState(() {
         final index = _notifications.indexWhere((n) => n.id == id);
-        if (index != -1) _notifications[index] = _notifications[index].copyWith(isRead: true);
+        if (index != -1) {
+          _notifications[index] = _notifications[index].copyWith(isRead: true);
+        }
       });
       _syncProvider();
     }
@@ -92,7 +90,9 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
     final success = await _service.markAllAsRead();
     if (success) {
       setState(() {
-        _notifications = _notifications.map((n) => n.copyWith(isRead: true)).toList();
+        _notifications = _notifications
+            .map((n) => n.copyWith(isRead: true))
+            .toList();
       });
       _syncProvider();
     }
@@ -126,7 +126,10 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Header(unreadCount: _unreadCount, onMarkAllRead: _markAllAsRead),
+                _Header(
+                  unreadCount: _unreadCount,
+                  onMarkAllRead: _markAllAsRead,
+                ),
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
@@ -134,13 +137,20 @@ class _NotificationsScreenAdminState extends State<NotificationsScreenAdmin> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           children: [
                             const _SectionLabel('TODAY'),
-                            ..._notifications.map((n) => NotificationCard(
-                                  notification: n,
-                                  onMarkRead: () => _markAsRead(n.id),
-                                  onDelete: () => _deleteNotification(n.id),
-                                )),
+                            ..._notifications.map(
+                              (n) => NotificationCard(
+                                notification: n,
+                                onMarkRead: () => _markAsRead(n.id),
+                                onDelete: () => _deleteNotification(n.id),
+                              ),
+                            ),
                             if (_notifications.isEmpty)
-                              const Center(child: Text('No notifications', style: TextStyle(color: Colors.white54))),
+                              const Center(
+                                child: Text(
+                                  'No notifications',
+                                  style: TextStyle(color: Colors.white54),
+                                ),
+                              ),
                           ],
                         ),
                 ),
@@ -167,22 +177,46 @@ class _Header extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 6),
-          const Text('Notifications', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text(
+            'Notifications',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(width: 10),
           if (unreadCount > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
-              child: Text('$unreadCount new', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$unreadCount new',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           const Spacer(),
           if (unreadCount > 0)
             TextButton(
               onPressed: onMarkAllRead,
-              child: const Text('Mark all as read', style: TextStyle(color: Colors.blue, fontSize: 13)),
+              child: const Text(
+                'Mark all as read',
+                style: TextStyle(color: Colors.blue, fontSize: 13),
+              ),
             ),
         ],
       ),
@@ -198,7 +232,15 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.6,
+        ),
+      ),
     );
   }
 }

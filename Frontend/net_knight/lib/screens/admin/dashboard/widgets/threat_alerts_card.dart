@@ -32,8 +32,7 @@ class ThreatAlertsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Threat Alerts', style: NKTextStyles.heading),
-              // ⚠️ FIX: "view all" was a static Text with no tap handler at
-              // all — onViewAll was accepted by the widget but never wired up.
+
               InkWell(
                 onTap: () => onViewAll(),
                 borderRadius: BorderRadius.circular(6),
@@ -77,15 +76,7 @@ class _ThreatItem extends StatelessWidget {
   final ThreatData data;
   const _ThreatItem({required this.data});
 
-  // ⚠️ FIX: previously only 'Critical' had a distinct color (amber) and
-  // every other severity — including 'High' and 'Medium' — fell into the
-  // same red bucket, so the color gave no real signal about how severe
-  // the threat actually is. Now each real backend severity value maps to
-  // its own color, matching the legend already used elsewhere in the app
-  // (ThreatsTabContent): critical -> red, high -> deep orange,
-  // medium -> amber, low -> green. Anything else (e.g. the 'Unknown'
-  // fallback from the model) gets a neutral grey instead of silently
-  // defaulting to red.
+
   Color get _levelColor {
     switch (data.level.toLowerCase()) {
       case 'critical':
@@ -101,10 +92,7 @@ class _ThreatItem extends StatelessWidget {
     }
   }
 
-  // ⚠️ FIX: this previously always showed the hardcoded word "Block". It now
-  // shows the real mitigation action returned by the backend (e.g.
-  // "A2_TEMP_BLOCK"), falling back to "Block" only if the backend hasn't
-  // recorded one (older documents created before the `action` field existed).
+
   String get _actionLabel => data.action.isNotEmpty ? data.action : 'Block';
 
   @override

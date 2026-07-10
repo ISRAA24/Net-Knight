@@ -31,9 +31,6 @@ class ReportService {
     }
   }
 
-  // NOTE: '/reports/export' is not implemented on the backend at all
-  // (no route file mounted at /api/reports in server.js). This call will
-  // keep failing until that endpoint is added server-side.
   Future<Response> exportReport({int days = 7, required String format}) async {
     try {
       final response = await BaseService.dio.get(

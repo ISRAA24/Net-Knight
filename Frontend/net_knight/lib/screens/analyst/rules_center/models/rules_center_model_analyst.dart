@@ -4,13 +4,7 @@ import 'package:flutter/material.dart';
 class FirewallRuleModelAnalyst {
   final String id;
   final bool enabled;
-  // ⚠️ NOTE: `priority` field removed entirely. The backend's
-  // GET /staticfirewall/allRules never returns a real priority for a rule
-  // (priority actually lives on the Chain document, not the Rule), so this
-  // field was always either '-' or a wrong value (the nftables handleId).
-  // Rather than keep a field that can never hold real data, it's been
-  // dropped from the model — see FirewallTableAnalyst for the matching
-  // column removal.
+
   final String sourceIp;
   final String destination;
   final String port;
@@ -32,11 +26,11 @@ class FirewallRuleModelAnalyst {
   });
 
   Color get actionColor => switch (action.toLowerCase()) {
-        'drop' => const Color(0xFFEF4444),
-        'accept' => const Color(0xFF22C55E),
-        'nat' => const Color(0xFFF59E0B),
-        _ => const Color(0xFF1D242B),
-      };
+    'drop' => const Color(0xFFEF4444),
+    'accept' => const Color(0xFF22C55E),
+    'nat' => const Color(0xFFF59E0B),
+    _ => const Color(0xFF1D242B),
+  };
 
   factory FirewallRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
     return FirewallRuleModelAnalyst(
@@ -80,29 +74,26 @@ class NatRuleModelAnalyst {
   });
 
   Color get natTypeColor => switch (natType.toLowerCase()) {
-        'masquerade' => const Color(0xFF22C55E),
-        'source' || 'snat' || 'source nat' => const Color(0xFF3B82F6),
-        'destination' || 'dnat' || 'dest nat' => const Color(0xFFF59E0B),
-        _ => const Color(0xFF1D242B),
-      };
+    'masquerade' => const Color(0xFF22C55E),
+    'source' || 'snat' || 'source nat' => const Color(0xFF3B82F6),
+    'destination' || 'dnat' || 'dest nat' => const Color(0xFFF59E0B),
+    _ => const Color(0xFF1D242B),
+  };
 
   factory NatRuleModelAnalyst.fromJson(Map<String, dynamic> json) {
-    // destIp/newSourceIp stay separate concepts: destIp only ever reads
-    // dest_ip (Destination NAT), newSourceIp only ever reads new_source_ip
-    // (Source NAT). The table widget derives the single "Translated
-    // IP/Dest IP" display value itself, based on nat_type.
     return NatRuleModelAnalyst(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       enabled: json['isActive'] ?? json['enabled'] ?? true,
       sourceIp: (json['source_ip'] ?? json['sourceIp'] ?? '—').toString(),
-      interfaceName: (json['output_interface'] ??
-              json['input_interface'] ??
-              json['interfaceName'] ??
-              '—')
-          .toString(),
+      interfaceName:
+          (json['output_interface'] ??
+                  json['input_interface'] ??
+                  json['interfaceName'] ??
+                  '—')
+              .toString(),
       destIp: (json['dest_ip'] ?? json['destIp'] ?? '—').toString(),
-      newSourceIp:
-          (json['new_source_ip'] ?? json['newSourceIp'] ?? '—').toString(),
+      newSourceIp: (json['new_source_ip'] ?? json['newSourceIp'] ?? '—')
+          .toString(),
       extPort: (json['ext_port'] ?? json['extPort'] ?? '—').toString(),
       intPort: (json['int_port'] ?? json['intPort'] ?? '—').toString(),
       natType: (json['nat_type'] ?? json['natType'] ?? '').toString(),

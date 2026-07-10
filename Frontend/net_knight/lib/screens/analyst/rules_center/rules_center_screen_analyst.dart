@@ -31,7 +31,6 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
   String _searchQuery = '';
   String _natSearchQuery = '';
 
-  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
   String _username = 'User';
   String _role = '';
   String _initials = 'U';
@@ -145,15 +144,6 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
               children: [
                 const _TopBarAnalyst(title: 'Rules Center'),
                 Expanded(
-                  // ⚠️ FIX: this screen used to load rules exactly once in
-                  // initState() with no way to refresh — so if the admin
-                  // toggled a rule on/off while the analyst had this screen
-                  // open, the analyst's (correctly read-only) toggle kept
-                  // showing the stale state until they navigated away and
-                  // back. Wrapping the whole body in RefreshIndicator (pull
-                  // to refresh) plus an explicit refresh button gives the
-                  // analyst a way to re-fetch and see the real current
-                  // state without leaving the screen.
                   child: RefreshIndicator(
                     onRefresh: _loadData,
                     child: SingleChildScrollView(
@@ -240,10 +230,6 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    // ⚠️ ADDED: explicit refresh button so the
-                                    // analyst can confirm toggle states are
-                                    // up to date without pulling to refresh
-                                    // or leaving the screen.
                                     Tooltip(
                                       message: 'Refresh',
                                       child: InkWell(
@@ -306,13 +292,7 @@ class _RulesCenterScreenAnalystState extends State<RulesCenterScreenAnalyst> {
                                   ],
                                 ),
                                 const SizedBox(height: 20),
-
                                 // Table
-                                // ⚠️ FIX: both tables now live directly inside
-                                // this SingleChildScrollView (no Expanded
-                                // wrapper needed — FirewallTableAnalyst was
-                                // updated to size itself via shrinkWrap,
-                                // matching NatTableAnalyst).
                                 if (isFirewall)
                                   FirewallTableAnalyst(
                                     rows: _filteredFirewall,

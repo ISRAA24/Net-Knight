@@ -62,8 +62,6 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
     }
   }
 
-  // The backend currently ignores the "days" query param entirely, so we
-  // filter on the client using each record's own date/createdAt value.
   bool _withinDays(String dateStr, int days) {
     if (dateStr.isEmpty) return true;
     final date = DateTime.tryParse(dateStr);
@@ -76,9 +74,7 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
   }
 
   // ─── Manual CSV builder ────────────────────────────────────
-  // We avoid the `csv` package here: its API changed across major versions
-  // (ListToCsvConverter isn't guaranteed across pubspec ranges), and a
-  // correctly-escaped CSV line is trivial to build by hand.
+
   String _escapeCsvField(String field) {
     final needsQuoting =
         field.contains(',') || field.contains('"') || field.contains('\n');
@@ -118,9 +114,7 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
 
     if (format == null) return;
 
-    // NOTE: there is no '/reports/export' route on the backend at all, so
-    // exporting is generated fully on the client from the data already
-    // loaded/filtered on screen.
+
     try {
       final isThreats = _tab == ReportTab.threats;
       final headers = isThreats
@@ -274,10 +268,7 @@ class _ReportsScreenAdminState extends State<ReportsScreenAdmin> {
     return filtered;
   }
 
-  // The old hardcoded list ('Security', 'Firewall', 'AI Engine') never
-  // matched real audit log actions (e.g. "Add Table", "System Login"...),
-  // so the Type filter could never actually filter anything. We now build
-  // the options from the real data instead.
+
   List<String> get _typeOptions => [
     'all',
     ..._logs.map((l) => l.type).where((t) => t.isNotEmpty).toSet(),

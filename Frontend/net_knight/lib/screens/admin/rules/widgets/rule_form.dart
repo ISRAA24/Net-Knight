@@ -84,11 +84,7 @@ class RuleForm extends StatelessWidget {
         ),
 
         // ─── Port Destination (optional) ──────────────
-        // ⚠️ FIX: the previous hint ("80,443,22") showed a comma-separated
-        // list, but the backend's Joi schema (utils/validators.js ->
-        // portField) only accepts a single port number or a single range
-        // like "8080:8090" — any comma will fail with a 400 error. The
-        // hint now matches what the backend actually accepts.
+
         _FieldWrapper(
           label: 'Port destination',
           child: _buildTextField(portDestController, '80 or 8080:8090'),

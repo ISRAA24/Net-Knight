@@ -34,16 +34,6 @@ class StatService {
     }
   }
 
-  // ⚠️ FIX (frontend-only, no backend change needed): the Threat document
-  // itself (Backend/src/models/Threat.js) has no `action` field at all —
-  // the mitigation action actually lives on the related AIRule document
-  // (AIRule.action, linked back via AIRule.threatId -> Threat._id). Instead
-  // of requiring the backend to duplicate that field onto Threat, we fetch
-  // both '/ai/threats' and '/ai/rules' here and join them client-side by
-  // matching threat._id against rule.threatId. Threats that have no
-  // matching AIRule (e.g. ones created through the legacy manual
-  // '/ai/threats' POST route with no linked rule) simply fall back to the
-  // default empty action, same as before.
   Future<List<ThreatData>> getThreats() async {
     try {
       final results = await Future.wait([
@@ -92,14 +82,7 @@ class StatService {
     }
   }
 
-  // ⚠️ FIX: there is currently NO backend endpoint that returns system
-  // status (firewall engine / AI detection model / RL agent / nftables
-  // controller) — '/dashboard/status' is not mounted anywhere in
-  // dashboard.routes.js. The call below will always 404, so instead of
-  // leaving the admin dashboard's System Status card permanently blank,
-  // we return the same static fallback the analyst dashboard already
-  // uses (statistics_screen_analyst.dart's `_fallbackStatuses`) so the
-  // two screens behave consistently until a real endpoint is added.
+
   Future<List<StatusData>> getSystemStatus() async {
     return computeLiveStatuses();
   }

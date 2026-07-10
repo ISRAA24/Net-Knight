@@ -165,9 +165,6 @@ class _SidebarFooterAnalyst extends StatefulWidget {
 class _SidebarFooterAnalystState extends State<_SidebarFooterAnalyst> {
   bool _isLoggingOut = false;
 
-  // ⚠️ FIX: previously logout only deleted the local token and never
-  // called POST /auth/logout, so the backend's httpOnly cookie was never
-  // cleared and no "System Logout" activity log entry was ever written.
   Future<void> _logout() async {
     if (_isLoggingOut) return;
     setState(() => _isLoggingOut = true);

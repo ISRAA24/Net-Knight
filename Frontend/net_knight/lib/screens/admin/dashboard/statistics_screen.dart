@@ -50,11 +50,6 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
         blockedAttack: rt.blockedAttacks.toString(),
         activeRules: rt.activeRules.toString(),
         pendingApprovals: rt.pendingApprovals.toString(),
-        // ⚠️ FIX: trend/blockedTrend/activeTrend/pendingTrend were
-        // hardcoded strings that never changed. They now come from
-        // DashboardSocketService's TrendTracker, which compares each
-        // stat's current value against the last value it saw (real ↗/↘/—
-        // direction + percentage, not static text).
         trend: _socket.totalThreatsTrend,
         blockedTrend: _socket.blockedAttacksTrend,
         activeTrend: _socket.activeRulesTrend,
@@ -85,11 +80,7 @@ class _StatisticsScreenAdminState extends State<StatisticsScreenAdmin> {
   @override
   Widget build(BuildContext context) {
     final metrics = _socket.metrics;
-    // ⚠️ FIX: system status used to be fetched once via a non-existent
-    // '/dashboard/status' endpoint and always fell back to a hardcoded
-    // "online" list. It's now derived live from DashboardSocketService's
-    // connection/heartbeat state on every build (which re-runs on every
-    // socket update via _onRealtimeUpdate).
+
     final statuses = StatService.computeLiveStatuses();
 
     return Scaffold(

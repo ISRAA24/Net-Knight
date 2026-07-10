@@ -39,9 +39,6 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
                   color: const Color(0xFF1D242B),
                 ),
               ),
-              // ⚠️ ADDED: analyst side previously had no "view all" affordance
-              // at all on this card — added to match the admin card and
-              // navigate to the analyst's own Reports screen.
               InkWell(
                 onTap: onViewAll,
                 borderRadius: BorderRadius.circular(6),
@@ -50,9 +47,10 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
                   child: Text(
                     'view all',
                     style: TextStyle(
-                        color: Color(0xFF3B82F6),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
+                      color: Color(0xFF3B82F6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -70,8 +68,10 @@ class ThreatAlertsCardAnalyst extends StatelessWidget {
           Expanded(
             child: threats.isEmpty
                 ? const Center(
-                    child: Text('No active threats',
-                        style: TextStyle(color: Colors.black38)),
+                    child: Text(
+                      'No active threats',
+                      style: TextStyle(color: Colors.black38),
+                    ),
                   )
                 : ListView.separated(
                     itemCount: threats.length,
@@ -89,15 +89,6 @@ class _ThreatItemAnalyst extends StatelessWidget {
   const _ThreatItemAnalyst(this.d);
   final ThreatDataAnalyst d;
 
-  // ⚠️ FIX: previously only 'Critical' had its own color and every other
-  // severity (High/Medium/Low/Unknown) fell into the same red bucket, so
-  // the color gave no real signal about how severe the threat actually is
-  // — a "Medium" threat looked exactly as alarming as a "Critical" one.
-  // Now each real backend severity value maps to its own color, matching
-  // the legend already used elsewhere in the app (ThreatsTabContent):
-  // critical -> red, high -> deep orange, medium -> amber, low -> green.
-  // Anything else (e.g. the 'Unknown' fallback from the model) gets a
-  // neutral grey instead of silently defaulting to red.
   Color get _levelColor {
     switch (d.level.toLowerCase()) {
       case 'critical':
@@ -113,8 +104,6 @@ class _ThreatItemAnalyst extends StatelessWidget {
     }
   }
 
-  // ⚠️ FIX: previously showed a hardcoded "Block" label — now shows the real
-  // mitigation action coming from the backend (e.g. "A2_TEMP_BLOCK").
   String get _actionLabel => d.action.isNotEmpty ? d.action : 'Block';
 
   @override
@@ -158,10 +147,7 @@ class _ThreatItemAnalyst extends StatelessWidget {
               children: [
                 Text(
                   d.ip,
-                  style: GoogleFonts.roboto(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
+                  style: GoogleFonts.roboto(fontSize: 14, color: Colors.white),
                 ),
                 Text(
                   d.type,

@@ -18,10 +18,6 @@ class RulesService {
     return data.map((e) => e['name'].toString()).toList();
   }
 
-  // The Python firewall agent's response shape isn't guaranteed (it can
-  // come back either as a plain list, or as {interfaces: [...]}), so we
-  // handle both here instead of assuming one fixed shape (which meant the
-  // interface dropdown could silently end up empty).
   Future<List<String>> getInterfaces() async {
     final response = await _dio.get('/staticfirewall/interfaces');
     final data = response.data['data'];

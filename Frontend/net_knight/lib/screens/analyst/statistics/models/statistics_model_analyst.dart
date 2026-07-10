@@ -65,8 +65,6 @@ class ThreatDataAnalyst {
   final String level;
   final String confidence;
   final String time;
-  // Real mitigation action from the backend Threat document (Threat.js
-  // now has an `action` field), used instead of a hardcoded "Block" label.
   final String action;
 
   const ThreatDataAnalyst({
@@ -77,22 +75,6 @@ class ThreatDataAnalyst {
     required this.time,
     this.action = '',
   });
-
-  // ⚠️ FIX: the backend (GET /ai/threats -> Threat model) actually returns
-  // documents shaped like { sourceIp, attackType, severity, confidence,
-  // createdAt, action, details } — there is no "ip"/"type"/"level"/"time"
-  // field at all, so every threat used to render with blank IP/type/level/
-  // time (only `action` matched, since that field name lines up with the
-  // backend's new field). We now read the real field names, keeping the
-  // old ones as a fallback, and capitalize severity so it matches the
-  // 'Critical'/'High' comparisons used by ThreatAlertsCardAnalyst.
-  //
-  // ⚠️ FIX 2: previously an empty/missing severity turned into an empty
-  // string, which rendered as a blank line above the IP on the Threat
-  // Alerts card (e.g. the "Brute Force" entry in the screenshot had no
-  // visible level at all). It now falls back to a clear 'Unknown' label
-  // instead of silently disappearing, while still showing the REAL
-  // backend value (Critical/High/Medium/Low) whenever it's present.
   factory ThreatDataAnalyst.fromJson(Map<String, dynamic> json) {
     final rawLevel = (json['severity'] ?? json['level'] ?? '').toString();
     final level = rawLevel.trim().isEmpty

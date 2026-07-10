@@ -159,12 +159,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
     final metrics = _socket.metrics;
     final rt = _socket.stats;
 
-    // ⚠️ FIX: trend for each card used to fall back to a value pulled from
-    // _data (the one-time HTTP snapshot from _loadData()), which never
-    // changed afterwards ('— 0%' or whatever it happened to be at load
-    // time). It now comes from DashboardSocketService's TrendTracker,
-    // which recomputes a real ↗/↘/— direction + percentage every time a
-    // 'dashboard:update' arrives, by comparing against the previous value.
     final stats = <StatDataAnalyst>[
       StatDataAnalyst(
         label: 'Total Threat',
@@ -192,13 +186,6 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
       ),
     ];
 
-    // ⚠️ FIX: system status used to fall back to a hardcoded "online" list
-    // whenever _data.systemStatuses was empty, and even when it wasn't
-    // empty it was only computed once (at _loadData() time) — it never
-    // reflected the agent going offline afterwards. It's now recomputed
-    // live on every build (which re-runs on every socket update via
-    // _onRealtimeUpdate), driven by DashboardSocketService's
-    // connection/heartbeat state.
     final statuses = StatisticsServiceAnalyst.computeLiveStatuses();
     final threats = _data?.threats ?? const [];
     final totalThreats = rt.totalThreats;
@@ -228,13 +215,7 @@ class _StatisticsScreenAnalystState extends State<StatisticsScreenAnalyst> {
               ],
             ),
             const SizedBox(height: 20),
-            // SystemStatusCardAnalyst and ThreatAlertsCardAnalyst were both
-            // wrapped in `Expanded` inside this Row but the Row itself has
-            // no bounded height (it's inside a SingleChildScrollView), so
-            // Expanded here has nothing to expand into. We give the Row a
-            // fixed height so ThreatAlertsCardAnalyst's `Expanded`/`height:
-            // double.infinity` internals have something concrete to size
-            // against, matching how the admin dashboard lays this out.
+
             SizedBox(
               height: 560,
               child: Row(

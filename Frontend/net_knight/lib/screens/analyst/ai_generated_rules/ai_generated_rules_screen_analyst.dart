@@ -25,7 +25,6 @@ class _AiGeneratedRulesScreenAnalystState
   bool _isLoading = true;
   String? _error;
 
-  // بيانات اليوزر الحقيقية — بتيجي من TokenStorage بعد الـ login/verify
   String _username = 'User';
   String _role = '';
   String _initials = 'U';
@@ -37,7 +36,6 @@ class _AiGeneratedRulesScreenAnalystState
     _loadRules();
   }
 
-  // ─── جيب بيانات اليوزر الحالي من التخزين ─────────────────
   Future<void> _loadUserInfo() async {
     final username = await TokenStorage.getUsername();
     final role = await TokenStorage.getRole();
@@ -56,7 +54,6 @@ class _AiGeneratedRulesScreenAnalystState
     return 'U';
   }
 
-  // ─── جيب الـ rules من الـ API ─────────────────────────────
   Future<void> _loadRules() async {
     setState(() {
       _isLoading = true;

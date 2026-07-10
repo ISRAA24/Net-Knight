@@ -41,17 +41,6 @@ class LogModel {
     required this.ip,
   });
 
-  // ⚠️ FIX: some backend call sites (firewall.controller.js / NAT.controller.js)
-  // call logActivity(adminId, adminName, action, target, details = "") with
-  // only 4 arguments, so the description string actually lands in the
-  // `target` field while `details` stays as an empty string "" (not null).
-  // The old fallback chain `json['details'] ?? json['message'] ?? json['target']`
-  // stops at the *first non-null* value — an empty string "" counts as
-  // non-null, so it never fell through to `target`, and the Message column
-  // rendered blank for every "Add Table" / "Add Chain" / static rule /
-  // NAT rule log entry even though a real description existed in `target`.
-  // We now pick the first *non-empty* value instead, so it correctly falls
-  // through past an empty details/message to a populated target.
   static String _firstNonEmpty(List<String?> values) {
     for (final v in values) {
       if (v != null && v.trim().isNotEmpty) return v;
@@ -59,11 +48,6 @@ class LogModel {
     return '';
   }
 
-  // Backend (audit.controller.js -> getAuditLogs) actually returns:
-  // { no, date, userName, action, target, details } — there is NO "level"
-  // field at all, so we derive a reasonable one from the action text
-  // instead of always defaulting to "INFO" (which made the Level filter
-  // completely useless).
   factory LogModel.fromJson(Map<String, dynamic> json) {
     return LogModel(
       timestamp: json['date'] ?? json['timestamp'] ?? '',

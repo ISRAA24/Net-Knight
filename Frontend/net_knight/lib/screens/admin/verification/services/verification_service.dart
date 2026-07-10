@@ -37,7 +37,6 @@ class VerificationService {
     );
     final token = response.data['token'];
 
-    // Backend returns top-level fields here: { _id, username, email, role, token, ... }
     final userObj = response.data['user'] as Map<String, dynamic>?;
     final username = (userObj?['username'] ??
             response.data['username'] ??

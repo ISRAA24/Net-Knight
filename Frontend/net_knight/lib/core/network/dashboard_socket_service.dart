@@ -3,8 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:net_knight/core/network/base_services.dart';
 
-/// Fixed protocol order — لازم يطابق بالظبط PROTOCOL_BUCKETS في
-/// Backend/src/sockets/pythonMetrics.socket.js (uppercase كلهم بما فيهم OTHER)
 const List<String> kProtocolOrder = [
   'TLS',
   'HTTP',
@@ -47,7 +45,6 @@ class RealtimeMetrics {
       });
     }
     return RealtimeMetrics(
-      // ⚠️ الباك (dashboard.controller.js) بيبعت cpuUsage/memoryUsage كنسبة 0-100
       cpuUsage: ((json['cpuUsage'] ?? 0) as num).toDouble() / 100,
       memoryUsage: ((json['memoryUsage'] ?? 0) as num).toDouble() / 100,
       packetsPerSec: (json['packetsPerSecond'] ?? 0).toString(),
@@ -90,11 +87,6 @@ class DashboardStatsRt {
       );
 }
 
-/// بيتابع قيمة إحصائية واحدة عبر الوقت ويحسب اتجاهها (↗ / ↘ / —) بمقارنة
-/// القيمة الحالية بآخر قيمة اتسجلت. ده اتجاه "حقيقي" (مش ثابت)، لكنه نسبي
-/// لآخر تحديث وصل من الـ socket خلال نفس الجلسة (session) — مش "زاد عن
-/// إمبارح" أو "عن الأسبوع اللي فات". حساب ترند بالمعنى ده (مقارنة بفترة
-/// زمنية محددة) محتاج الباك يخزن ويرجع snapshot تاريخي.
 class TrendTracker {
   int? _previous;
 
@@ -105,7 +97,6 @@ class TrendTracker {
     if (prev == null || prev == current) return '— 0%';
 
     if (prev == 0) {
-      // مفيش قيمة سابقة نقارن بيها نسبة عليها — بس فعليًا زاد من صفر
       return current > 0 ? '↗ 100%' : '— 0%';
     }
 
@@ -115,8 +106,6 @@ class TrendTracker {
   }
 }
 
-/// Singleton — Socket.IO واحد بس للتطبيق كله (Admin + Analyst)
-/// بيسمع على 'dashboard:update' (metrics + stats) و 'notification:new'.
 class DashboardSocketService extends ChangeNotifier {
   DashboardSocketService._();
   static final DashboardSocketService instance = DashboardSocketService._();
@@ -127,16 +116,13 @@ class DashboardSocketService extends ChangeNotifier {
   RealtimeMetrics metrics = const RealtimeMetrics();
   DashboardStatsRt stats = const DashboardStatsRt();
 
-  // آخر وقت وصلت فيه رسالة realtime فعلية من الـ Python agent
   DateTime? _lastRealtimeUpdateAt;
   static const _agentTimeout = Duration(seconds: 10);
 
-  /// true لو وصلت رسالة realtime خلال آخر 10 ثواني (يعني الـ Python agent شغال فعليًا)
   bool get isAgentAlive =>
       _lastRealtimeUpdateAt != null &&
       DateTime.now().difference(_lastRealtimeUpdateAt!) < _agentTimeout;
 
-  // trend labels الحقيقية لكل كارد، بتتحدث مع كل 'dashboard:update'
   final _totalThreatsTrend = TrendTracker();
   final _blockedAttacksTrend = TrendTracker();
   final _activeRulesTrend = TrendTracker();
@@ -147,7 +133,6 @@ class DashboardSocketService extends ChangeNotifier {
   String activeRulesTrend = '— 0%';
   String pendingApprovalsTrend = '— 0%';
 
-  /// بينادَى عند تشغيل الأبليكيشن (main.dart). آمن ينادَى أكتر من مرة.
   void connect() {
     if (_socket != null) return;
 
@@ -178,7 +163,6 @@ class DashboardSocketService extends ChangeNotifier {
             Map<String, dynamic>.from(map['stats'] as Map),
           );
 
-          // نحسب الاتجاه قبل ما نستبدل stats بالقيم الجديدة
           totalThreatsTrend = _totalThreatsTrend.update(newStats.totalThreats);
           blockedAttacksTrend =
               _blockedAttacksTrend.update(newStats.blockedAttacks);
@@ -200,13 +184,11 @@ class DashboardSocketService extends ChangeNotifier {
 
     _socket!.onDisconnect((_) {
       debugPrint('[Socket] disconnected');
-      notifyListeners(); // عشان الـ UI يعرف إن الـ socket اتقطع
     });
     _socket!.onConnectError((e) => debugPrint('[Socket] connect error: $e'));
     _socket!.onError((e) => debugPrint('[Socket] error: $e'));
   }
 
-  /// Callback بيتنادى لما notification جديدة توصل (main.dart بيربطه بالـ Provider)
   void Function()? onNewNotification;
 
   void disconnect() {

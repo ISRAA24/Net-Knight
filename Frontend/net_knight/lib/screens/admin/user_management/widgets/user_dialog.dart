@@ -59,16 +59,6 @@ class _UserDialogState extends State<UserDialog> {
     super.dispose();
   }
 
-  // ⚠️ FIX: this previously had a bare try { } finally { } with no catch
-  // block at all. If the backend rejected the request (e.g. 400 "User
-  // already exists" from addUser, or a Joi validation error such as a
-  // password under 8 characters), the exception propagated unhandled —
-  // the dialog just sat there with no feedback at all about what went
-  // wrong (other screens like Tables/Chains/Rules/NAT already show a
-  // SnackBar on DioException; this dialog was the odd one out). We now
-  // catch DioException specifically (surfacing the backend's real message
-  // when available) plus a generic fallback for anything else, and show
-  // an error SnackBar instead of failing silently.
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty || _email.text.trim().isEmpty) return;
 

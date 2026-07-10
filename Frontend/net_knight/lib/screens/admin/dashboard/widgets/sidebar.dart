@@ -169,11 +169,6 @@ class _UserFooterState extends State<_UserFooter> {
     return 'U';
   }
 
-  // ⚠️ FIX: this previously only cleared the local token — it never
-  // called POST /auth/logout, so the httpOnly cookie on the backend was
-  // never cleared and the "System Logout" activity log entry was never
-  // written. We now call the backend first (best-effort — logout should
-  // still proceed locally even if the request fails, e.g. offline).
   Future<void> _logout() async {
     if (_isLoggingOut) return;
     setState(() => _isLoggingOut = true);

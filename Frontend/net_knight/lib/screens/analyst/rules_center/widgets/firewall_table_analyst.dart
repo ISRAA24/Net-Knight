@@ -19,13 +19,6 @@ class FirewallTableAnalyst extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // ── Header ──
-            // ⚠️ NOTE: "Priority" column removed on purpose. The backend's
-            // GET /staticfirewall/allRules does not return a real priority
-            // value for a rule (priority actually lives on the Chain
-            // document, and the old code substituted the nftables
-            // handleId instead, which isn't a priority at all). Rather
-            // than show a wrong/placeholder value, the column is simply
-            // not rendered.
             Container(
               color: Colors.white,
               child: const Row(
@@ -51,15 +44,6 @@ class FirewallTableAnalyst extends StatelessWidget {
             const Divider(height: 1, color: Colors.black),
 
             // ── Rows ──
-            // ⚠️ FIX: this was previously wrapped in `Expanded`, which only
-            // works when a parent gives this widget a bounded height. The
-            // screen puts this table inside a SingleChildScrollView (an
-            // unbounded-height context), so `Expanded` here had nothing to
-            // expand into and could make the whole list fail to render any
-            // rows even though data existed. Using `shrinkWrap` +
-            // `NeverScrollableScrollPhysics` instead makes this table size
-            // itself to its content, exactly like NatTableAnalyst already
-            // does.
             rows.isEmpty
                 ? const Center(
                     child: Padding(

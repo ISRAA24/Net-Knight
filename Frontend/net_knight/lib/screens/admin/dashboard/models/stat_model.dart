@@ -59,9 +59,7 @@ class ThreatData {
   final String level;
   final String confidence;
   final String time;
-  // ⚠️ ADDED: the mitigation action taken for this threat (e.g. "A2_TEMP_BLOCK"),
-  // populated from the backend Threat document. Used to replace the previously
-  // hardcoded "Block" label on the Threat Alerts card.
+
   final String action;
 
   const ThreatData({
@@ -73,17 +71,7 @@ class ThreatData {
     this.action = '',
   });
 
-  // Backend (/ai/threats) actually returns Threat documents shaped like:
-  // { sourceIp, attackType, severity, confidence, createdAt, details, action }
-  //
-  // ⚠️ FIX: `level` used to be assigned the raw backend value as-is
-  // (lowercase, e.g. "medium"/"critical"), so any comparison against a
-  // capitalized string (e.g. `data.level == 'Critical'`) never matched —
-  // the severity shown on screen was correct, but nothing could ever key
-  // off it correctly (colors, filters, etc). It's now capitalized exactly
-  // like the analyst-side model, and falls back to 'Unknown' instead of
-  // an empty string when severity is missing, so the level never renders
-  // as a blank line.
+
   factory ThreatData.fromJson(Map<String, dynamic> json) {
     final rawLevel = (json['severity'] ?? json['level'] ?? '').toString();
     final level = rawLevel.trim().isEmpty

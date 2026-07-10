@@ -84,14 +84,6 @@ class NatTableAnalyst extends StatelessWidget {
                             const VDAnalyst(),
                             TDAnalyst(rule.interfaceName, flex: 2),
                             const VDAnalyst(),
-                            // ⚠️ FIX: this used to have TWO cells here
-                            // (rule.destIp then displayIp) even though the
-                            // header only has ONE "Translated IP/Dest IP"
-                            // column — that extra cell shifted every
-                            // following column by one slot (Ext Port showed
-                            // under Translated IP, Int Port under Ext Port,
-                            // etc). Only the correctly-computed displayIp
-                            // remains, matching the single header column.
                             TDAnalyst(displayIp, flex: 3),
                             const VDAnalyst(),
                             TDAnalyst(rule.extPort, flex: 2),

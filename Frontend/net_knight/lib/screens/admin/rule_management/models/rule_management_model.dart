@@ -2,11 +2,7 @@ class RuleModel {
   final String id;
   bool enabled;
   final String ruleName;
-  // ⚠️ ADDED: `priority` so the admin's Rules Center table can show the same
-  // columns as the analyst's Rules Center table (Status, Priority, Source IP,
-  // Destination, Port, Protocol, Action, Created, Origin). The backend's
-  // GET /staticfirewall/allRules doesn't return this field today, so it
-  // defaults to '-' the same way destination/port/protocol already did.
+
   final String priority;
   String sourceIp, destination, port, protocol, action;
   final String created, origin;
@@ -27,12 +23,6 @@ class RuleModel {
     this.isAi = false,
   });
 
-  // NOTE: the backend's GET /staticfirewall/allRules does NOT return
-  // priority/destination/port/protocol fields — it returns:
-  // { _id, ruleName, sourceIp, action, ruleType, expireAt, isActive,
-  //   isAi, createdAt }
-  // so those extra fields are kept only for widget-layout compatibility
-  // and default to '-' when the backend doesn't provide them.
     factory RuleModel.fromJson(Map<String, dynamic> json) {
     return RuleModel(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -40,9 +30,7 @@ class RuleModel {
       ruleName: json['ruleName']?.toString() ?? '-',
       priority: json['priority']?.toString() ?? '-',
       sourceIp: json['sourceIp']?.toString() ?? json['ip_src']?.toString() ?? 'ANY',
-      // إضافة ip_dest
       destination: json['destination']?.toString() ?? json['ip_dest']?.toString() ?? '-',
-      // إضافة port_dest
       port: json['port']?.toString() ?? json['port_dest']?.toString() ?? '*',
       protocol: json['protocol']?.toString() ?? 'ANY',
       action: json['action']?.toString() ?? '-',
