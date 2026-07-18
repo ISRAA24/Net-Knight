@@ -1,7 +1,3 @@
-"""
-routes/preview.py — endpoints المعاينة اللحظية للفرونت
-نفس الـ responses الأصلية بالظبط: {"status": "success/error", "command": "..."}
-"""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request

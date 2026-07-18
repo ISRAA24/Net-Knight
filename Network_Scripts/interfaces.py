@@ -1,7 +1,3 @@
-"""
-routes/interfaces.py — إدارة الـ network interfaces
-نفس الـ logic والـ responses الأصلية بالظبط.
-"""
 from __future__ import annotations
 
 import subprocess
@@ -54,7 +50,7 @@ def manage_interfaces():
 
 
 def _build_interface_command(iface: str, action: str, new_ip: str | None):
-    """يبني الأمر المناسب حسب الـ action."""
+    
     if action == 'up':
         return ["ip", "link", "set", "dev", iface, "up"]
 

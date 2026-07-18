@@ -1,10 +1,3 @@
-"""
-routes/logs.py — endpoint للباك يجيب الـ logs
-
-GET /api/logs          → آخر 100 سطر
-GET /api/logs?limit=50 → آخر 50 سطر
-GET /api/logs?level=ERROR → الـ errors بس
-"""
 from __future__ import annotations
 
 import json
@@ -29,7 +22,7 @@ def get_logs():
         with open(LOG_FILE, 'r') as f:
             lines = f.readlines()
 
-        # نقرأ من آخر الملف
+        
         lines = lines[-limit:]
 
         logs = []
@@ -39,7 +32,7 @@ def get_logs():
                 continue
             try:
                 entry = json.loads(line)
-                # لو في filter على الـ level
+                
                 if level and entry.get('level') != level:
                     continue
                 logs.append(entry)

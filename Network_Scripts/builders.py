@@ -1,6 +1,3 @@
-"""
-core/builders.py — بناء nft expressions
-"""
 from __future__ import annotations
 
 
@@ -15,10 +12,7 @@ def build_rule_expr(
     protocol: str = "",
     action: str = "accept",
 ) -> tuple[str, list[str]]:
-    """
-    يبني الـ rule expression.
-    بيرجع: (rule_string, cmd_list)
-    """
+    
     parts = []
     if interface:   parts.append(f"iif {interface}")
     if ip_src:      parts.append(f"ip saddr {ip_src}")
@@ -38,11 +32,7 @@ def build_rule_expr(
 
 
 def build_nat_expr(data: dict) -> tuple[str, list[str], str] | None:
-    """
-    يبني الـ NAT command.
-    بيرجع: (rule_string, cmd_list, chain_name)
-    أو None لو الـ nat_type غلط.
-    """
+    
     nat_type = data.get('nat_type')
 
     if nat_type == "masquerade":

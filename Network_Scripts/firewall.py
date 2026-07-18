@@ -1,7 +1,3 @@
-"""
-routes/firewall.py — endpoints الـ nftables (execution)
-نفس الـ responses الأصلية + حفظ تلقائي بعد كل عملية ناجحة.
-"""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
@@ -222,7 +218,7 @@ def delete_nat():
     if not all([nat_type, handle]):
         return jsonify({"status": "error", "message": "nat_type and handle required"})
 
-    # ستاتيك زي ما هو في builders
+    
     chain_map = {
         "masquerade":  "postrouting",
         "source":      "postrouting",
@@ -233,7 +229,7 @@ def delete_nat():
     if not chain:
         return jsonify({"status": "error", "message": "Invalid nat_type"})
 
-    # family و table ستاتيك زي builders
+    
     command  = ["nft", "delete", "rule", "ip", "nk_nat", chain, "handle", str(handle)]
     rule_str = f"nft delete rule ip nk_nat {chain} handle {handle}"
     result   = run_command(command)

@@ -1,21 +1,5 @@
-"""
-app.py — نقطة البداية
-نفس الـ URLs الأصلية بالظبط:
-
-  POST /api/create_table
-  POST /api/create_chain
-  POST /api/add_rule
-  POST /api/add_nat
-  POST /api/delete_rule
-  GET  /api/manage_interfaces
-  POST /api/manage_interfaces
-  POST /api/preview_table
-  POST /api/preview_chain
-  POST /api/preview_rule
-  POST /api/preview_nat
-"""
 from __future__ import annotations
-
+from flask_cors import CORS
 from flask import Flask
 
 from firewall   import bp as firewall_bp
@@ -26,6 +10,7 @@ from logs       import bp as logs_bp
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    CORS(app)
     app.register_blueprint(firewall_bp)
     app.register_blueprint(interfaces_bp)
     app.register_blueprint(preview_bp)
