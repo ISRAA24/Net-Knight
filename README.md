@@ -29,10 +29,51 @@ The project consists of 4 main components working seamlessly together:
 * **Backend:** Node.js, Express, MongoDB, Mongoose, Socket.IO, JWT
 * **AI & Security:** Python, FastAPI, NFStream, LightGBM, Stable-Baselines3 (PPO), Linux nftables, Redis
 
+## 🖥️ Deployment
+
+Net-Knight is deployed and tested on a **Virtual Machine (VM)** environment. The final product runs as a service on the VM, which handles interface configuration, rule management, NAT, and attack detection/response in an isolated network setup — allowing safe simulation of attacks without affecting a production network.
+
+### 1. User Management
+| Screenshot | Description |
+|---|---|
+| ![Adding User](assets/screenshots/adding-user.jpg) | Adding a new user to the system |
+| ![User Added](assets/screenshots/user-added.jpg) | Confirmation that the user has been successfully added |
+
+### 2. Interface Configuration
+| Screenshot | Description |
+|---|---|
+| ![Interface GUI Before Edit](assets/screenshots/interface-gui-before-edit.jpg) | Interface configuration GUI before any changes |
+| ![Interface GUI After Edit](assets/screenshots/interface-gui-after-edit.jpg) | Interface configuration GUI after editing settings |
+| ![Real Interface Before Edit](assets/screenshots/real-interface-before-edit.jpg) | Actual network interface state before configuration |
+| ![Real Interface After Edit](assets/screenshots/real-interface-after-edit.jpg) | Actual network interface state after configuration is applied |
+
+### 3. Rules & Chains
+| Screenshot | Description |
+|---|---|
+| ![Rule GUI](assets/screenshots/rule-gui.jpg) | Interface for creating and managing firewall rules |
+| ![Chain GUI](assets/screenshots/chain-gui.jpg) | Interface for managing firewall chains |
+| ![Chain and Rule Applying](assets/screenshots/chain-and-rule-applying.jpg) | Applying a rule within a specific chain |
+| ![Table GUI](assets/screenshots/table-gui.jpg) | Firewall table management interface |
+| ![Table Applying](assets/screenshots/table-applying.jpg) | Applying changes to a firewall table |
+
+### 4. NAT Configuration
+| Screenshot | Description |
+|---|---|
+| ![NAT GUI](assets/screenshots/nat-gui.jpg) | NAT (Network Address Translation) configuration interface |
+| ![NAT Applying](assets/screenshots/nat-applying.jpg) | Applying NAT settings to the network |
+
+### 5. Attack Simulation & Firewall Response
+| Screenshot | Description |
+|---|---|
+| ![Attack Pattern](assets/screenshots/attack-pattern.jpg) | Simulated attack pattern used to test whether the firewall detects it |
+| ![Attack Rule Before Approve](assets/screenshots/attack-rule-before-approve.jpg) | Auto-generated rule shown before review and approval |
+| ![Attack Rule After Approve](assets/screenshots/attack-rule-after-approve.jpg) | The rule after being reviewed and approved |
+| ![Applied Attack Rule](assets/screenshots/applied-attack-rule.jpg) | The approved rule actively enforced — matching traffic is now blocked |
+
 ## 👥 Team Members
-* Alaa Ramadan Ibrahim
-* Esraa Ahmed Awad
-* Esraa Hussein Abd El-Haleem
-* Dalia Ramadan Ahmed
-* Omnia Ahmed Arafa
-* Ashraqat Mohamed Ibrahim
+* Alaa Ramadan Ibrahim as AI Engineer
+* Esraa Ahmed Awad as Backend Developer
+* Esraa Hussein Abd El-Haleem as Network Enginner
+* Dalia Ramadan Ahmeda as Flutter Developer
+* Omnia Ahmed Arafa as Flutter Developer
+* Ashraqat Mohamed Ibrahim as AI Engineer
