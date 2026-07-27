@@ -70,6 +70,11 @@ Net-Knight is deployed and tested on a **Virtual Machine (VM)** environment. The
 | ![Attack Rule After Approve](assets/screenshots/attack-rule-after-approve.jpg) | The rule after being reviewed and approved |
 | ![Applied Attack Rule](assets/screenshots/applied-attack-rule.jpg) | The approved rule actively enforced — matching traffic is now blocked |
 
+## 🚀 Demo
+[UI & Static rules](https://drive.google.com/file/d/1pgSpQYZq8WRUkPGKMMyXKmHvHKCc-TA-/view)
+[DOS test](https://drive.google.com/file/d/1RxOAnZcIi4NY0mUevvCGE1ueqrwQbqk_/view?usp=sharing)
+[Brute Force test](https://drive.google.com/drive/folders/1cEdIhacb8Iuh8f80s3wLy8JGyfIWlGP3?zx=1bbgr0ped2bm)
+
 ## 👥 Team Members
 * Alaa Ramadan Ibrahim as AI Engineer
 * Esraa Ahmed Awad as Backend Developer
