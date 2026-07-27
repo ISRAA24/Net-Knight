@@ -72,8 +72,11 @@ Net-Knight is deployed and tested on a **Virtual Machine (VM)** environment. The
 
 ## 🚀 Demo
 [UI & Static rules](https://drive.google.com/file/d/1pgSpQYZq8WRUkPGKMMyXKmHvHKCc-TA-/view)
+
 [DOS test](https://drive.google.com/file/d/1RxOAnZcIi4NY0mUevvCGE1ueqrwQbqk_/view?usp=sharing)
-[Brute Force test](https://drive.google.com/drive/folders/1cEdIhacb8Iuh8f80s3wLy8JGyfIWlGP3?zx=1bbgr0ped2bm)
+
+[Brute Force test](https://drive.google.com/file/d/1zqvc9s1587VlP-sq0N32HW5D4dltvRR7/view?usp=drive_link)
+
 
 ## 👥 Team Members
 * Alaa Ramadan Ibrahim as AI Engineer
