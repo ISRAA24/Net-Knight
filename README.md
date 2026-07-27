@@ -79,9 +79,9 @@ Net-Knight is deployed and tested on a **Virtual Machine (VM)** environment. The
 
 
 ## 👥 Team Members
-* Alaa Ramadan Ibrahim (AI Engineer)
-* Esraa Ahmed Awad  (Backend Developer)
-* Esraa Hussein Abd El-Haleem (Network Engineer)
-* Dalia Ramadan Ahmeda (Flutter Developer)
-* Omnia Ahmed Arafa (Flutter Developer)
-* Ashraqat Mohamed Ibrahim  (AI Engineer)
+* **Alaa Ramadan Ibrahim** (AI Engineer)
+* **Esraa Ahmed Awad**  (Backend Developer)
+* **Esraa Hussein Abd El-Haleem** (Network Engineer)
+* **Dalia Ramadan Ahmed** (Flutter Developer)
+* **Omnia Ahmed Arafa** (Flutter Developer)
+* **Ashraqat Mohamed Ibrahim**  (AI Engineer)
